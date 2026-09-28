@@ -34,20 +34,29 @@ export function formatTime(value) {
   return value ? value.slice(0, 5) : ''
 }
 
+const DATE_TIME = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }
+const TIME = { hour: '2-digit', minute: '2-digit' }
+
 // Horodatage UTC → "16/06/2026 11:00" en heure de Bruxelles
 export function formatDateTime(value) {
   if (!value) return ''
-  return new Intl.DateTimeFormat(LOCALE, {
-    dateStyle: 'short',
-    timeStyle: 'short',
-    timeZone: TIME_ZONE,
-  }).format(new Date(value))
+  return new Intl.DateTimeFormat(LOCALE, { ...DATE_TIME, timeZone: TIME_ZONE }).format(new Date(value))
 }
 
 // LocalDateTime sans fuseau → "16/06/2026 09:00"
 export function formatLocalDateTime(value) {
   if (!value) return ''
-  return new Intl.DateTimeFormat(LOCALE, { dateStyle: 'short', timeStyle: 'short' }).format(parseLocal(value))
+  return new Intl.DateTimeFormat(LOCALE, DATE_TIME).format(parseLocal(value))
+}
+
+// Plage de LocalDateTime : "de 09:00 à 12:20" le même jour, sinon dates complètes
+export function formatLocalRange(start, end) {
+  if (!start || !end) return ''
+  if (start.slice(0, 10) === end.slice(0, 10)) {
+    const time = new Intl.DateTimeFormat(LOCALE, TIME)
+    return `de ${time.format(parseLocal(start))} à ${time.format(parseLocal(end))}`
+  }
+  return `du ${formatLocalDateTime(start)} au ${formatLocalDateTime(end)}`
 }
 
 // Date → "2026-06-16" pour les envois au backend

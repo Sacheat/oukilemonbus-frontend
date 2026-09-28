@@ -15,6 +15,9 @@ import { VerifyEmailPage } from './pages/auth/VerifyEmailPage'
 import { NotFoundPage } from './pages/errors/NotFoundPage'
 import { RouteErrorPage } from './pages/errors/RouteErrorPage'
 import { SpaceHomePage } from './pages/SpaceHomePage'
+import { TripDetailPage } from './pages/user/TripDetailPage'
+import { TripsPage } from './pages/user/TripsPage'
+import { UserHomePage } from './pages/user/UserHomePage'
 
 // Chemins en français, sauf /verify-email et /reset-password imposés par les liens
 // des emails du backend. Les pages <ComingSoonPage> sont à remplacer par bloc.
@@ -70,8 +73,15 @@ export const router = createBrowserRouter([
               {
                 element: <TopNavLayout nav={USER_NAV} />,
                 children: [
-                  { index: true, element: <SpaceHomePage eyebrow="Espace demandeur" /> },
-                  soon('deplacements', 'Suivi de vos demandes', 'Mes déplacements', 'reservations.view'),
+                  { index: true, element: <UserHomePage /> },
+                  {
+                    path: 'deplacements',
+                    element: <RequirePermission permission="reservations.view" />,
+                    children: [
+                      { index: true, element: <TripsPage /> },
+                      { path: ':id', element: <TripDetailPage /> },
+                    ],
+                  },
                   soon('reservations/nouvelle', 'Nouvelle réservation', 'Commençons par votre trajet', 'reservations.create'),
                   soon('recurrences', 'Écoles et personnel communal', 'Récurrences', 'reservations.view'),
                   soon('organisations', 'Mon espace', 'Mes organisations', 'organizations.view'),
