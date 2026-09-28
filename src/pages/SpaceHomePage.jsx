@@ -7,7 +7,7 @@ export function SpaceHomePage({ eyebrow }) {
   const { user } = useAuth()
   return (
     <>
-      <PageHeader eyebrow={eyebrow} title={`Bonjour ${user.first_name} 👋`} description="Que souhaitez-vous faire aujourd’hui ?" />
+      <PageHeader eyebrow={eyebrow} title={`Bonjour ${user.first_name}`} description="Que souhaitez-vous faire aujourd’hui ?" />
       <Card>
         <p className="text-muted">Le tableau de bord de cet espace est en cours de construction.</p>
       </Card>

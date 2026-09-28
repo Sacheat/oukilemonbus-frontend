@@ -18,7 +18,7 @@ export function UserHomePage() {
 
   return (
     <>
-      <PageHeader eyebrow="Espace demandeur" title={`Bonjour ${user.first_name} 👋`} description="Que souhaitez-vous faire aujourd’hui ?" />
+      <PageHeader eyebrow="Espace demandeur" title={`Bonjour ${user.first_name}`} description="Que souhaitez-vous faire aujourd’hui ?" />
 
       {!hasOrganization && (
         <Alert tone="warning" title="Rejoignez une organisation pour réserver" className="mb-5">

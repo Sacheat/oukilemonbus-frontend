@@ -15,6 +15,7 @@ import { VerifyEmailPage } from './pages/auth/VerifyEmailPage'
 import { NotFoundPage } from './pages/errors/NotFoundPage'
 import { RouteErrorPage } from './pages/errors/RouteErrorPage'
 import { SpaceHomePage } from './pages/SpaceHomePage'
+import { NewReservationPage } from './pages/user/NewReservationPage'
 import { TripDetailPage } from './pages/user/TripDetailPage'
 import { TripsPage } from './pages/user/TripsPage'
 import { UserHomePage } from './pages/user/UserHomePage'
@@ -82,7 +83,14 @@ export const router = createBrowserRouter([
                       { path: ':id', element: <TripDetailPage /> },
                     ],
                   },
-                  soon('reservations/nouvelle', 'Nouvelle réservation', 'Commençons par votre trajet', 'reservations.create'),
+                  {
+                    path: 'reservations/nouvelle',
+                    element: (
+                      <RequirePermission permission="reservations.create">
+                        <NewReservationPage />
+                      </RequirePermission>
+                    ),
+                  },
                   soon('recurrences', 'Écoles et personnel communal', 'Récurrences', 'reservations.view'),
                   soon('organisations', 'Mon espace', 'Mes organisations', 'organizations.view'),
                   soon('documents', 'Mon espace', 'Documents', 'documents.view'),

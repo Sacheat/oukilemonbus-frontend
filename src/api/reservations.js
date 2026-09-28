@@ -60,3 +60,33 @@ export async function getNextTrip({ signal } = {}) {
   }
   return null
 }
+
+// Même corps que la création ; ne modifie rien. Une règle bloquante renvoie 422.
+export async function previewReservation(payload, { signal } = {}) {
+  const { data } = await api.post('/reservations/preview', payload, { signal })
+  return data.data
+}
+
+export async function createReservation(payload, idempotencyKey) {
+  const { data } = await api.post('/reservations', payload, { headers: { 'Idempotency-Key': idempotencyKey } })
+  return data.data
+}
+
+// Vérification du trajet seul (étape 1 de l'assistant), sans passagers ni motif.
+// Utilise POST /reservations/check-trip ; tant que le backend ne l'a pas (404), repli sur le
+// preview avec des valeurs provisoires pour les passagers (la capacité est vérifiée à l'étape 3).
+const TRIP_CHECK_PLACEHOLDERS = { nb_children: 0, nb_adults: 1, trip_purpose: 'Vérification du trajet' }
+let checkTripRouteMissing = false
+
+export async function checkTrip(trip, { signal } = {}) {
+  if (!checkTripRouteMissing) {
+    try {
+      const { data } = await api.post('/reservations/check-trip', trip, { signal })
+      return data.data
+    } catch (error) {
+      if (error.response?.status !== 404) throw error
+      checkTripRouteMissing = true
+    }
+  }
+  return previewReservation({ ...trip, ...TRIP_CHECK_PLACEHOLDERS }, { signal })
+}
