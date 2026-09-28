@@ -20,3 +20,8 @@ export async function createLocation(suggestion) {
   const { data } = await api.post('/locations', location)
   return data.data
 }
+
+export async function getLocation(id, { signal } = {}) {
+  const { data } = await api.get(`/locations/${id}`, { signal })
+  return data.data
+}

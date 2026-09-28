@@ -7,13 +7,24 @@ import { LocationPicker } from '../LocationPicker'
 import { AvailabilityNotice, TripFacts, WarningsList } from './PreviewResult'
 
 // Étape 1 : organisation, date, horaires et lieux, vérifiés en direct (useTripCheck)
-export function TripStep({ values, setField, errors, organizations, lockOrganization = false, tripCheck, onUseSlot }) {
+// `withDate` : false pour une récurrence (les dates sont choisies à l'étape Calendrier) ;
+// `tripCheck` : null quand il n'y a pas de vérification en direct.
+export function TripStep({
+  values,
+  setField,
+  errors,
+  organizations,
+  lockOrganization = false,
+  withDate = true,
+  tripCheck = null,
+  onUseSlot,
+}) {
   const organization = organizations.find((item) => String(item.id) === String(values.organization_id))
   const isPriority = organization && PRIORITY_ORGANIZATION_TYPES.includes(organization.type)
   // Erreurs saisies (champ vide, retour de l'étape 3) prioritaires sur la vérification en direct
-  const fieldErrors = { ...mapApiErrors(tripCheck.fieldErrors), ...errors }
+  const fieldErrors = { ...mapApiErrors(tripCheck?.fieldErrors ?? {}), ...errors }
   const globalCheckError =
-    tripCheck.error && Object.keys(tripCheck.fieldErrors).length === 0 ? getErrorMessage(tripCheck.error) : null
+    tripCheck?.error && Object.keys(tripCheck.fieldErrors).length === 0 ? getErrorMessage(tripCheck.error) : null
 
   return (
     <div className="grid gap-4.5 sm:grid-cols-2">
@@ -41,16 +52,18 @@ export function TripStep({ values, setField, errors, organizations, lockOrganiza
         }
       </Field>
 
-      <Field
-        label="Date du trajet"
-        required
-        hint="Au moins 15 jours à l’avance, du lundi au vendredi."
-        error={fieldErrors.trip_date}
-      >
-        {(props) => (
-          <Input {...props} type="date" min={minTripDate()} value={values.trip_date} onChange={(event) => setField('trip_date', event.target.value)} />
-        )}
-      </Field>
+      {withDate && (
+        <Field
+          label="Date du trajet"
+          required
+          hint="Au moins 15 jours à l’avance, du lundi au vendredi."
+          error={fieldErrors.trip_date}
+        >
+          {(props) => (
+            <Input {...props} type="date" min={minTripDate()} value={values.trip_date} onChange={(event) => setField('trip_date', event.target.value)} />
+          )}
+        </Field>
+      )}
 
       <Field
         label="Heure de départ"
@@ -90,24 +103,26 @@ export function TripStep({ values, setField, errors, organizations, lockOrganiza
         )}
       </Field>
 
-      <div className="grid gap-3 sm:col-span-2" aria-live="polite">
-        {tripCheck.pending && (
-          <p className="flex items-center gap-2 text-sm text-muted">
-            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> Vérification du trajet…
-          </p>
-        )}
-        {globalCheckError && <Alert tone="danger">{globalCheckError}</Alert>}
-        {tripCheck.result && (
-          <>
-            <div className="rounded-[10px] border border-line bg-surface-muted p-4">
-              <p className="mb-2 text-sm font-bold">Trajet vérifié</p>
-              <TripFacts result={tripCheck.result} />
-            </div>
-            <AvailabilityNotice availability={tripCheck.result.availability} onUseSlot={onUseSlot} />
-            <WarningsList warnings={tripCheck.result.warnings} />
-          </>
-        )}
-      </div>
+      {tripCheck && (
+        <div className="grid gap-3 sm:col-span-2" aria-live="polite">
+          {tripCheck.pending && (
+            <p className="flex items-center gap-2 text-sm text-muted">
+              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> Vérification du trajet…
+            </p>
+          )}
+          {globalCheckError && <Alert tone="danger">{globalCheckError}</Alert>}
+          {tripCheck.result && (
+            <>
+              <div className="rounded-[10px] border border-line bg-surface-muted p-4">
+                <p className="mb-2 text-sm font-bold">Trajet vérifié</p>
+                <TripFacts result={tripCheck.result} />
+              </div>
+              <AvailabilityNotice availability={tripCheck.result.availability} onUseSlot={onUseSlot} />
+              <WarningsList warnings={tripCheck.result.warnings} />
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }

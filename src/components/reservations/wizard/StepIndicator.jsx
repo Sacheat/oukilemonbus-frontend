@@ -1,12 +1,12 @@
 import { cx } from '../../../lib/cx'
 
-const STEPS = ['Trajet', 'Passagers', 'Vérification']
+const DEFAULT_STEPS = ['Trajet', 'Passagers', 'Vérification']
 
 // Barre d'étapes de la maquette 03 ; les étapes déjà franchies sont cliquables
-export function StepIndicator({ current, onSelect, lastLabel = 'Envoi' }) {
+export function StepIndicator({ current, onSelect, steps = DEFAULT_STEPS, lastLabel = 'Envoi' }) {
   return (
     <ol className="mb-5.5 flex gap-2">
-      {[...STEPS, lastLabel].map((label, index) => {
+      {[...steps, lastLabel].map((label, index) => {
         const step = index + 1
         const done = step < current
         const content = (
