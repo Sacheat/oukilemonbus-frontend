@@ -21,6 +21,13 @@ export function canCancel(user, reservation) {
   return CANCELLABLE_STATUSES.includes(reservation.status) && isRequesterOrManager(user, reservation)
 }
 
+export const EDITABLE_STATUSES = ['en_attente', 'en_conflit']
+
+// Modification côté usager : demandeur ou responsable, tant que la demande n'est pas acceptée
+export function canEdit(user, reservation) {
+  return EDITABLE_STATUSES.includes(reservation.status) && isRequesterOrManager(user, reservation)
+}
+
 export function canConfirmPassengers(user, reservation) {
   return !isTerminal(reservation) && isRequesterOrManager(user, reservation)
 }

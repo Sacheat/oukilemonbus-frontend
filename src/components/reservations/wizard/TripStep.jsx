@@ -7,7 +7,7 @@ import { LocationPicker } from '../LocationPicker'
 import { AvailabilityNotice, TripFacts, WarningsList } from './PreviewResult'
 
 // Étape 1 : organisation, date, horaires et lieux, vérifiés en direct (useTripCheck)
-export function TripStep({ values, setField, errors, organizations, tripCheck, onUseSlot }) {
+export function TripStep({ values, setField, errors, organizations, lockOrganization = false, tripCheck, onUseSlot }) {
   const organization = organizations.find((item) => String(item.id) === String(values.organization_id))
   const isPriority = organization && PRIORITY_ORGANIZATION_TYPES.includes(organization.type)
   // Erreurs saisies (champ vide, retour de l'étape 3) prioritaires sur la vérification en direct
@@ -17,17 +17,28 @@ export function TripStep({ values, setField, errors, organizations, tripCheck, o
 
   return (
     <div className="grid gap-4.5 sm:grid-cols-2">
-      <Field label="Organisation concernée" required error={fieldErrors.organization_id} className="sm:col-span-2">
-        {(props) => (
-          <Select {...props} value={values.organization_id} onChange={(event) => setField('organization_id', event.target.value)}>
-            {organizations.length > 1 && <option value="">Choisir une organisation</option>}
-            {organizations.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </Select>
-        )}
+      <Field
+        label="Organisation concernée"
+        required={!lockOrganization}
+        hint={lockOrganization ? 'L’organisation d’une réservation ne peut pas être modifiée.' : null}
+        error={fieldErrors.organization_id}
+        className="sm:col-span-2"
+      >
+        {(props) =>
+          lockOrganization ? (
+            // L'organisation d'une réservation existante ne peut pas être changée
+            <Input {...props} value={organization?.name ?? ''} readOnly className="bg-surface-muted" />
+          ) : (
+            <Select {...props} value={values.organization_id} onChange={(event) => setField('organization_id', event.target.value)}>
+              {organizations.length > 1 && <option value="">Choisir une organisation</option>}
+              {organizations.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </Select>
+          )
+        }
       </Field>
 
       <Field

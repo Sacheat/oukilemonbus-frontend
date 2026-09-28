@@ -15,6 +15,7 @@ import { VerifyEmailPage } from './pages/auth/VerifyEmailPage'
 import { NotFoundPage } from './pages/errors/NotFoundPage'
 import { RouteErrorPage } from './pages/errors/RouteErrorPage'
 import { SpaceHomePage } from './pages/SpaceHomePage'
+import { EditReservationPage } from './pages/user/EditReservationPage'
 import { NewReservationPage } from './pages/user/NewReservationPage'
 import { TripDetailPage } from './pages/user/TripDetailPage'
 import { TripsPage } from './pages/user/TripsPage'
@@ -81,6 +82,14 @@ export const router = createBrowserRouter([
                     children: [
                       { index: true, element: <TripsPage /> },
                       { path: ':id', element: <TripDetailPage /> },
+                      {
+                        path: ':id/modifier',
+                        element: (
+                          <RequirePermission permission="reservations.update">
+                            <EditReservationPage />
+                          </RequirePermission>
+                        ),
+                      },
                     ],
                   },
                   {

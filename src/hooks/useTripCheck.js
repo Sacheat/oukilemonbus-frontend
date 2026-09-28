@@ -2,6 +2,7 @@ import axios from 'axios'
 import { useEffect, useState } from 'react'
 import { checkTrip } from '../api/reservations'
 import { getFieldErrors } from '../lib/errors'
+import { withoutSelfConflicts } from '../lib/reservationForm'
 
 const DEBOUNCE_MS = 700
 
@@ -17,7 +18,10 @@ export function useTripCheck(trip) {
     const controller = new AbortController()
     const timer = setTimeout(() => {
       checkTrip(JSON.parse(key), { signal: controller.signal })
-        .then((result) => setState({ key, result, fieldErrors: {}, error: null }))
+        .then((result) => {
+          const trip = JSON.parse(key)
+          setState({ key, result: withoutSelfConflicts(result, trip.reservation_id), fieldErrors: {}, error: null })
+        })
         .catch((error) => {
           if (axios.isCancel(error)) return
           setState({ key, result: null, fieldErrors: getFieldErrors(error), error })

@@ -67,6 +67,12 @@ export async function previewReservation(payload, { signal } = {}) {
   return data.data
 }
 
+// Modification (demandeur ou responsable, statut en_attente ou en_conflit). Corps partiel accepté.
+export async function updateReservation(id, payload) {
+  const { data } = await api.patch(`/reservations/${id}`, payload)
+  return data.data
+}
+
 export async function createReservation(payload, idempotencyKey) {
   const { data } = await api.post('/reservations', payload, { headers: { 'Idempotency-Key': idempotencyKey } })
   return data.data

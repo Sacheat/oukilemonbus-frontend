@@ -3,12 +3,12 @@ import { shortAddress } from '../../../lib/reservations'
 import { Card } from '../../ui/Card'
 
 // Colonne de droite de la maquette 03 : récapitulatif de la demande en cours
-export function RequestSummary({ values, organization, step }) {
+export function RequestSummary({ values, organization, step, title = 'Votre demande' }) {
   const passengers = values.nb_adults ? Number(values.nb_children || 0) + Number(values.nb_adults) : null
   return (
     <aside className="grid content-start gap-4">
       <Card className="p-5">
-        <h2 className="text-[17px] font-bold">Votre demande</h2>
+        <h2 className="text-[17px] font-bold">{title}</h2>
         <p className="text-sm text-muted">Étape {Math.min(step, 4)} sur 4</p>
         <div className="mt-3 grid gap-2 text-sm">
           {organization && <p>{organization.name}</p>}

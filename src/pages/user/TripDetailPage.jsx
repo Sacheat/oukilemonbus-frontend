@@ -1,6 +1,6 @@
-import { ArrowLeft, Ban, Users } from 'lucide-react'
-import { useCallback, useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { ArrowLeft, Ban, Pencil, Users } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { getReservation } from '../../api/reservations'
 import { useAuth } from '../../auth/useAuth'
 import { CancelReservationModal } from '../../components/reservations/CancelReservationModal'
@@ -15,7 +15,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useApi } from '../../hooks/useApi'
 import { formatDate, formatDateTime, formatLocalRange, formatTime } from '../../lib/dates'
 import { ORGANIZATION_TYPE_LABELS } from '../../lib/labels'
-import { canCancel, canConfirmPassengers, shortAddress, statusHint, totalPassengers } from '../../lib/reservations'
+import { canCancel, canConfirmPassengers, canEdit, shortAddress, statusHint, totalPassengers } from '../../lib/reservations'
 
 const STATUS_TONES = {
   en_attente: 'warning',
@@ -30,7 +30,15 @@ export function TripDetailPage() {
   const { id } = useParams()
   const { user } = useAuth()
   const [dialog, setDialog] = useState(null) // 'cancel' | 'passengers'
-  const [notice, setNotice] = useState(null)
+  // Message transmis par une autre page (ex. après une modification)
+  const location = useLocation()
+  const [notice, setNotice] = useState(location.state?.notice ?? null)
+  const navigate = useNavigate()
+
+  // Le message ne doit s'afficher qu'une fois : on le retire de l'historique (sinon il revient au rechargement)
+  useEffect(() => {
+    if (location.state?.notice) navigate(location.pathname, { replace: true, state: null })
+  }, [location, navigate])
 
   const fetchReservation = useCallback((signal) => getReservation(id, { signal }), [id])
   const { data: reservation, error, loading, reload } = useApi(fetchReservation)
@@ -180,7 +188,7 @@ export function TripDetailPage() {
           </Card>
         </div>
 
-        {(canConfirmPassengers(user, reservation) || canCancel(user, reservation)) && (
+        {(canEdit(user, reservation) || canConfirmPassengers(user, reservation) || canCancel(user, reservation)) && (
           <Card as="section" aria-labelledby="actions-title" className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 id="actions-title" className="text-[17px] font-bold">
@@ -189,6 +197,11 @@ export function TripDetailPage() {
               <p className="mt-1 text-sm text-muted">L’annulation doit intervenir au moins 24 heures avant le départ.</p>
             </div>
             <div className="flex flex-wrap gap-2">
+              {canEdit(user, reservation) && (
+                <Button variant="secondary" to={`/espace/deplacements/${reservation.id}/modifier`}>
+                  <Pencil className="size-4" aria-hidden="true" /> Modifier
+                </Button>
+              )}
               {canConfirmPassengers(user, reservation) && (
                 <Button variant="secondary" onClick={() => setDialog('passengers')}>
                   <Users className="size-4" aria-hidden="true" /> Confirmer les passagers

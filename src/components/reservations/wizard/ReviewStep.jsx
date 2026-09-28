@@ -9,10 +9,25 @@ import { ErrorState } from '../../ui/ErrorState'
 import { ApprovalNotice, AvailabilityNotice, ConflictsList, TripFacts, WarningsList } from './PreviewResult'
 
 // Étape 3 : récapitulatif + résultat du preview complet (avec les vrais passagers)
-export function ReviewStep({ values, organization, preview, onRetry, onEditStep, onUseSlot, acknowledged, setAcknowledged }) {
+export function ReviewStep({
+  values,
+  original = null,
+  changes = null,
+  organization,
+  preview,
+  onRetry,
+  onEditStep,
+  onUseSlot,
+  acknowledged,
+  setAcknowledged,
+}) {
   const result = preview.result
+  const rowProps = { values, original, changes }
   return (
     <div className="grid gap-5">
+      {changes && changes.length === 0 && (
+        <Alert tone="info">Vous n’avez encore rien modifié. Revenez aux étapes précédentes pour changer la réservation.</Alert>
+      )}
       <section aria-labelledby="review-trip" className="rounded-[10px] border border-line p-4">
         <div className="flex items-center justify-between gap-2">
           <h3 id="review-trip" className="font-bold">
@@ -22,15 +37,18 @@ export function ReviewStep({ values, organization, preview, onRetry, onEditStep,
             Modifier
           </Button>
         </div>
-        <Summary
-          items={[
-            ['Organisation', organization?.name],
-            ['Date', formatDate(values.trip_date)],
-            ['Horaires', `Départ ${values.departure_time} · retour ${values.return_time}`],
-            ['Prise en charge', shortAddress(values.pickup)],
-            ['Destination', shortAddress(values.destination)],
-          ]}
-        />
+        <dl className={LIST_CLASSES}>
+          <Row label="Organisation" {...rowProps} fields={[]} render={() => organization?.name} />
+          <Row label="Date" {...rowProps} fields={['trip_date']} render={(v) => formatDate(v.trip_date)} />
+          <Row
+            label="Horaires"
+            {...rowProps}
+            fields={['departure_time', 'return_time']}
+            render={(v) => `Départ ${v.departure_time} · retour ${v.return_time}`}
+          />
+          <Row label="Prise en charge" {...rowProps} fields={['pickup']} render={(v) => shortAddress(v.pickup)} />
+          <Row label="Destination" {...rowProps} fields={['destination']} render={(v) => shortAddress(v.destination)} />
+        </dl>
       </section>
 
       <section aria-labelledby="review-passengers" className="rounded-[10px] border border-line p-4">
@@ -42,14 +60,12 @@ export function ReviewStep({ values, organization, preview, onRetry, onEditStep,
             Modifier
           </Button>
         </div>
-        <Summary
-          items={[
-            ['Enfants', values.nb_children || '0'],
-            ['Adultes', values.nb_adults],
-            ['Activité', ACTIVITY_TYPE_LABELS[values.activity_type]],
-            ['Motif', values.trip_purpose],
-          ]}
-        />
+        <dl className={LIST_CLASSES}>
+          <Row label="Enfants" {...rowProps} fields={['nb_children']} render={(v) => v.nb_children || '0'} />
+          <Row label="Adultes" {...rowProps} fields={['nb_adults']} render={(v) => v.nb_adults} />
+          <Row label="Activité" {...rowProps} fields={['activity_type']} render={(v) => ACTIVITY_TYPE_LABELS[v.activity_type]} />
+          <Row label="Motif" {...rowProps} fields={['trip_purpose']} render={(v) => v.trip_purpose} />
+        </dl>
       </section>
 
       <div className="grid gap-3" aria-live="polite">
@@ -97,15 +113,25 @@ export function ReviewStep({ values, organization, preview, onRetry, onEditStep,
   )
 }
 
-function Summary({ items }) {
+const LIST_CLASSES = 'mt-2 grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-[minmax(0,9rem)_minmax(0,1fr)]'
+
+// Ligne du récapitulatif ; en modification, un champ changé montre l'ancienne valeur barrée
+function Row({ label, fields, render, values, original, changes }) {
+  const changed = Boolean(changes && fields.some((field) => changes.includes(field)))
   return (
-    <dl className="mt-2 grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-[minmax(0,9rem)_minmax(0,1fr)]">
-      {items.map(([label, value]) => (
-        <div key={label} className="contents">
-          <dt className="text-muted">{label}</dt>
-          <dd className="font-semibold break-words">{value}</dd>
-        </div>
-      ))}
-    </dl>
+    <div className="contents">
+      <dt className="text-muted">{label}</dt>
+      <dd className="font-semibold break-words">
+        {changed && (
+          <>
+            <del className="font-normal text-muted">{render(original)}</del>
+            <span aria-hidden="true"> → </span>
+            <span className="sr-only">, remplacé par </span>
+          </>
+        )}
+        <span className={changed ? 'rounded bg-warning-soft px-1 text-warning' : undefined}>{render(values)}</span>
+        {changed && <span className="sr-only"> (modifié)</span>}
+      </dd>
+    </div>
   )
 }
