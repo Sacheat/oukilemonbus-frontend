@@ -13,11 +13,12 @@ export function getErrorMessage(error, fallback = FALLBACK_MESSAGE) {
   return fallback
 }
 
-// Erreurs de validation 422 : { champ: 'premier message' }
+// Erreurs de validation 422 : { champ: 'message' }. Le backend peut renvoyer plusieurs règles
+// pour un même champ (ex. préavis et week-end sur la date) : une ligne par message.
 export function getFieldErrors(error) {
   const errors = axios.isAxiosError(error) ? error.response?.data?.errors : null
   if (!errors) return {}
   return Object.fromEntries(
-    Object.entries(errors).map(([field, messages]) => [field, messages[0]]),
+    Object.entries(errors).map(([field, messages]) => [field, [].concat(messages).join('\n')]),
   )
 }

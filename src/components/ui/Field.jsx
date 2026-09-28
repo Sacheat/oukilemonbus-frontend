@@ -35,7 +35,7 @@ export function Field({ label, hint, error, required, className, children }) {
         </p>
       )}
       {error && (
-        <p id={errorId} className="mt-1.5 text-xs font-semibold text-danger">
+        <p id={errorId} className="mt-1.5 text-xs font-semibold whitespace-pre-line text-danger">
           {error}
         </p>
       )}
