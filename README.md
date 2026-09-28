@@ -1,16 +1,24 @@
-# React + Vite
+# OuKiLéMonBus — Front
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Application web de réservation du bus communal : demandes de trajets par les organisations, validation et planification par la commune, missions des chauffeurs.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+React · JavaScript · Vite · Tailwind CSS · React Router · Axios · Lucide React
 
-## React Compiler
+## Démarrer
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Prérequis : le backend Laravel lancé sur `http://localhost:8080`.
 
-## Expanding the ESLint configuration
+```bash
+npm install
+cp .env.example .env.local   # facultatif, si le backend n'est pas sur localhost:8080
+npm run dev                  # http://localhost:3000
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Comptes de test (créés par le seeder du backend, mot de passe `password`) : `admin.test@bus-communal.local`, `agent.test@bus-communal.local`, `user.test@bus-communal.local`, `responsable.test@bus-communal.local`, `chauffeur.test@bus-communal.local`.
+
+## Documentation
+
+- Conventions et règles de travail : [`CLAUDE.md`](CLAUDE.md)
+- DA et maquettes : [`docs/design/`](docs/design/)
