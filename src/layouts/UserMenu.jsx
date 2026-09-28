@@ -1,6 +1,6 @@
 import { LogOut } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { useAuth } from '../auth/useAuth'
 import { cx } from '../lib/cx'
 import { ROLE_LABELS } from '../lib/labels'
@@ -24,10 +24,10 @@ export function UserMenu({ className, inverted = false }) {
 
   return (
     <div className={cx('flex items-center gap-3', className)}>
-      <div className="text-right text-xs leading-tight">
-        <p className="font-bold">{user?.full_name}</p>
-        {role && <p className={inverted ? 'text-nav-muted' : 'text-muted'}>{role}</p>}
-      </div>
+      <Link to="/compte" title="Mon compte" className="rounded-control px-2 py-1 text-right text-xs leading-tight hover:bg-black/5 dark:hover:bg-white/10">
+        <span className="block font-bold">{user?.full_name}</span>
+        {role && <span className={cx('block', inverted ? 'text-nav-muted' : 'text-muted')}>{role}</span>}
+      </Link>
       <button
         type="button"
         onClick={handleLogout}

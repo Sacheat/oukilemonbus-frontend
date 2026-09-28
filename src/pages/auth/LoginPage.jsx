@@ -1,87 +1,73 @@
-import { useState } from 'react'
-import { useLocation, useNavigate } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { getHomePath } from '../../auth/permissions'
 import { useAuth } from '../../auth/useAuth'
 import { Alert } from '../../components/ui/Alert'
 import { Button } from '../../components/ui/Button'
-import { Card } from '../../components/ui/Card'
-import { Checkbox, Field, Input } from '../../components/ui/Field'
-import { getErrorMessage, getFieldErrors } from '../../lib/errors'
+import { Checkbox, Field, Input, PasswordInput } from '../../components/ui/Field'
+import { useForm } from '../../hooks/useForm'
+import { AuthCard } from './AuthCard'
 
 export function LoginPage() {
   const { login, sessionNotice } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [form, setForm] = useState({ email: '', password: '', remember: true })
-  const [fieldErrors, setFieldErrors] = useState({})
-  const [error, setError] = useState(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  function update(field, value) {
-    setForm((current) => ({ ...current, [field]: value }))
-  }
+  const form = useForm({ email: '', password: '', remember: true })
 
   async function handleSubmit(event) {
     event.preventDefault()
-    setSubmitting(true)
-    setError(null)
-    setFieldErrors({})
-    try {
-      const user = await login(form)
+    const result = await form.submit(login)
+    if (result.ok) {
       // Retour à la page demandée avant la connexion, sinon à l'espace du rôle
-      navigate(location.state?.from?.pathname ?? getHomePath(user), { replace: true })
-    } catch (err) {
-      const errors = getFieldErrors(err)
-      setFieldErrors(errors)
-      if (Object.keys(errors).length === 0) setError(getErrorMessage(err))
-      setSubmitting(false)
+      navigate(location.state?.from?.pathname ?? getHomePath(result.data), { replace: true })
     }
   }
 
   return (
-    <Card className="p-7">
-      <p className="text-[11px] font-extrabold tracking-[.13em] text-link uppercase">Connexion</p>
-      <h1 className="mt-2 text-[27px] leading-tight font-bold tracking-tight">Bienvenue</h1>
-      <p className="mt-1 text-muted">Connectez-vous pour réserver ou suivre vos déplacements.</p>
+    <AuthCard
+      eyebrow="Connexion"
+      title="Bienvenue"
+      description="Connectez-vous pour réserver ou suivre vos déplacements."
+      footer={
+        <>
+          Pas encore de compte ?{' '}
+          <Link to="/inscription" className="font-bold text-link hover:underline">
+            Créer un compte
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} noValidate className="grid gap-4">
+        {sessionNotice && <Alert tone={sessionNotice.tone}>{sessionNotice.message}</Alert>}
+        {form.error && <Alert tone="danger">{form.error}</Alert>}
 
-      <form onSubmit={handleSubmit} noValidate className="mt-6 grid gap-4">
-        {sessionNotice && <Alert tone="warning">{sessionNotice}</Alert>}
-        {error && <Alert tone="danger">{error}</Alert>}
-
-        <Field label="Adresse e-mail" required error={fieldErrors.email}>
+        <Field label="Adresse e-mail" required error={form.errors.email}>
           {(props) => (
-            <Input
-              {...props}
-              type="email"
-              autoComplete="email"
-              value={form.email}
-              onChange={(event) => update('email', event.target.value)}
-            />
+            <Input {...props} type="email" autoComplete="email" value={form.values.email} onChange={form.handle('email')} />
           )}
         </Field>
 
-        <Field label="Mot de passe" required error={fieldErrors.password}>
+        <Field label="Mot de passe" required error={form.errors.password}>
           {(props) => (
-            <Input
+            <PasswordInput
               {...props}
-              type="password"
               autoComplete="current-password"
-              value={form.password}
-              onChange={(event) => update('password', event.target.value)}
+              value={form.values.password}
+              onChange={form.handle('password')}
             />
           )}
         </Field>
 
-        <Checkbox
-          label="Rester connecté"
-          checked={form.remember}
-          onChange={(event) => update('remember', event.target.checked)}
-        />
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Checkbox label="Rester connecté" checked={form.values.remember} onChange={form.handle('remember')} />
+          <Link to="/mot-de-passe-oublie" className="py-2 text-sm font-bold text-link hover:underline">
+            Mot de passe oublié ?
+          </Link>
+        </div>
 
-        <Button type="submit" loading={submitting} className="w-full">
+        <Button type="submit" loading={form.submitting} className="w-full">
           Se connecter
         </Button>
       </form>
-    </Card>
+    </AuthCard>
   )
 }

@@ -7,7 +7,7 @@ import * as permissions from './permissions'
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [status, setStatus] = useState('loading') // 'loading' tant que la session n'est pas restaurée
-  // Message à afficher sur la page de connexion après une déconnexion subie
+  // Message affiché sur la page de connexion après une fin de session : { tone, message }
   const [sessionNotice, setSessionNotice] = useState(null)
 
   // Restaure la session au chargement de la SPA
@@ -33,9 +33,10 @@ export function AuthProvider({ children }) {
       onSessionLost(({ reason, message }) => {
         // Pas de message si personne n'était connecté (ex. 401 au démarrage)
         if (userRef.current) {
-          setSessionNotice(
-            reason === 'disabled' ? message : 'Votre session a expiré. Reconnectez-vous.',
-          )
+          setSessionNotice({
+            tone: 'warning',
+            message: reason === 'disabled' ? message : 'Votre session a expiré. Reconnectez-vous.',
+          })
         }
         setUser(null)
       }),
@@ -47,6 +48,23 @@ export function AuthProvider({ children }) {
     setSessionNotice(null)
     setUser(loggedUser)
     return loggedUser
+  }, [])
+
+  const register = useCallback(async (payload) => {
+    const newUser = await authApi.register(payload)
+    setSessionNotice(null)
+    setUser(newUser)
+    return newUser
+  }, [])
+
+  // Termine une session que le backend a invalidée (changement ou réinitialisation du mot de passe).
+  // Le cookie de session reste périmé côté navigateur : sans cet appel, la requête suivante
+  // (même une route publique) recevrait une 401. L'échec attendu du logout vide la session côté backend.
+  // `notice` : { tone, message } affiché sur la page de connexion.
+  const clearSession = useCallback(async (notice = null) => {
+    await authApi.logout().catch(() => {})
+    setSessionNotice(notice)
+    setUser(null)
   }, [])
 
   const logout = useCallback(async () => {
@@ -69,14 +87,16 @@ export function AuthProvider({ children }) {
       status,
       sessionNotice,
       login,
+      register,
       logout,
+      clearSession,
       refresh,
       can: (permission) => permissions.can(user, permission),
       hasRole: (...roles) => permissions.hasRole(user, ...roles),
       isInternal: () => permissions.isInternal(user),
       isManagerOf: (organizationId) => permissions.isManagerOf(user, organizationId),
     }),
-    [user, status, sessionNotice, login, logout, refresh],
+    [user, status, sessionNotice, login, register, logout, clearSession, refresh],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

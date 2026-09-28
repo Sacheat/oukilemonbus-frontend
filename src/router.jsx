@@ -1,11 +1,17 @@
 import { createBrowserRouter } from 'react-router'
 import { RequireAuth, RequireGuest, RequirePermission, RequireRole, RootRedirect } from './auth/guards'
 import { PublicLayout } from './layouts/PublicLayout'
+import { RoleLayout } from './layouts/RoleLayout'
 import { SidebarLayout } from './layouts/SidebarLayout'
 import { TopNavLayout } from './layouts/TopNavLayout'
 import { BACKOFFICE_NAV, DRIVER_NAV, USER_NAV } from './navigation'
 import { ComingSoonPage } from './pages/ComingSoonPage'
+import { AccountPage } from './pages/account/AccountPage'
+import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage'
 import { LoginPage } from './pages/auth/LoginPage'
+import { RegisterPage } from './pages/auth/RegisterPage'
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage'
+import { VerifyEmailPage } from './pages/auth/VerifyEmailPage'
 import { NotFoundPage } from './pages/errors/NotFoundPage'
 import { RouteErrorPage } from './pages/errors/RouteErrorPage'
 import { SpaceHomePage } from './pages/SpaceHomePage'
@@ -29,14 +35,33 @@ export const router = createBrowserRouter([
         children: [
           {
             element: <PublicLayout />,
-            children: [{ path: 'connexion', element: <LoginPage /> }],
+            children: [
+              { path: 'connexion', element: <LoginPage /> },
+              { path: 'inscription', element: <RegisterPage /> },
+              { path: 'mot-de-passe-oublie', element: <ForgotPasswordPage /> },
+            ],
           },
+        ],
+      },
+
+      // Liens reçus par email : accessibles connecté ou non
+      {
+        element: <PublicLayout />,
+        children: [
+          { path: 'verify-email', element: <VerifyEmailPage /> },
+          { path: 'reset-password', element: <ResetPasswordPage /> },
         ],
       },
 
       {
         element: <RequireAuth />,
         children: [
+          // Pages communes à tous les rôles, dans le layout de l'espace de l'utilisateur
+          {
+            element: <RoleLayout />,
+            children: [{ path: 'compte', element: <AccountPage /> }],
+          },
+
           // Espace usager (membres et responsables d'organisations)
           {
             path: 'espace',

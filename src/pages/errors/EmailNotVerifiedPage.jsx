@@ -1,12 +1,27 @@
 import { Hourglass } from 'lucide-react'
+import { useAuth } from '../../auth/useAuth'
+import { ResendVerificationButton } from '../../components/ResendVerificationButton'
 import { MessagePage } from '../../components/ui/MessagePage'
 import { UserMenu } from '../../layouts/UserMenu'
 
-// Version minimale : le renvoi de l'email de vérification arrive avec le bloc Auth
 export function EmailNotVerifiedPage() {
+  const { user } = useAuth()
   return (
-    <MessagePage icon={Hourglass} title="Vérifiez votre adresse e-mail" fullScreen actions={<UserMenu />}>
-      <p>Un lien de vérification vous a été envoyé par e-mail. Ouvrez-le pour accéder à votre espace.</p>
+    <MessagePage
+      icon={Hourglass}
+      title="Vérifiez votre adresse e-mail"
+      fullScreen
+      actions={
+        <div className="grid w-full justify-items-center gap-4">
+          <ResendVerificationButton />
+          <UserMenu />
+        </div>
+      }
+    >
+      <p>
+        Un lien de vérification a été envoyé à <strong className="text-ink">{user.email}</strong>. Ouvrez-le pour accéder à
+        votre espace. Pensez à vérifier vos courriers indésirables.
+      </p>
     </MessagePage>
   )
 }

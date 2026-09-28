@@ -2,12 +2,14 @@ import { LoaderCircle } from 'lucide-react'
 import { Link } from 'react-router'
 import { cx } from '../../lib/cx'
 
+const BOX = 'min-h-11 rounded-control px-4 py-2'
+
 const VARIANTS = {
-  primary: 'bg-primary text-on-primary hover:bg-primary-hover',
-  accent: 'bg-accent text-on-accent hover:brightness-95',
-  secondary: 'border border-line-strong bg-surface text-ink font-semibold hover:bg-surface-muted',
-  danger: 'bg-danger text-on-danger hover:opacity-90',
-  link: 'min-h-0 px-0 py-2 text-link hover:underline',
+  primary: cx(BOX, 'bg-primary text-on-primary hover:bg-primary-hover'),
+  accent: cx(BOX, 'bg-accent text-on-accent hover:brightness-95'),
+  secondary: cx(BOX, 'border border-line-strong bg-surface text-ink font-semibold hover:bg-surface-muted'),
+  danger: cx(BOX, 'bg-danger text-on-danger hover:opacity-90'),
+  link: 'py-2 text-link hover:underline',
 }
 
 // <Button> classique, ou lien stylé en bouton avec la prop `to`
@@ -22,7 +24,7 @@ export function Button({
   ...props
 }) {
   const classes = cx(
-    'inline-flex min-h-11 items-center justify-center gap-2 rounded-control px-4 py-2 font-bold transition',
+    'inline-flex items-center justify-center gap-2 font-bold transition',
     'disabled:cursor-not-allowed disabled:opacity-60',
     VARIANTS[variant],
     className,

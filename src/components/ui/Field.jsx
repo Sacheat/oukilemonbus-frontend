@@ -1,8 +1,9 @@
-import { useId } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
+import { useId, useState } from 'react'
 import { cx } from '../../lib/cx'
 
 const CONTROL = cx(
-  'mt-1.5 block min-h-11.5 w-full rounded-lg border border-line-strong bg-surface px-3 py-2.5',
+  'block min-h-11.5 w-full rounded-lg border border-line-strong bg-surface px-3 py-2.5',
   'font-normal text-ink placeholder:text-muted',
   'aria-invalid:border-danger',
 )
@@ -20,12 +21,14 @@ export function Field({ label, hint, error, required, className, children }) {
         {label}
         {required && <span aria-hidden="true"> *</span>}
       </label>
-      {children({
-        id,
-        required,
-        'aria-invalid': error ? true : undefined,
-        'aria-describedby': cx(hintId, errorId) || undefined,
-      })}
+      <div className="mt-1.5">
+        {children({
+          id,
+          required,
+          'aria-invalid': error ? true : undefined,
+          'aria-describedby': cx(hintId, errorId) || undefined,
+        })}
+      </div>
       {hint && (
         <p id={hintId} className="mt-1.5 text-xs font-normal text-muted">
           {hint}
@@ -42,6 +45,25 @@ export function Field({ label, hint, error, required, className, children }) {
 
 export function Input({ className, ...props }) {
   return <input className={cx(CONTROL, className)} {...props} />
+}
+
+// Champ mot de passe avec bouton pour afficher ou masquer la saisie
+export function PasswordInput({ className, ...props }) {
+  const [visible, setVisible] = useState(false)
+  return (
+    <div className="relative">
+      <input type={visible ? 'text' : 'password'} className={cx(CONTROL, 'pr-12', className)} {...props} />
+      <button
+        type="button"
+        onClick={() => setVisible((value) => !value)}
+        aria-label={visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+        aria-pressed={visible}
+        className="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-lg text-muted hover:text-ink"
+      >
+        {visible ? <EyeOff className="size-4.5" aria-hidden="true" /> : <Eye className="size-4.5" aria-hidden="true" />}
+      </button>
+    </div>
+  )
 }
 
 export function Select({ className, children, ...props }) {
