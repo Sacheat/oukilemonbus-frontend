@@ -1,4 +1,4 @@
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Repeat } from 'lucide-react'
 import { Link } from 'react-router'
 import { cx } from '../../lib/cx'
 import { formatDate, formatTime } from '../../lib/dates'
@@ -10,8 +10,9 @@ import { StatusBadge } from '../ui/StatusBadge'
 
 // Étape du fil de suivi : point coloré selon le statut sur la ligne du temps, puis une carte
 // entièrement cliquable avec une pastille de date façon billet. Annulés et refusés sont estompés.
-// `highlighted` : mise en évidence brève (clic sur un jour du mini-calendrier).
-export function ReservationEvent({ reservation, highlighted = false }) {
+// `to` : cible du clic (aperçu rapide dans la liste, détail par défaut) ; badge « Série » si le trajet
+// fait partie d'une récurrence. `highlighted` : mise en évidence brève (clic dans le mini-calendrier).
+export function ReservationEvent({ reservation, to = `/espace/deplacements/${reservation.id}`, highlighted = false }) {
   const destination = shortAddress(reservation.destination_location)
   const terminal = isTerminal(reservation)
   const today = todayApiDate()
@@ -29,7 +30,7 @@ export function ReservationEvent({ reservation, highlighted = false }) {
         )}
       />
       <Link
-        to={`/espace/deplacements/${reservation.id}`}
+        to={to}
         onPointerMove={trackSpotlight}
         className={cx(
           'spotlight card-hover group flex overflow-hidden rounded-card border bg-surface shadow-soft',
@@ -51,6 +52,11 @@ export function ReservationEvent({ reservation, highlighted = false }) {
         <span className="min-w-0 flex-1 px-4.5 py-3.5">
           <span className="flex flex-wrap items-center gap-2">
             <StatusBadge status={reservation.status} label={reservation.status_label} />
+            {reservation.recurrence_id && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-soft px-2 py-0.5 text-xs font-bold text-link">
+                <Repeat className="size-3" aria-hidden="true" /> Série
+              </span>
+            )}
             {showSoon && (
               <span className="rounded-md bg-accent px-2 py-0.5 text-xs font-extrabold text-on-accent uppercase">{soon}</span>
             )}
@@ -70,7 +76,7 @@ export function ReservationEvent({ reservation, highlighted = false }) {
 
         <span className="hidden items-center pr-4.5 text-link sm:flex">
           <ArrowRight className="size-5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
-          <span className="sr-only">Ouvrir le déplacement</span>
+          <span className="sr-only">Ouvrir l’aperçu du déplacement</span>
         </span>
       </Link>
     </li>

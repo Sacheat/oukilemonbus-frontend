@@ -64,8 +64,9 @@ export function DocumentRow({ document: doc, showReservation = true }) {
               <span className="text-muted"> · trajet du {formatDate(reservation.trip_date, { day: 'numeric', month: 'long', year: 'numeric' })}</span>
             </p>
           )}
-          <p className="text-xs break-all text-muted">
-            {[doc.file_name, formatFileSize(doc.file_size), `créé le ${formatDateTime(doc.generated_at ?? doc.created_at)}`].join(' · ')}
+          <p className="text-xs break-all text-muted">{doc.file_name}</p>
+          <p className="text-xs text-muted">
+            {formatFileSize(doc.file_size)} · créé le {formatDateTime(doc.generated_at ?? doc.created_at)}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

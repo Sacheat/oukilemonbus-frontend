@@ -17,19 +17,24 @@ export function isRequesterOrManager(user, reservation) {
   return reservation.requested_by_user_id === user.id || isManagerOf(user, reservation.organization_id)
 }
 
+// Plus aucune action une fois la date du trajet passée
+function isPast(reservation) {
+  return reservation.trip_date < todayApiDate()
+}
+
 export function canCancel(user, reservation) {
-  return CANCELLABLE_STATUSES.includes(reservation.status) && isRequesterOrManager(user, reservation)
+  return CANCELLABLE_STATUSES.includes(reservation.status) && !isPast(reservation) && isRequesterOrManager(user, reservation)
 }
 
 export const EDITABLE_STATUSES = ['en_attente', 'en_conflit']
 
 // Modification côté usager : demandeur ou responsable, tant que la demande n'est pas acceptée
 export function canEdit(user, reservation) {
-  return EDITABLE_STATUSES.includes(reservation.status) && isRequesterOrManager(user, reservation)
+  return EDITABLE_STATUSES.includes(reservation.status) && !isPast(reservation) && isRequesterOrManager(user, reservation)
 }
 
 export function canConfirmPassengers(user, reservation) {
-  return !isTerminal(reservation) && isRequesterOrManager(user, reservation)
+  return !isTerminal(reservation) && !isPast(reservation) && isRequesterOrManager(user, reservation)
 }
 
 // Où en est la demande, en une phrase pour l'usager (au passé une fois la date dépassée)

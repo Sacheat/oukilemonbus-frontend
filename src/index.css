@@ -148,6 +148,18 @@
   --radius-card: 13px;
   --radius-panel: 16px;
 
+  /* Panneau latéral (aperçu rapide) qui glisse depuis la droite */
+  --animate-drawer-in: drawer-in 0.25s ease-out;
+
+  @keyframes drawer-in {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
   /* Petit bus qui avance d'arrêt en arrêt sur la ligne de la bannière d'accueil */
   --animate-bus-ride: bus-ride 10s ease-in-out infinite;
 
@@ -285,4 +297,24 @@
   --spot-color: rgb(244 201 93 / 0.22);
   --spot-border: rgb(244 201 93 / 0.55);
   --spot-size: 460px;
+}
+
+/* Squelette de chargement : forme grise parcourue d'un reflet (immobile si « réduire les animations ») */
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+@utility skeleton {
+  background: linear-gradient(90deg, var(--neutral-soft) 30%, var(--surface-muted) 50%, var(--neutral-soft) 70%);
+  background-size: 300% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 }
