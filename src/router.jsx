@@ -17,6 +17,7 @@ import { RouteErrorPage } from './pages/errors/RouteErrorPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { SpaceHomePage } from './pages/SpaceHomePage'
 import { CreateOrganizationRequestPage } from './pages/user/CreateOrganizationRequestPage'
+import { DocumentsPage } from './pages/user/DocumentsPage'
 import { EditReservationPage } from './pages/user/EditReservationPage'
 import { JoinOrganizationPage } from './pages/user/JoinOrganizationPage'
 import { NewRecurrencePage } from './pages/user/NewRecurrencePage'
@@ -151,7 +152,14 @@ export const router = createBrowserRouter([
                       { path: ':id', element: <OrganizationDetailPage /> },
                     ],
                   },
-                  soon('documents', 'Mon espace', 'Documents', 'documents.view'),
+                  {
+                    path: 'documents',
+                    element: (
+                      <RequirePermission permission="documents.view">
+                        <DocumentsPage />
+                      </RequirePermission>
+                    ),
+                  },
                 ],
               },
             ],

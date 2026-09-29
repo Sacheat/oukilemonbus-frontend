@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { getReservation } from '../../api/reservations'
 import { useAuth } from '../../auth/useAuth'
+import { TripDocumentsCard } from '../../components/documents/TripDocumentsCard'
 import { CancelReservationModal } from '../../components/reservations/CancelReservationModal'
 import { ConfirmPassengersModal } from '../../components/reservations/ConfirmPassengersModal'
 import { DateBadge } from '../../components/reservations/DateBadge'
@@ -188,6 +189,8 @@ export function TripDetailPage() {
             />
           </Card>
         </div>
+
+        <TripDocumentsCard reservationId={reservation.id} />
 
         {(canEdit(user, reservation) || canConfirmPassengers(user, reservation) || canCancel(user, reservation)) && (
           <Card as="section" aria-labelledby="actions-title" className="flex flex-wrap items-center justify-between gap-4">
