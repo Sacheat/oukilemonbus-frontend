@@ -16,6 +16,7 @@ import { NotFoundPage } from './pages/errors/NotFoundPage'
 import { RouteErrorPage } from './pages/errors/RouteErrorPage'
 import { SpaceHomePage } from './pages/SpaceHomePage'
 import { EditReservationPage } from './pages/user/EditReservationPage'
+import { NewRecurrencePage } from './pages/user/NewRecurrencePage'
 import { NewReservationPage } from './pages/user/NewReservationPage'
 import { RecurrenceDetailPage } from './pages/user/RecurrenceDetailPage'
 import { RecurrencesPage } from './pages/user/RecurrencesPage'
@@ -107,6 +108,14 @@ export const router = createBrowserRouter([
                     element: <RequirePermission permission="reservations.view" />,
                     children: [
                       { index: true, element: <RecurrencesPage /> },
+                      {
+                        path: 'nouvelle',
+                        element: (
+                          <RequirePermission permission="reservations.create">
+                            <NewRecurrencePage />
+                          </RequirePermission>
+                        ),
+                      },
                       { path: ':id', element: <RecurrenceDetailPage /> },
                     ],
                   },

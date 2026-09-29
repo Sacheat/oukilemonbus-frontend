@@ -18,11 +18,12 @@ export async function previewRecurrence(payload, { signal } = {}) {
   return data.data
 }
 
-// Crée la série et ses occurrences. `idempotencyKey` : envoyée dès maintenant, prise en compte
-// par le backend quand il la supportera (anti double création).
+// Crée la série et ses occurrences (`idempotencyKey` : anti double création).
+// Renvoie { recurrence, report } ; report = { created_count, skipped_dates, failed_dates },
+// les dates ignorées et en échec avec leur motif ({ date, reason }).
 export async function createRecurrence(payload, idempotencyKey) {
   const { data } = await api.post('/recurrences', payload, { headers: { 'Idempotency-Key': idempotencyKey } })
-  return data.data
+  return { recurrence: data.data, report: data.meta }
 }
 
 // Annule les occurrences encore actives : { cancelled_reservation_ids, cancelled_count }

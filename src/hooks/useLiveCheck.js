@@ -3,12 +3,13 @@ import { useEffect, useState } from 'react'
 import { getFieldErrors } from '../lib/errors'
 
 const DEBOUNCE_MS = 700
+const identity = (result) => result
 
 // Appelle `check(payload, { signal })` en direct pendant la saisie, 700 ms après la dernière
 // modification. `payload` : objet à vérifier, ou null tant que la saisie est incomplète.
 // `check` et `transform` doivent être stables (fonctions définies hors du composant).
 // Renvoie { pending, result, fieldErrors, error } pour le payload courant uniquement.
-export function useLiveCheck(check, payload, transform = (result) => result) {
+export function useLiveCheck(check, payload, transform = identity) {
   const key = payload ? JSON.stringify(payload) : null
   const [state, setState] = useState({ key: null, result: null, fieldErrors: {}, error: null })
 

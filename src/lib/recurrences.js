@@ -1,5 +1,6 @@
 import { RECURRENCE_FREQUENCY_LABELS } from './labels'
-import { EMPTY_RESERVATION, mapApiErrors } from './reservationForm'
+import { toApiDate } from './dates'
+import { EMPTY_RESERVATION, mapApiErrors, minTripDate, toTripPayload } from './reservationForm'
 import { isTerminal, todayApiDate } from './reservations'
 
 // 1 = lundi … 5 = vendredi (pas de récurrence le week-end)
@@ -118,4 +119,46 @@ export function recurrenceCalendarPayload(values) {
     values.organization_id && values.pickup && values.destination && values.departure_time && values.return_time &&
     values.start_date && values.end_date && (values.frequency === 'mensuel' || values.days_of_week.length > 0)
   return ready ? toRecurrencePayload(values, { passengers: false }) : null
+}
+
+// ----- Vérification du trajet à l'étape 1 -----
+
+// Date témoin pour check-trip (qui exige une date) : premier jour ouvrable après le préavis.
+// Seuls la distance, la durée et les erreurs sur les lieux et horaires sont exploités.
+export function probeTripDate() {
+  const date = new Date(`${minTripDate()}T00:00:00`)
+  while (date.getDay() === 0 || date.getDay() === 6) date.setDate(date.getDate() + 1)
+  return toApiDate(date)
+}
+
+export function toProbeTripPayload(values) {
+  return toTripPayload({ ...values, trip_date: probeTripDate() })
+}
+
+// ----- Mini-calendrier de l'aperçu -----
+
+// Grilles du lundi au vendredi pour chaque mois entre `start` et `end` (AAAA-MM-JJ).
+// Chaque semaine est un tableau de 5 cases : une date AAAA-MM-JJ, ou null hors du mois.
+export function calendarMonths(start, end) {
+  const months = []
+  const cursor = new Date(`${start.slice(0, 7)}-01T00:00:00`)
+  const last = new Date(`${end.slice(0, 7)}-01T00:00:00`)
+  while (cursor <= last && months.length < 24) {
+    const year = cursor.getFullYear()
+    const month = cursor.getMonth()
+    const weeks = []
+    let week = null
+    for (let day = new Date(year, month, 1); day.getMonth() === month; day.setDate(day.getDate() + 1)) {
+      const weekDay = day.getDay() // 0 = dimanche … 6 = samedi
+      if (weekDay === 0 || weekDay === 6) continue
+      if (!week || weekDay === 1) {
+        week = [null, null, null, null, null]
+        weeks.push(week)
+      }
+      week[weekDay - 1] = toApiDate(day)
+    }
+    months.push({ key: `${year}-${month}`, date: toApiDate(cursor), weeks })
+    cursor.setMonth(cursor.getMonth() + 1)
+  }
+  return months
 }

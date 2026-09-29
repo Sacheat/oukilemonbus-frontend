@@ -70,6 +70,8 @@ export function TripStep({
         required
         hint={isPriority ? null : 'Après 07:30, sinon dérogation.'}
         error={fieldErrors.departure_time}
+        // Sans date, le départ prend la ligne entière : lieux côte à côte, puis le retour
+        className={withDate ? undefined : 'sm:col-span-2'}
       >
         {(props) => (
           <Input {...props} type="time" step={300} value={values.departure_time} onChange={(event) => setField('departure_time', event.target.value)} />
