@@ -1,6 +1,6 @@
 import { RECURRENCE_FREQUENCY_LABELS } from './labels'
 import { EMPTY_RESERVATION, mapApiErrors } from './reservationForm'
-import { todayApiDate } from './reservations'
+import { isTerminal, todayApiDate } from './reservations'
 
 // 1 = lundi … 5 = vendredi (pas de récurrence le week-end)
 export const WEEK_DAYS = [
@@ -32,6 +32,13 @@ export function describeFrequency({ frequency, days_of_week: days, start_date: s
   return `Tous les ${joinFrench(dayLabels(days, true))}`
 }
 
+// Les récurrences sont réservées aux écoles et au personnel communal
+export const RECURRENCE_ORGANIZATION_TYPES = ['ecole_communale', 'personnel_communal']
+
+export function recurrenceOrganizations(user) {
+  return (user?.organizations ?? []).filter((organization) => RECURRENCE_ORGANIZATION_TYPES.includes(organization.type))
+}
+
 // Active, terminée (date de fin passée) ou arrêtée
 export function recurrenceState(recurrence) {
   if (!recurrence.is_active) return { tone: 'neutral', label: 'Arrêtée' }
@@ -39,8 +46,11 @@ export function recurrenceState(recurrence) {
   return { tone: 'success', label: 'Active' }
 }
 
-// Occurrences que « Annuler la série » annulera
-export const RECURRENCE_ACTIVE_STATUSES = ['en_attente', 'approuve', 'confirme']
+// Occurrences que « Annuler la série » annulera : à partir d'aujourd'hui, ni refusées ni annulées
+export function cancellableOccurrences(reservations = []) {
+  const today = todayApiDate()
+  return reservations.filter((reservation) => reservation.trip_date >= today && !isTerminal(reservation))
+}
 
 // ----- Assistant de création -----
 

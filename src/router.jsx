@@ -17,6 +17,8 @@ import { RouteErrorPage } from './pages/errors/RouteErrorPage'
 import { SpaceHomePage } from './pages/SpaceHomePage'
 import { EditReservationPage } from './pages/user/EditReservationPage'
 import { NewReservationPage } from './pages/user/NewReservationPage'
+import { RecurrenceDetailPage } from './pages/user/RecurrenceDetailPage'
+import { RecurrencesPage } from './pages/user/RecurrencesPage'
 import { TripDetailPage } from './pages/user/TripDetailPage'
 import { TripsPage } from './pages/user/TripsPage'
 import { UserHomePage } from './pages/user/UserHomePage'
@@ -100,7 +102,14 @@ export const router = createBrowserRouter([
                       </RequirePermission>
                     ),
                   },
-                  soon('recurrences', 'Écoles et personnel communal', 'Récurrences', 'reservations.view'),
+                  {
+                    path: 'recurrences',
+                    element: <RequirePermission permission="reservations.view" />,
+                    children: [
+                      { index: true, element: <RecurrencesPage /> },
+                      { path: ':id', element: <RecurrenceDetailPage /> },
+                    ],
+                  },
                   soon('organisations', 'Mon espace', 'Mes organisations', 'organizations.view'),
                   soon('documents', 'Mon espace', 'Documents', 'documents.view'),
                 ],

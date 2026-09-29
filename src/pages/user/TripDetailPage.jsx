@@ -9,6 +9,7 @@ import { DateBadge } from '../../components/reservations/DateBadge'
 import { Alert } from '../../components/ui/Alert'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
+import { DetailList } from '../../components/ui/DetailList'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { Loader } from '../../components/ui/Loader'
 import { StatusBadge } from '../../components/ui/StatusBadge'
@@ -117,7 +118,7 @@ export function TripDetailPage() {
             <h2 id="trip-title" className="text-[17px] font-bold">
               Trajet
             </h2>
-            <Details
+            <DetailList
               items={[
                 ['Prise en charge', shortAddress(reservation.pickup_location)],
                 ['Destination', shortAddress(reservation.destination_location)],
@@ -138,7 +139,7 @@ export function TripDetailPage() {
             <h2 id="passengers-title" className="text-[17px] font-bold">
               Passagers
             </h2>
-            <Details
+            <DetailList
               items={[
                 ['Enfants', reservation.nb_children],
                 ['Adultes', reservation.nb_adults],
@@ -158,7 +159,7 @@ export function TripDetailPage() {
             <h2 id="follow-title" className="text-[17px] font-bold">
               Suivi
             </h2>
-            <Details
+            <DetailList
               items={[
                 organization && [
                   'Organisation',
@@ -179,7 +180,7 @@ export function TripDetailPage() {
             <h2 id="assignment-title" className="text-[17px] font-bold">
               Affectation
             </h2>
-            <Details
+            <DetailList
               items={[
                 ['Véhicule', reservation.vehicle ? reservation.vehicle.licence_plate : 'Pas encore affecté'],
                 ['Chauffeur', reservation.driver ? 'Affecté' : 'Pas encore affecté'],
@@ -230,19 +231,5 @@ export function TripDetailPage() {
         onConfirmed={() => handleDone('Le nombre de passagers a été confirmé.')}
       />
     </>
-  )
-}
-
-// Liste libellé / valeur ; les entrées falsy sont ignorées
-function Details({ items }) {
-  return (
-    <dl className="mt-4 grid gap-x-4 gap-y-2.5 text-sm sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)]">
-      {items.filter(Boolean).map(([label, value]) => (
-        <div key={label} className="contents">
-          <dt className="text-muted">{label}</dt>
-          <dd className="font-semibold break-words">{value}</dd>
-        </div>
-      ))}
-    </dl>
   )
 }
