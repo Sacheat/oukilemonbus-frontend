@@ -78,6 +78,21 @@ export function Textarea({ className, ...props }) {
   return <textarea className={cx(CONTROL, 'min-h-24', className)} {...props} />
 }
 
+// Champ fichier (non contrôlé : React ne peut pas fixer sa valeur) ; `onChange` reçoit l'évènement
+export function FileInput({ className, ...props }) {
+  return (
+    <input
+      type="file"
+      className={cx(
+        CONTROL,
+        'py-2 text-sm file:mr-3 file:min-h-8 file:cursor-pointer file:rounded-md file:border-0 file:bg-soft file:px-3 file:font-semibold file:text-ink',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
 export function Checkbox({ label, className, ...props }) {
   return (
     <label className={cx('inline-flex min-h-11 items-center gap-2 text-sm', className)}>

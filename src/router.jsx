@@ -15,9 +15,12 @@ import { VerifyEmailPage } from './pages/auth/VerifyEmailPage'
 import { NotFoundPage } from './pages/errors/NotFoundPage'
 import { RouteErrorPage } from './pages/errors/RouteErrorPage'
 import { SpaceHomePage } from './pages/SpaceHomePage'
+import { CreateOrganizationRequestPage } from './pages/user/CreateOrganizationRequestPage'
 import { EditReservationPage } from './pages/user/EditReservationPage'
+import { JoinOrganizationPage } from './pages/user/JoinOrganizationPage'
 import { NewRecurrencePage } from './pages/user/NewRecurrencePage'
 import { NewReservationPage } from './pages/user/NewReservationPage'
+import { OrganizationsPage } from './pages/user/OrganizationsPage'
 import { RecurrenceDetailPage } from './pages/user/RecurrenceDetailPage'
 import { RecurrencesPage } from './pages/user/RecurrencesPage'
 import { TripDetailPage } from './pages/user/TripDetailPage'
@@ -119,7 +122,29 @@ export const router = createBrowserRouter([
                       { path: ':id', element: <RecurrenceDetailPage /> },
                     ],
                   },
-                  soon('organisations', 'Mon espace', 'Mes organisations', 'organizations.view'),
+                  {
+                    path: 'organisations',
+                    element: <RequirePermission permission="organizations.view" />,
+                    children: [
+                      { index: true, element: <OrganizationsPage /> },
+                      {
+                        path: 'rejoindre',
+                        element: (
+                          <RequirePermission permission="user-org-requests.create">
+                            <JoinOrganizationPage />
+                          </RequirePermission>
+                        ),
+                      },
+                      {
+                        path: 'creer',
+                        element: (
+                          <RequirePermission permission="org-registration-requests.create">
+                            <CreateOrganizationRequestPage />
+                          </RequirePermission>
+                        ),
+                      },
+                    ],
+                  },
                   soon('documents', 'Mon espace', 'Documents', 'documents.view'),
                 ],
               },
