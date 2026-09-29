@@ -15,6 +15,7 @@ import { VerifyEmailPage } from './pages/auth/VerifyEmailPage'
 import { NotFoundPage } from './pages/errors/NotFoundPage'
 import { RouteErrorPage } from './pages/errors/RouteErrorPage'
 import { SpaceHomePage } from './pages/SpaceHomePage'
+import { VehiclesPage } from './pages/backoffice/VehiclesPage'
 
 // Chemins en français, sauf /verify-email et /reset-password imposés par les liens
 // des emails du backend. Les pages <ComingSoonPage> sont à remplacer par bloc.
@@ -112,7 +113,14 @@ export const router = createBrowserRouter([
                   soon('demandes', 'Gestion', 'Demandes', 'org-registration-requests.review'),
                   soon('organisations', 'Gestion', 'Organisations', 'organizations.update'),
                   soon('documents', 'Gestion', 'Documents', 'documents.generate'),
-                  soon('vehicules', 'Flotte', 'Véhicules', 'vehicles.update'),
+                     {
+                      path: 'vehicules',
+                      element: (
+                        <RequirePermission permission="vehicles.update">
+                          <VehiclesPage />
+                        </RequirePermission>
+                      ),
+                    },
                   soon('chauffeurs', 'Flotte', 'Chauffeurs', 'drivers.update'),
                   soon('indisponibilites', 'Flotte', 'Indisponibilités', 'unavailabilities.create'),
                   soon('utilisateurs', 'Administration', 'Utilisateurs', 'users.manage-roles'),
