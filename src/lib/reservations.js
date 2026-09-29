@@ -32,8 +32,13 @@ export function canConfirmPassengers(user, reservation) {
   return !isTerminal(reservation) && isRequesterOrManager(user, reservation)
 }
 
-// Où en est la demande, en une phrase pour l'usager
+// Où en est la demande, en une phrase pour l'usager (au passé une fois la date dépassée)
 export function statusHint(reservation) {
+  if (reservation.trip_date < todayApiDate() && !isTerminal(reservation)) {
+    if (reservation.status === 'confirme') return 'Trajet effectué.'
+    if (reservation.status === 'approuve') return 'Trajet passé : il avait été accepté par la commune.'
+    return 'Date passée : la demande n’a pas été validée à temps.'
+  }
   switch (reservation.status) {
     case 'en_attente':
       return reservation.approval_type === 'manuel'
