@@ -59,8 +59,9 @@ export function VerifyEmailPage() {
       <AuthCard eyebrow="Vérification" title="Lien invalide ou expiré">
         <div className="grid gap-5 text-center">
           <CircleX className="mx-auto size-10 text-danger" aria-hidden="true" />
+          {/* 403 : message du backend tel quel ; lien incomplet (pas d'appel au backend) : texte du front */}
           <p className="text-muted">
-            Ce lien de vérification est invalide ou a expiré. Les liens sont valables 60 minutes.
+            {error.response ? getErrorMessage(error) : 'Ce lien de vérification est incomplet. Ouvrez-le à nouveau depuis l’e-mail reçu.'}
           </p>
           {user ? (
             <ResendVerificationButton />

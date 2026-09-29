@@ -59,7 +59,7 @@ export function AuthProvider({ children }) {
     return newUser
   }, [])
 
-  // Termine une session que le backend a invalidée (changement ou réinitialisation du mot de passe).
+  // Termine une session que le backend a invalidée (réinitialisation du mot de passe par email).
   // Le cookie de session reste périmé côté navigateur : sans cet appel, la requête suivante
   // (même une route publique) recevrait une 401. L'échec attendu du logout vide la session côté backend.
   // `notice` : { tone, message } affiché sur la page de connexion.
