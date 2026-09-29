@@ -1,6 +1,7 @@
 import { ArrowRight, Repeat, UserPlus } from 'lucide-react'
 import { Link } from 'react-router'
 import { greeting } from '../../lib/home'
+import { trackSpotlight } from '../../lib/spotlight'
 import { Button } from '../ui/Button'
 import { BusRoute } from './BusRoute'
 
@@ -9,7 +10,8 @@ export function HomeHero({ firstName, canBook, canRecur }) {
   return (
     <section
       aria-labelledby="home-title"
-      className="relative isolate overflow-hidden rounded-panel bg-hero px-6 py-7 text-white shadow-soft sm:px-9 sm:py-9"
+      onPointerMove={trackSpotlight}
+      className="spotlight spotlight-warm overflow-hidden rounded-panel bg-hero px-6 py-7 text-white shadow-soft sm:px-9 sm:py-9"
     >
       <div aria-hidden="true" className="texture-dots absolute inset-0 -z-10" />
       <div className="grid items-center gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]">

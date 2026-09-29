@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { useCountUp } from '../../hooks/useCountUp'
 import { cx } from '../../lib/cx'
+import { trackSpotlight } from '../../lib/spotlight'
 
 const TONES = {
   primary: 'bg-soft text-link',
@@ -18,7 +19,8 @@ export function StatTile({ to, icon: Icon, value, label, tone = 'primary' }) {
   return (
     <Link
       to={to}
-      className="card-hover flex items-center gap-3.5 rounded-card border border-line bg-surface p-4 shadow-soft"
+      onPointerMove={trackSpotlight}
+      className="spotlight card-hover flex items-center gap-3.5 rounded-card border border-line bg-surface p-4 shadow-soft"
       aria-label={value == null ? label : `${value} ${label}`}
     >
       <span className={cx('grid size-11 shrink-0 place-items-center rounded-xl', TONES[effectiveTone])}>
