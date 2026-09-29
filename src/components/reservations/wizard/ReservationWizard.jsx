@@ -71,10 +71,12 @@ export function ReservationWizard({ mode, initial, organizations, reservation = 
   const organization = organizations.find((item) => String(item.id) === String(values.organization_id))
   const changes = reservation ? changedFields(initial.values, values) : null
 
-  // Brouillon (création uniquement) enregistré à chaque modification
+  // Brouillon (création uniquement) enregistré à chaque modification ; rien tant que la saisie
+  // n'a pas bougé (sinon un formulaire vide serait « repris » au retour)
+  const untouched = values === initial.values && step === (initial.step ?? 1)
   useEffect(() => {
-    if (draft) saveDraft(draft.name, draft.userId, { values, step, idempotency })
-  }, [draft, values, step, idempotency])
+    if (draft && !untouched) saveDraft(draft.name, draft.userId, { values, step, idempotency })
+  }, [draft, untouched, values, step, idempotency])
 
   // Accessibilité : le focus suit le changement d'étape
   useEffect(() => {

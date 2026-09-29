@@ -53,9 +53,12 @@ export function RecurrenceWizard({ initial, organizations, draft, onDone, onCanc
   const organization = organizations.find((item) => String(item.id) === String(values.organization_id))
   const tripCount = (step === 4 ? preview.result : livePreview.result)?.total_valid_occurrences ?? null
 
+  // Brouillon enregistré à chaque modification ; rien tant que la saisie n'a pas bougé
+  // (sinon un formulaire vide serait « repris » au retour)
+  const untouched = values === initial.values && step === (initial.step ?? 1)
   useEffect(() => {
-    saveDraft(draft.name, draft.userId, { values, step, idempotency })
-  }, [draft, values, step, idempotency])
+    if (!untouched) saveDraft(draft.name, draft.userId, { values, step, idempotency })
+  }, [draft, untouched, values, step, idempotency])
 
   // Accessibilité : le focus suit le changement d'étape
   useEffect(() => {
