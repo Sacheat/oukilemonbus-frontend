@@ -20,6 +20,7 @@ import { EditReservationPage } from './pages/user/EditReservationPage'
 import { JoinOrganizationPage } from './pages/user/JoinOrganizationPage'
 import { NewRecurrencePage } from './pages/user/NewRecurrencePage'
 import { NewReservationPage } from './pages/user/NewReservationPage'
+import { OrganizationDetailPage } from './pages/user/OrganizationDetailPage'
 import { OrganizationsPage } from './pages/user/OrganizationsPage'
 import { RecurrenceDetailPage } from './pages/user/RecurrenceDetailPage'
 import { RecurrencesPage } from './pages/user/RecurrencesPage'
@@ -143,6 +144,7 @@ export const router = createBrowserRouter([
                           </RequirePermission>
                         ),
                       },
+                      { path: ':id', element: <OrganizationDetailPage /> },
                     ],
                   },
                   soon('documents', 'Mon espace', 'Documents', 'documents.view'),

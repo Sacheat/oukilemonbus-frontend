@@ -1,4 +1,4 @@
-import { LogOut, Star } from 'lucide-react'
+import { ArrowRight, LogOut, Star } from 'lucide-react'
 import { ORGANIZATION_TYPE_LABELS, RELATIONSHIP_TYPE_LABELS } from '../../lib/labels'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
@@ -35,6 +35,9 @@ export function OrganizationCard({ organization, onMakeDefault, makingDefault, o
         )}
 
         <div className="flex flex-wrap gap-2">
+          <Button className="text-sm" to={`/espace/organisations/${organization.id}`} aria-label={`Voir ${organization.name}`}>
+            {membership.is_manager ? 'Voir et gérer les membres' : 'Voir'} <ArrowRight className="size-4" aria-hidden="true" />
+          </Button>
           {!membership.is_default && (
             <Button variant="secondary" className="text-sm" onClick={() => onMakeDefault(organization)} loading={makingDefault}>
               <Star className="size-4" aria-hidden="true" /> Définir par défaut

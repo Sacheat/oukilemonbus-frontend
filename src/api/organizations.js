@@ -12,6 +12,29 @@ export async function makeDefaultOrganization(organizationId) {
   return data.data
 }
 
+// ----- Détail et membres (lecture : membres ; gestion : responsables de l'organisation) -----
+
+export async function getOrganization(organizationId, { signal } = {}) {
+  const { data } = await api.get(`/organizations/${organizationId}`, { signal })
+  return data.data
+}
+
+// Non paginé, trié par nom
+export async function getOrganizationMembers(organizationId, { signal } = {}) {
+  const { data } = await api.get(`/organizations/${organizationId}/members`, { signal })
+  return data.data
+}
+
+// Le dernier responsable ne peut pas être rétrogradé ni retiré (422 sur la clé `user`)
+export async function updateMemberRelationship(organizationId, userId, relationshipType) {
+  const { data } = await api.patch(`/organizations/${organizationId}/members/${userId}`, { relationship_type: relationshipType })
+  return data.data
+}
+
+export async function removeMember(organizationId, userId) {
+  await api.delete(`/organizations/${organizationId}/members/${userId}`)
+}
+
 // ----- Demandes d'adhésion (identifiant : request_id) -----
 
 // Organisations que je peux encore demander à rejoindre (non paginé)

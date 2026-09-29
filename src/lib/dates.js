@@ -43,6 +43,14 @@ export function formatDateTime(value) {
   return new Intl.DateTimeFormat(LOCALE, { ...DATE_TIME, timeZone: TIME_ZONE }).format(new Date(value))
 }
 
+// Horodatage UTC → "16/06/2026" (jour à Bruxelles)
+export function formatDay(value) {
+  if (!value) return ''
+  return new Intl.DateTimeFormat(LOCALE, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: TIME_ZONE }).format(
+    new Date(value),
+  )
+}
+
 // LocalDateTime sans fuseau → "16/06/2026 09:00"
 export function formatLocalDateTime(value) {
   if (!value) return ''

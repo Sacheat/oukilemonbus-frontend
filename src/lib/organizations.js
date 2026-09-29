@@ -6,6 +6,18 @@ export const REQUESTABLE_ROLES = ['prof', 'directeur', 'animateur', 'responsable
   label: RELATIONSHIP_TYPE_LABELS[value],
 }))
 
+// Relations qu'un responsable peut attribuer à un membre ; responsable et directeur gèrent l'organisation
+export const MEMBER_ROLES = Object.entries(RELATIONSHIP_TYPE_LABELS).map(([value, label]) => ({ value, label }))
+export const MANAGER_ROLES = ['responsable', 'directeur']
+
+// Demandes d'adhésion en attente adressées à une organisation (hors les miennes)
+export function pendingJoinRequestsFor(organizationId, userId, joinRequests = []) {
+  return joinRequests.filter(
+    (request) =>
+      request.organization_id === organizationId && request.status === 'en_attente' && request.requested_by_user_id !== userId,
+  )
+}
+
 // Justificatif : mêmes contraintes que le backend (mimes:pdf,jpg,jpeg,png|max:5120)
 export const PROOF_ACCEPT = '.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png'
 const PROOF_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png']
