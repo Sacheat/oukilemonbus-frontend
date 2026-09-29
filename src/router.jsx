@@ -14,6 +14,7 @@ import { ResetPasswordPage } from './pages/auth/ResetPasswordPage'
 import { VerifyEmailPage } from './pages/auth/VerifyEmailPage'
 import { NotFoundPage } from './pages/errors/NotFoundPage'
 import { RouteErrorPage } from './pages/errors/RouteErrorPage'
+import { NotificationsPage } from './pages/NotificationsPage'
 import { SpaceHomePage } from './pages/SpaceHomePage'
 import { CreateOrganizationRequestPage } from './pages/user/CreateOrganizationRequestPage'
 import { EditReservationPage } from './pages/user/EditReservationPage'
@@ -71,7 +72,10 @@ export const router = createBrowserRouter([
           // Pages communes à tous les rôles, dans le layout de l'espace de l'utilisateur
           {
             element: <RoleLayout />,
-            children: [{ path: 'compte', element: <AccountPage /> }],
+            children: [
+              { path: 'compte', element: <AccountPage /> },
+              { path: 'notifications', element: <NotificationsPage /> },
+            ],
           },
 
           // Espace usager (membres et responsables d'organisations)

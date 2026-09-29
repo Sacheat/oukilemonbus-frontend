@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router'
 import { useAuth } from '../auth/useAuth'
 import { Logo } from '../components/ui/Logo'
+import { NotificationBell } from '../components/notifications/NotificationBell'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
 import { cx } from '../lib/cx'
 import { isNavItemVisible } from '../navigation'
@@ -86,6 +87,7 @@ export function SidebarLayout({ sections }) {
             <Menu className="size-5" aria-hidden="true" />
           </button>
           <div className="flex items-center gap-1">
+            <NotificationBell />
             <ThemeToggle />
             <UserMenu />
           </div>

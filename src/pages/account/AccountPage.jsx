@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { updatePassword, updateProfile } from '../../api/users'
 import { useAuth } from '../../auth/useAuth'
+import { NotificationPreferencesCard } from '../../components/notifications/NotificationPreferencesCard'
 import { Alert } from '../../components/ui/Alert'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
@@ -11,10 +12,11 @@ import { useForm } from '../../hooks/useForm'
 export function AccountPage() {
   return (
     <>
-      <PageHeader eyebrow="Mon compte" title="Mes informations" description="Vos coordonnées et votre mot de passe." />
+      <PageHeader eyebrow="Mon compte" title="Mes informations" description="Vos coordonnées, votre mot de passe et vos notifications." />
       <div className="grid items-start gap-5 lg:grid-cols-2">
         <ProfileForm />
         <PasswordForm />
+        <NotificationPreferencesCard />
       </div>
     </>
   )
