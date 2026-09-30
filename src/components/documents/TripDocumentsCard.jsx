@@ -5,6 +5,7 @@ import { formatDate } from '../../lib/dates'
 import { DECISION_STATUS } from '../../lib/documents'
 import { Badge } from '../ui/Badge'
 import { DetailList } from '../ui/DetailList'
+import { Panel } from '../ui/Panel'
 import { DocumentRow } from './DocumentRow'
 
 // Carte « Décision et documents » du détail d'un déplacement : décision du Collège (ASBL, CPAS,
@@ -31,13 +32,10 @@ export function TripDocumentsCard({ reservationId }) {
   const status = decision && DECISION_STATUS[decision.decision_status]
 
   return (
-    <section aria-labelledby="documents-title" className="rounded-card border border-line bg-surface pt-5.5 pb-1">
-      <h2 id="documents-title" className="px-5.5 text-[17px] font-bold">
-        Décision et documents
-      </h2>
+    <Panel title="Décision et documents">
       {decision && (
-        <div className="px-5.5 pb-3">
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+        <div className="px-5 pb-3">
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
             <span className="font-semibold">Décision du Collège</span>
             <Badge tone={status?.tone ?? 'neutral'}>{status?.label ?? decision.decision_status}</Badge>
           </div>
@@ -51,12 +49,12 @@ export function TripDocumentsCard({ reservationId }) {
         </div>
       )}
       {documents.length > 0 && (
-        <ul className="mt-2 divide-y divide-line border-t border-line">
+        <ul className={decision ? 'divide-y divide-line border-t border-line' : 'divide-y divide-line'}>
           {documents.map((doc) => (
             <DocumentRow key={doc.id} document={doc} showReservation={false} />
           ))}
         </ul>
       )}
-    </section>
+    </Panel>
   )
 }
