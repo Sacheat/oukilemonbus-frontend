@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { cx } from '../../lib/cx'
 import { shortAddress } from '../../lib/reservations'
 
 function point(location) {
@@ -14,7 +15,8 @@ function marker(L, className) {
 
 // Carte OpenStreetMap du trajet : départ et destination reliés par une ligne à vol d'oiseau.
 // Leaflet est chargé seulement ici (import dynamique) ; rien n'est affiché sans coordonnées.
-export function TripMap({ pickup, destination }) {
+// `height` : hauteur de la carte ; `className` : cadre autour de la carte et de sa légende.
+export function TripMap({ pickup, destination, height = 'h-64', className }) {
   const container = useRef(null)
   const [failed, setFailed] = useState(false)
   const from = point(pickup)
@@ -52,12 +54,12 @@ export function TripMap({ pickup, destination }) {
   if (!key || failed) return null
 
   return (
-    <figure className="m-0">
+    <figure className={cx('m-0', className)}>
       <div
         ref={container}
         role="img"
         aria-label={`Carte du trajet de ${shortAddress(pickup)} à ${shortAddress(destination)}`}
-        className="trip-map isolate h-64 w-full overflow-hidden bg-surface-muted"
+        className={cx('trip-map isolate w-full overflow-hidden bg-surface-muted', height)}
       />
       <figcaption className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-3 text-sm">
         <span className="inline-flex items-center gap-2">
