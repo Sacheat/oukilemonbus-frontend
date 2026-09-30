@@ -8,20 +8,15 @@ import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
 import { ErrorState } from '../components/ui/ErrorState'
-import { Select } from '../components/ui/Field'
-import { Loader } from '../components/ui/Loader'
+import { FilterChips } from '../components/ui/FilterChips'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Pagination } from '../components/ui/Pagination'
+import { Skeleton } from '../components/ui/Skeleton'
 import { useApi } from '../hooks/useApi'
 import { cx } from '../lib/cx'
 import { getErrorMessage } from '../lib/errors'
-import { categoryLabel, notificationCategories } from '../lib/notifications'
+import { categoryLabel, groupByDay, notificationCategories } from '../lib/notifications'
 import { useNotifications } from '../notifications/useNotifications'
-
-const STATES = [
-  { value: 'toutes', label: 'Toutes' },
-  { value: 'non-lues', label: 'Non lues' },
-]
 
 // Paramètres de l'API selon les filtres de l'URL (?etat=non-lues&categorie=…&page=…)
 function toApiParams(searchParams) {
@@ -31,7 +26,8 @@ function toApiParams(searchParams) {
   return params
 }
 
-// Toutes mes notifications (page commune à tous les rôles)
+// Toutes mes notifications (page commune à tous les rôles) : filtres en pastilles (état, catégorie),
+// groupées par jour, « Tout marquer comme lu » mis en avant tant qu'il en reste
 export function NotificationsPage() {
   const { user } = useAuth()
   const { unreadCount, refreshCount } = useNotifications()
@@ -79,6 +75,16 @@ export function NotificationsPage() {
     refreshCount()
   }
 
+  const category = searchParams.get('categorie')
+  const stateChips = [
+    { value: null, label: 'Toutes' },
+    { value: 'non-lues', label: 'Non lues', count: unreadCount },
+  ]
+  const categoryChips = [
+    { value: null, label: 'Toutes les catégories' },
+    ...notificationCategories(user).map((value) => ({ value, label: categoryLabel(value, user) })),
+  ]
+
   return (
     <div className="max-w-3xl">
       <PageHeader
@@ -87,9 +93,11 @@ export function NotificationsPage() {
         description={unreadCount > 0 ? `${unreadCount} non lue${unreadCount > 1 ? 's' : ''}.` : 'Tout est lu.'}
         actions={
           <>
-            <Button variant="secondary" onClick={handleReadAll} loading={markingAll} disabled={unreadCount === 0}>
-              <CheckCheck className="size-4" aria-hidden="true" /> Tout marquer comme lu
-            </Button>
+            {unreadCount > 0 && (
+              <Button onClick={handleReadAll} loading={markingAll}>
+                <CheckCheck className="size-4" aria-hidden="true" /> Tout marquer comme lu ({unreadCount})
+              </Button>
+            )}
             <Button variant="secondary" to="/compte#notifications">
               <Settings className="size-4" aria-hidden="true" /> Réglages
             </Button>
@@ -98,38 +106,14 @@ export function NotificationsPage() {
         className="pb-5"
       />
 
-      <div className="flex flex-wrap items-end gap-3">
-        <div role="group" aria-label="État" className="flex rounded-control border border-line-strong bg-surface p-1">
-          {STATES.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              aria-pressed={state === option.value}
-              onClick={() => setFilter('etat', option.value === 'toutes' ? null : option.value)}
-              className={cx(
-                'min-h-9 rounded-md px-3 text-sm font-semibold',
-                state === option.value ? 'bg-primary text-on-primary' : 'text-muted hover:text-ink',
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-        <label className="text-xs font-bold text-muted">
-          Catégorie
-          <Select
-            value={searchParams.get('categorie') ?? ''}
-            onChange={(event) => setFilter('categorie', event.target.value)}
-            className="mt-1 min-h-11 py-2 text-sm"
-          >
-            <option value="">Toutes les catégories</option>
-            {notificationCategories(user).map((category) => (
-              <option key={category} value={category}>
-                {categoryLabel(category, user)}
-              </option>
-            ))}
-          </Select>
-        </label>
+      <div className="grid gap-3">
+        <FilterChips
+          label="État"
+          chips={stateChips}
+          value={state === 'non-lues' ? 'non-lues' : null}
+          onChange={(value) => setFilter('etat', value)}
+        />
+        <FilterChips label="Catégorie" chips={categoryChips} value={category} onChange={(value) => setFilter('categorie', value)} />
       </div>
 
       {actionError && (
@@ -142,23 +126,31 @@ export function NotificationsPage() {
         {notifications.error ? (
           <ErrorState error={notifications.error} onRetry={notifications.reload} />
         ) : !notifications.data ? (
-          <Loader />
+          <div role="status" className="grid gap-3">
+            <span className="sr-only">Chargement des notifications…</span>
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-72 rounded-card" />
+          </div>
         ) : notifications.data.data.length === 0 ? (
           <EmptyState icon={BellOff} title="Aucune notification">
             {query ? 'Aucune notification ne correspond à ces filtres.' : 'Les changements sur vos demandes apparaîtront ici.'}
           </EmptyState>
         ) : (
           <>
-            <ul
-              className={cx(
-                'divide-y divide-line overflow-hidden rounded-card border border-line bg-surface',
-                notifications.loading && 'opacity-60',
-              )}
-            >
-              {notifications.data.data.map((notification) => (
-                <NotificationItem key={notification.id} notification={notification} onRead={handleRead} />
+            <div className={cx('grid gap-6', notifications.loading && 'opacity-60')}>
+              {groupByDay(notifications.data.data).map((group) => (
+                <section key={group.key} aria-labelledby={`jour-${group.key}`}>
+                  <h2 id={`jour-${group.key}`} className="mb-2.5 text-sm font-extrabold tracking-[.1em] text-muted uppercase">
+                    {group.label}
+                  </h2>
+                  <ul className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface shadow-soft">
+                    {group.items.map((notification) => (
+                      <NotificationItem key={notification.id} notification={notification} onRead={handleRead} />
+                    ))}
+                  </ul>
+                </section>
               ))}
-            </ul>
+            </div>
             <div className="mt-6">
               <Pagination meta={notifications.data.meta} onPageChange={(page) => setFilter('page', String(page))} />
             </div>

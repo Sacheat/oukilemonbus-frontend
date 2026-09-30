@@ -32,3 +32,44 @@ export const DIGEST_OPTIONS = [
 ]
 
 export const HOURS = Array.from({ length: 24 }, (_, hour) => ({ value: String(hour), label: `${String(hour).padStart(2, '0')}:00` }))
+
+// Nature d'une notification pour son icône et sa couleur, d'après sa clé d'événement
+// (« reservation.approved », « user_org_request.rejected »…), sinon d'après sa catégorie
+export function notificationKind({ event_key: eventKey = '', category }) {
+  if (/(rejected|refused)$/.test(eventKey)) return 'refused'
+  if (/cancelled$/.test(eventKey)) return 'cancelled'
+  if (/(approved|confirmed|accepted)$/.test(eventKey) && !eventKey.includes('passengers')) return 'approved'
+  if (eventKey.includes('passengers')) return 'passengers'
+  if (eventKey.startsWith('document.')) return 'document'
+  if (eventKey.includes('conflict')) return 'conflict'
+  if (category === 'last_minute_cancellation') return 'cancelled'
+  if (category === 'admin_workflow') return 'organization'
+  if (category === 'driver_planning') return 'planning'
+  return 'reservation'
+}
+
+// Notifications groupées par jour de réception (heure de Bruxelles) : aujourd'hui, hier,
+// cette semaine (7 derniers jours), plus anciennes ; groupes vides écartés
+export function groupByDay(notifications, now = new Date()) {
+  const day = (date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels' }).format(date)
+  const today = day(now)
+  const shift = (days) => {
+    const date = new Date(now)
+    date.setDate(date.getDate() - days)
+    return day(date)
+  }
+  const yesterday = shift(1)
+  const weekAgo = shift(7)
+  const groups = [
+    { key: 'today', label: 'Aujourd’hui', items: [] },
+    { key: 'yesterday', label: 'Hier', items: [] },
+    { key: 'week', label: 'Cette semaine', items: [] },
+    { key: 'older', label: 'Plus anciennes', items: [] },
+  ]
+  for (const notification of notifications) {
+    const received = day(new Date(notification.created_at))
+    const group = received === today ? 0 : received === yesterday ? 1 : received > weekAgo ? 2 : 3
+    groups[group].items.push(notification)
+  }
+  return groups.filter((group) => group.items.length > 0)
+}
