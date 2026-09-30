@@ -76,3 +76,10 @@ export function requestSteps(request) {
         : { key: 'decision', label: 'Décision', detail: null, state: 'upcoming' },
   ]
 }
+
+// « Ce qui va se passer » à côté d'un formulaire de demande (rien n'est encore envoyé)
+export const REQUEST_PLAN_STEPS = [
+  { key: 'sent', label: 'Vous envoyez la demande', detail: 'avec un justificatif si possible', state: 'current' },
+  { key: 'review', label: 'La commune l’examine', detail: 'elle peut vous contacter', state: 'upcoming' },
+  { key: 'decision', label: 'Vous êtes averti de la décision', detail: 'par notification', state: 'upcoming' },
+]

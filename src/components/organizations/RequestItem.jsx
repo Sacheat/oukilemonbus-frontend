@@ -16,7 +16,7 @@ const STATUS_HINTS = {
 
 // Une de mes demandes (adhésion à une organisation ou création d'une organisation) : pastille, titre,
 // suivi en trois étapes (envoyée, examen, décision), puis le justificatif tant qu'elle est en attente
-export function RequestItem({ kind, request, onChanged }) {
+export function RequestItem({ kind, request, onChanged, showProof = true }) {
   const title =
     kind === 'adhesion'
       ? `Rejoindre ${request.organization?.name ?? 'une organisation'}`
@@ -25,7 +25,8 @@ export function RequestItem({ kind, request, onChanged }) {
     kind === 'adhesion'
       ? `Rôle demandé : ${RELATIONSHIP_TYPE_LABELS[request.requested_role] ?? request.requested_role}`
       : request.organization_type_label ?? ORGANIZATION_TYPE_LABELS[request.organization_type]
-  const pending = request.status === 'en_attente'
+  // Justificatif modifiable tant que la demande est en attente (sauf écran de fin : `showProof={false}`)
+  const pending = showProof && request.status === 'en_attente'
 
   return (
     <li className="min-w-0">

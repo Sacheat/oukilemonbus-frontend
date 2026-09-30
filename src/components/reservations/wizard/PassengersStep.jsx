@@ -1,6 +1,7 @@
 import { Users } from 'lucide-react'
 import { cx } from '../../../lib/cx'
 import { ACTIVITY_TYPE_LABELS } from '../../../lib/labels'
+import { ChoicePills } from '../../ui/ChoicePills'
 import { Field, Textarea } from '../../ui/Field'
 import { NumberStepper } from '../../ui/NumberStepper'
 
@@ -72,32 +73,14 @@ export function PassengersStep({ values, setField, errors, needsJustification, m
         )}
       </div>
 
-      <fieldset className="sm:col-span-2">
-        <legend className="text-sm font-bold">Type d’activité</legend>
-        <div className="mt-1.5 flex flex-wrap gap-2">
-          {Object.entries(ACTIVITY_TYPE_LABELS).map(([value, label]) => (
-            <label
-              key={value}
-              className={cx(
-                'inline-flex min-h-11 cursor-pointer items-center rounded-full border border-line-strong bg-surface px-4 text-sm font-semibold',
-                'hover:border-primary has-checked:border-primary has-checked:bg-soft has-checked:text-link',
-                'has-focus-visible:ring-2 has-focus-visible:ring-primary',
-              )}
-            >
-              <input
-                type="radio"
-                name="activity_type"
-                value={value}
-                checked={values.activity_type === value}
-                onChange={() => setField('activity_type', value)}
-                className="sr-only"
-              />
-              {label}
-            </label>
-          ))}
-        </div>
-        {errors.activity_type && <p className="mt-1.5 text-xs font-semibold text-danger">{errors.activity_type}</p>}
-      </fieldset>
+      <ChoicePills
+        legend="Type d’activité"
+        options={Object.entries(ACTIVITY_TYPE_LABELS).map(([value, label]) => ({ value, label }))}
+        value={values.activity_type}
+        onChange={(value) => setField('activity_type', value)}
+        error={errors.activity_type}
+        className="sm:col-span-2"
+      />
 
       <Field
         label="Motif du déplacement"
