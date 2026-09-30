@@ -150,3 +150,9 @@ export function draftReservation(values, result = null) {
     estimated_occupation: result?.estimated_occupation ?? null,
   }
 }
+
+// Nombre de modifications à annoncer : les deux horaires comptent pour une seule (« Horaires »)
+export function changedRowCount(changes) {
+  const times = changes.includes('departure_time') || changes.includes('return_time')
+  return changes.filter((field) => field !== 'departure_time' && field !== 'return_time').length + (times ? 1 : 0)
+}

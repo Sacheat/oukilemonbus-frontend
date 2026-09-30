@@ -6,7 +6,7 @@ import { RequestTicket } from './RequestTicket'
 // Récapitulatif sur mobile et tablette : barre compacte au-dessus du formulaire (date et trajet en une
 // ligne), qui se déplie pour afficher le mini-billet et l'encart « À savoir ». Masquée en grand écran,
 // où RequestSummary prend le relais.
-export function RequestSummaryBar({ values, organization, estimate, step, title = 'Votre demande' }) {
+export function RequestSummaryBar({ values, organization, estimate, step, title = 'Votre demande', changeCount = null }) {
   const route = [values.pickup?.city, values.destination?.city].filter(Boolean).join(' → ')
   const line = [values.trip_date && formatDate(values.trip_date, { day: 'numeric', month: 'short' }), route]
     .filter(Boolean)
@@ -18,6 +18,11 @@ export function RequestSummaryBar({ values, organization, estimate, step, title 
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-bold">
             {title} <span className="font-normal text-muted">· étape {Math.min(step, 4)} sur 4</span>
+            {changeCount > 0 && (
+              <span className="ml-2 inline-block rounded-md bg-warning-soft px-2 py-0.5 align-middle text-xs font-bold whitespace-nowrap text-warning">
+                {changeCount} modification{changeCount > 1 ? 's' : ''}
+              </span>
+            )}
           </span>
           {line && <span className="block truncate text-sm text-muted">{line}</span>}
         </span>

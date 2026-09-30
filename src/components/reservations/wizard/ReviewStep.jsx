@@ -29,10 +29,25 @@ export function ReviewStep({
   const result = preview.result
   const mode = original ? 'edit' : 'create'
   const rowProps = { values, original, changes }
+  // En modification : lignes dont au moins un champ a changé, rappelées en tête
+  const changedRows = changes ? [...TRIP_ROWS, ...PASSENGER_ROWS].filter((row) => row.fields.some((field) => changes.includes(field))) : []
   return (
     <div className="grid gap-5">
       {changes && changes.length === 0 && (
         <Alert tone="info">Vous n’avez encore rien modifié. Revenez aux étapes précédentes pour changer la réservation.</Alert>
+      )}
+
+      {changedRows.length > 0 && (
+        <section aria-labelledby="review-changes" className="rounded-card border border-warning-line bg-surface p-4">
+          <h3 id="review-changes" className="font-bold">
+            Vos changements <span className="font-normal text-muted">({changedRows.length})</span>
+          </h3>
+          <dl className={LIST_CLASSES}>
+            {changedRows.map((row) => (
+              <Row key={row.label} {...row} {...rowProps} />
+            ))}
+          </dl>
+        </section>
       )}
 
       <TripHero
@@ -86,15 +101,9 @@ export function ReviewStep({
         </div>
         <dl className={LIST_CLASSES}>
           <Row label="Organisation" {...rowProps} fields={[]} render={() => organization?.name} />
-          <Row label="Date" {...rowProps} fields={['trip_date']} render={(v) => formatDate(v.trip_date)} />
-          <Row
-            label="Horaires"
-            {...rowProps}
-            fields={['departure_time', 'return_time']}
-            render={(v) => `Départ ${v.departure_time} · retour ${v.return_time}`}
-          />
-          <Row label="Prise en charge" {...rowProps} fields={['pickup']} render={(v) => shortAddress(v.pickup)} />
-          <Row label="Destination" {...rowProps} fields={['destination']} render={(v) => shortAddress(v.destination)} />
+          {TRIP_ROWS.map((row) => (
+            <Row key={row.label} {...row} {...rowProps} />
+          ))}
         </dl>
       </section>
 
@@ -108,15 +117,28 @@ export function ReviewStep({
           </Button>
         </div>
         <dl className={LIST_CLASSES}>
-          <Row label="Enfants" {...rowProps} fields={['nb_children']} render={(v) => v.nb_children || '0'} />
-          <Row label="Adultes" {...rowProps} fields={['nb_adults']} render={(v) => v.nb_adults} />
-          <Row label="Activité" {...rowProps} fields={['activity_type']} render={(v) => ACTIVITY_TYPE_LABELS[v.activity_type]} />
-          <Row label="Motif" {...rowProps} fields={['trip_purpose']} render={(v) => v.trip_purpose} />
+          {PASSENGER_ROWS.map((row) => (
+            <Row key={row.label} {...row} {...rowProps} />
+          ))}
         </dl>
       </section>
     </div>
   )
 }
+
+// Lignes du récapitulatif : libellé, champs du formulaire concernés, rendu d'une valeur
+const TRIP_ROWS = [
+  { label: 'Date', fields: ['trip_date'], render: (v) => formatDate(v.trip_date) },
+  { label: 'Horaires', fields: ['departure_time', 'return_time'], render: (v) => `Départ ${v.departure_time} · retour ${v.return_time}` },
+  { label: 'Prise en charge', fields: ['pickup'], render: (v) => shortAddress(v.pickup) },
+  { label: 'Destination', fields: ['destination'], render: (v) => shortAddress(v.destination) },
+]
+const PASSENGER_ROWS = [
+  { label: 'Enfants', fields: ['nb_children'], render: (v) => v.nb_children || '0' },
+  { label: 'Adultes', fields: ['nb_adults'], render: (v) => v.nb_adults },
+  { label: 'Activité', fields: ['activity_type'], render: (v) => ACTIVITY_TYPE_LABELS[v.activity_type] },
+  { label: 'Motif', fields: ['trip_purpose'], render: (v) => v.trip_purpose },
+]
 
 const LIST_CLASSES = 'mt-2 grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-[minmax(0,9rem)_minmax(0,1fr)]'
 
