@@ -4,7 +4,8 @@ import { totalPassengers } from '../../lib/reservations'
 import { FactTiles } from './FactTiles'
 
 // Chiffres clés d'un déplacement en tuiles : distance, durée du trajet, passagers, créneau du bus
-export function KeyFacts({ reservation }) {
+// (`className` : grille des tuiles, 4 colonnes en grand écran par défaut)
+export function KeyFacts({ reservation, className }) {
   const occupation = reservation.estimated_occupation
   const facts = [
     reservation.distance_km != null && {
@@ -22,5 +23,5 @@ export function KeyFacts({ reservation }) {
     occupation && { icon: Clock, label: 'Bus réservé', value: formatLocalRange(occupation.start_at, occupation.end_at).replace(/^de /, '') },
   ].filter(Boolean)
 
-  return <FactTiles facts={facts} />
+  return <FactTiles facts={facts} className={className} />
 }

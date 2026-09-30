@@ -1,14 +1,19 @@
 import { LoaderCircle } from 'lucide-react'
 import { formatDate } from '../../../lib/dates'
 import { ACTIVITY_TYPE_LABELS } from '../../../lib/labels'
+import { draftReservation } from '../../../lib/reservationForm'
 import { shortAddress } from '../../../lib/reservations'
 import { Alert } from '../../ui/Alert'
 import { Button } from '../../ui/Button'
 import { Checkbox } from '../../ui/Field'
 import { ErrorState } from '../../ui/ErrorState'
-import { ApprovalNotice, AvailabilityNotice, ConflictsList, TripFacts, WarningsList } from './PreviewResult'
+import { TripHero } from '../TripHero'
+import { DecisionBanner } from './DecisionBanner'
+import { AvailabilityNotice, ConflictsList, WarningsList } from './PreviewResult'
+import { TripCheckFacts } from './TripCheckFacts'
 
-// Étape 3 : récapitulatif + résultat du preview complet (avec les vrais passagers)
+// Étape 3 : billet de la demande, ce qu'elle deviendra à l'envoi (preview complet, avec les vrais passagers),
+// trajet calculé, puis le détail des informations saisies (avant → après en modification)
 export function ReviewStep({
   values,
   original = null,
@@ -22,12 +27,54 @@ export function ReviewStep({
   setAcknowledged,
 }) {
   const result = preview.result
+  const mode = original ? 'edit' : 'create'
   const rowProps = { values, original, changes }
   return (
     <div className="grid gap-5">
       {changes && changes.length === 0 && (
         <Alert tone="info">Vous n’avez encore rien modifié. Revenez aux étapes précédentes pour changer la réservation.</Alert>
       )}
+
+      <TripHero
+        reservation={draftReservation(values, preview.status === 'done' ? result : null)}
+        eyebrow={mode === 'edit' ? 'Votre réservation modifiée' : 'Aperçu de votre demande'}
+        titleAs="h3"
+        showStatus={false}
+      />
+
+      <div className="grid gap-3" aria-live="polite">
+        {preview.status === 'loading' && (
+          <p className="flex items-center gap-2 text-sm text-muted">
+            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> Vérification complète de votre demande…
+          </p>
+        )}
+        {preview.status === 'error' && <ErrorState error={preview.error} onRetry={onRetry} />}
+        {result && preview.status === 'done' && (
+          <>
+            <DecisionBanner result={result} mode={mode} />
+            <AvailabilityNotice availability={result.availability} onUseSlot={onUseSlot} />
+            <ConflictsList conflicts={result.conflicts} />
+            {result.warnings?.length > 0 && (
+              <>
+                <WarningsList warnings={result.warnings} />
+                <p className="text-sm text-muted">
+                  Justifiez ces horaires dans le motif du déplacement{' '}
+                  <Button variant="link" className="text-sm" onClick={() => onEditStep(2)}>
+                    (modifier le motif)
+                  </Button>
+                  .
+                </p>
+                <Checkbox
+                  label="J’ai pris connaissance que ces horaires nécessitent une dérogation soumise au Collège."
+                  checked={acknowledged}
+                  onChange={(event) => setAcknowledged(event.target.checked)}
+                />
+              </>
+            )}
+            <TripCheckFacts result={result} title="Trajet calculé" />
+          </>
+        )}
+      </div>
       <section aria-labelledby="review-trip" className="rounded-[10px] border border-line p-4">
         <div className="flex items-center justify-between gap-2">
           <h3 id="review-trip" className="font-bold">
@@ -67,48 +114,6 @@ export function ReviewStep({
           <Row label="Motif" {...rowProps} fields={['trip_purpose']} render={(v) => v.trip_purpose} />
         </dl>
       </section>
-
-      <div className="grid gap-3" aria-live="polite">
-        {preview.status === 'loading' && (
-          <p className="flex items-center gap-2 text-sm text-muted">
-            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> Vérification complète de votre demande…
-          </p>
-        )}
-        {preview.status === 'error' && <ErrorState error={preview.error} onRetry={onRetry} />}
-        {result && preview.status === 'done' && (
-          <>
-            {!result.is_allowed && (
-              <Alert tone="danger" title="Cette demande ne peut pas être envoyée en l’état">
-                Modifiez le trajet ou les horaires puis relancez la vérification.
-              </Alert>
-            )}
-            <ApprovalNotice result={result} />
-            <div className="rounded-[10px] border border-line bg-surface-muted p-4">
-              <p className="mb-2 text-sm font-bold">Trajet calculé</p>
-              <TripFacts result={result} />
-            </div>
-            <AvailabilityNotice availability={result.availability} onUseSlot={onUseSlot} />
-            <ConflictsList conflicts={result.conflicts} />
-            {result.warnings?.length > 0 && (
-              <>
-                <WarningsList warnings={result.warnings} />
-                <p className="text-sm text-muted">
-                  Justifiez ces horaires dans le motif du déplacement{' '}
-                  <Button variant="link" className="text-sm" onClick={() => onEditStep(2)}>
-                    (modifier le motif)
-                  </Button>
-                  .
-                </p>
-                <Checkbox
-                  label="J’ai pris connaissance que ces horaires nécessitent une dérogation soumise au Collège."
-                  checked={acknowledged}
-                  onChange={(event) => setAcknowledged(event.target.checked)}
-                />
-              </>
-            )}
-          </>
-        )}
-      </div>
     </div>
   )
 }
