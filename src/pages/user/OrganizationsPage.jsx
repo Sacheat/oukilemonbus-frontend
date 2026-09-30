@@ -10,7 +10,7 @@ import { Alert } from '../../components/ui/Alert'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ErrorState } from '../../components/ui/ErrorState'
-import { Loader } from '../../components/ui/Loader'
+import { Skeleton } from '../../components/ui/Skeleton'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { useApi } from '../../hooks/useApi'
 import { getErrorMessage } from '../../lib/errors'
@@ -136,7 +136,10 @@ export function OrganizationsPage() {
           {requests.error ? (
             <ErrorState error={requests.error} onRetry={requests.reload} />
           ) : !requests.data ? (
-            <Loader />
+            <div role="status" className="grid gap-3.5">
+              <span className="sr-only">Chargement des demandes…</span>
+              <Skeleton className="h-44 rounded-card" />
+            </div>
           ) : items.length === 0 ? (
             <EmptyState icon={Inbox} title="Aucune demande">
               Vos demandes d’adhésion et de création d’organisation apparaîtront ici.
