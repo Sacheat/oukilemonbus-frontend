@@ -17,6 +17,7 @@ import { ErrorState } from '../../components/ui/ErrorState'
 import { Panel } from '../../components/ui/Panel'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { useApi } from '../../hooks/useApi'
+import { cx } from '../../lib/cx'
 import { RELATIONSHIP_TYPE_LABELS } from '../../lib/labels'
 import { pendingJoinRequestsFor } from '../../lib/organizations'
 import { shortAddress } from '../../lib/reservations'
@@ -133,7 +134,8 @@ export function OrganizationDetailPage() {
 
       <FactTiles facts={facts} />
 
-      <div className="grid items-start gap-5 lg:grid-cols-2">
+      {/* Sans le panneau des demandes (réservé aux responsables), les informations prennent toute la largeur */}
+      <div className={cx('grid items-start gap-5', canManage && 'lg:grid-cols-2')}>
         <Panel title="Informations">
           <div className="px-5 pb-5">
             <DetailList
@@ -186,7 +188,7 @@ export function OrganizationDetailPage() {
               <Skeleton className="h-12 rounded-card" />
             </div>
           ) : (
-            <ul className="mt-3 divide-y divide-line border-t border-line">
+            <ul className={cx('divide-y divide-line', canManage && 'mt-3 border-t border-line')}>
               {sortedMembers.map((member) => (
                 <MemberRow
                   key={member.user_id}
