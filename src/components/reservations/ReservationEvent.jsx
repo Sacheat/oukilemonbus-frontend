@@ -11,8 +11,9 @@ import { StatusBadge } from '../ui/StatusBadge'
 // Étape du fil de suivi : point coloré selon le statut sur la ligne du temps, puis une carte
 // entièrement cliquable avec une pastille de date façon billet. Annulés et refusés sont estompés.
 // `to` : cible du clic (aperçu rapide dans la liste, détail par défaut) ; badge « Série » si le trajet
-// fait partie d'une récurrence. `highlighted` : mise en évidence brève (clic dans le mini-calendrier).
-export function ReservationEvent({ reservation, to = `/espace/deplacements/${reservation.id}`, highlighted = false }) {
+// fait partie d'une récurrence (`showSeries={false}` dans le détail d'une série). `highlighted` : mise en évidence
+// brève (clic dans le mini-calendrier).
+export function ReservationEvent({ reservation, to = `/espace/deplacements/${reservation.id}`, highlighted = false, showSeries = true }) {
   const destination = shortAddress(reservation.destination_location)
   const terminal = isTerminal(reservation)
   const today = todayApiDate()
@@ -53,7 +54,7 @@ export function ReservationEvent({ reservation, to = `/espace/deplacements/${res
         <span className="min-w-0 flex-1 px-4.5 py-3.5">
           <span className="flex flex-wrap items-center gap-2">
             <StatusBadge status={reservation.status} label={reservation.status_label} />
-            {reservation.recurrence_id && (
+            {showSeries && reservation.recurrence_id && (
               <span className="inline-flex items-center gap-1 rounded-md bg-soft px-2 py-0.5 text-xs font-bold text-link">
                 <Repeat className="size-3" aria-hidden="true" /> Série
               </span>

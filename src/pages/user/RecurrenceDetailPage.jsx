@@ -1,31 +1,37 @@
-import { ArrowLeft, Ban, CalendarX2 } from 'lucide-react'
+import { ArrowLeft, Ban, CalendarCheck, CalendarClock, CalendarX2, ChevronDown, Repeat, Users } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { getRecurrence } from '../../api/recurrences'
 import { useAuth } from '../../auth/useAuth'
 import { CancelRecurrenceModal } from '../../components/recurrences/CancelRecurrenceModal'
-import { OccurrenceRow } from '../../components/recurrences/OccurrenceRow'
+import { OccurrencesCalendar } from '../../components/recurrences/OccurrencesCalendar'
+import { SeriesHero } from '../../components/recurrences/SeriesHero'
+import { StatusMix } from '../../components/recurrences/StatusMix'
+import { FactTiles } from '../../components/reservations/FactTiles'
+import { ReservationEvent } from '../../components/reservations/ReservationEvent'
+import { TripMap } from '../../components/reservations/TripMap'
 import { Alert } from '../../components/ui/Alert'
-import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
-import { Card } from '../../components/ui/Card'
 import { DetailList } from '../../components/ui/DetailList'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ErrorState } from '../../components/ui/ErrorState'
-import { Loader } from '../../components/ui/Loader'
-import { StatusBadge } from '../../components/ui/StatusBadge'
+import { Panel } from '../../components/ui/Panel'
+import { Skeleton } from '../../components/ui/Skeleton'
 import { useApi } from '../../hooks/useApi'
 import { cx } from '../../lib/cx'
-import { formatDate, formatTime } from '../../lib/dates'
-import { ORGANIZATION_TYPE_LABELS, RESERVATION_STATUS_LABELS } from '../../lib/labels'
-import { cancellableOccurrences, describeFrequency, recurrenceState } from '../../lib/recurrences'
-import { shortAddress, todayApiDate } from '../../lib/reservations'
+import { formatDate } from '../../lib/dates'
+import { countdown } from '../../lib/home'
+import { ORGANIZATION_TYPE_LABELS } from '../../lib/labels'
+import { cancellableOccurrences } from '../../lib/recurrences'
+import { isTerminal, shortAddress, todayApiDate } from '../../lib/reservations'
 
 const PERIODS = [
   { value: 'a-venir', label: 'À venir' },
   { value: 'passes', label: 'Passés' },
   { value: 'tous', label: 'Tous' },
 ]
+
+const PAGE_SIZE = 10
 
 const EMPTY_MESSAGES = {
   'a-venir': 'Plus aucun trajet à venir dans cette série.',
@@ -41,13 +47,16 @@ function filterOccurrences(reservations, period) {
   return reservations
 }
 
-// Détail d'une série : résumé, occurrences et annulation de la série
+// Détail d'une série : bandeau façon billet (avec l'annulation de la série), chiffres clés, calendrier coloré
+// par statut, informations et carte, puis les trajets en ligne du temps
 export function RecurrenceDetailPage() {
   const { id } = useParams()
   const { can } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const period = searchParams.get('periode') ?? 'a-venir'
   const [dialog, setDialog] = useState(null) // 'cancel'
+  // Trajets affichés dans la liste (« Afficher plus » en ajoute PAGE_SIZE)
+  const [visible, setVisible] = useState(PAGE_SIZE)
   // Message transmis par une autre page (ex. après la création)
   const location = useLocation()
   const [notice, setNotice] = useState(location.state?.notice ?? null)
@@ -66,6 +75,7 @@ export function RecurrenceDetailPage() {
     if (value === 'a-venir') next.delete('periode')
     else next.set('periode', value)
     setSearchParams(next, { replace: true })
+    setVisible(PAGE_SIZE)
   }
 
   function handleCancelled({ cancelled_count: count }) {
@@ -96,148 +106,147 @@ export function RecurrenceDetailPage() {
     )
   }
 
-  if (!recurrence || (loading && recurrence.id !== Number(id))) return <Loader />
+  if (!recurrence || (loading && recurrence.id !== Number(id))) {
+    return (
+      <div role="status" className="grid gap-5">
+        <span className="sr-only">Chargement de la série…</span>
+        {backLink}
+        <Skeleton className="h-60 w-full rounded-panel" />
+        <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((index) => (
+            <Skeleton key={index} className="h-20 rounded-card" />
+          ))}
+        </div>
+        <Skeleton className="h-72 w-full rounded-card" />
+      </div>
+    )
+  }
 
-  const state = recurrenceState(recurrence)
-  const frequency = describeFrequency(recurrence)
   const reservations = recurrence.reservations ?? []
   const occurrences = filterOccurrences(reservations, period)
   const cancellable = cancellableOccurrences(reservations)
-  const statusCounts = Object.entries(recurrence.status_counts ?? {}).filter(([, count]) => count > 0)
   const conflictCount = recurrence.status_counts?.en_conflit ?? 0
   const organization = recurrence.organization
-  const times = recurrence.departure_time && `${formatTime(recurrence.departure_time)} → ${formatTime(recurrence.return_time)}`
   const canCancelSeries = can('recurrences.cancel') && cancellable.length > 0
+  // Heures d'arrivée du bandeau : celles du prochain trajet (calculées par le backend pour chaque trajet)
+  const nextTrip = reservations.find((reservation) => reservation.trip_date === recurrence.next_trip_date) ?? null
+  const today = todayApiDate()
+  const upcomingCount = reservations.filter((reservation) => reservation.trip_date >= today && !isTerminal(reservation)).length
+  const passengers = recurrence.nb_adults != null ? Number(recurrence.nb_children ?? 0) + Number(recurrence.nb_adults) : null
+
+  const facts = [
+    { icon: Repeat, label: 'Trajets prévus', value: recurrence.reservations_count ?? reservations.length },
+    { icon: CalendarCheck, label: 'À venir', value: upcomingCount },
+    recurrence.next_trip_date && {
+      icon: CalendarClock,
+      label: 'Prochain trajet',
+      value: formatDate(recurrence.next_trip_date, { weekday: 'short', day: 'numeric', month: 'short' }),
+      detail: countdown(recurrence.next_trip_date),
+    },
+    passengers != null && {
+      icon: Users,
+      label: 'Passagers',
+      value: passengers,
+      detail: `${recurrence.nb_children} enfant${recurrence.nb_children > 1 ? 's' : ''}, ${recurrence.nb_adults} adulte${recurrence.nb_adults > 1 ? 's' : ''}`,
+    },
+  ].filter(Boolean)
+
+  const periodSwitch = (
+    <div role="group" aria-label="Période" className="flex rounded-control border border-line-strong bg-surface p-1">
+      {PERIODS.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          aria-pressed={period === option.value}
+          onClick={() => setPeriod(option.value)}
+          className={cx(
+            'min-h-9 rounded-md px-3 text-sm font-semibold',
+            period === option.value ? 'bg-primary text-on-primary' : 'text-muted hover:text-ink',
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  )
 
   return (
     <>
-      {backLink}
+      <div className="grid gap-5">
+        <div>{backLink}</div>
 
-      <header className="mt-2 pb-6">
-        <p className="text-[11px] font-extrabold tracking-[.13em] text-link uppercase">Récurrence</p>
-        <h1 className="mt-1 text-[27px] leading-tight font-bold tracking-tight">{recurrence.trip_purpose ?? frequency}</h1>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted">
-          <Badge tone={state.tone}>{state.label}</Badge>
-          <span>{[frequency, times].filter(Boolean).join(' · ')}</span>
-        </div>
-      </header>
+        <SeriesHero recurrence={recurrence} nextTrip={nextTrip}>
+          {canCancelSeries && (
+            <Button variant="danger" onClick={() => setDialog('cancel')}>
+              <Ban className="size-4" aria-hidden="true" /> Annuler la série
+            </Button>
+          )}
+        </SeriesHero>
 
-      <div className="grid gap-4">
         {notice && <Alert tone="success">{notice}</Alert>}
-
         {conflictCount > 0 && (
           <Alert tone="warning" title={conflictCount > 1 ? `${conflictCount} trajets en conflit` : '1 trajet en conflit'}>
             Un problème bloque ces trajets pour le moment. Ouvrez-les pour voir le détail ; la commune s’en occupe.
           </Alert>
         )}
 
-        <div className="grid items-start gap-4 lg:grid-cols-3">
-          <Card as="section" aria-labelledby="trip-title">
-            <h2 id="trip-title" className="text-[17px] font-bold">
-              Trajet
-            </h2>
-            <DetailList
-              items={[
-                ['Prise en charge', shortAddress(recurrence.pickup_location)],
-                ['Destination', shortAddress(recurrence.destination_location)],
-                ['Départ', formatTime(recurrence.departure_time)],
-                ['Départ du retour', formatTime(recurrence.return_time)],
-              ]}
-            />
-          </Card>
+        <FactTiles facts={facts} />
 
-          <Card as="section" aria-labelledby="calendar-title">
-            <h2 id="calendar-title" className="text-[17px] font-bold">
-              Calendrier
-            </h2>
-            <DetailList
-              items={[
-                ['Fréquence', frequency],
-                ['Début', formatDate(recurrence.start_date)],
-                ['Fin', formatDate(recurrence.end_date)],
-                ['Trajets', recurrence.reservations_count ?? reservations.length],
-                recurrence.next_trip_date && ['Prochain trajet', formatDate(recurrence.next_trip_date)],
-              ]}
-            />
-          </Card>
+        <Panel title="Calendrier de la série">
+          <div className="p-5">
+            <OccurrencesCalendar recurrence={recurrence} reservations={reservations} />
+          </div>
+        </Panel>
 
-          <Card as="section" aria-labelledby="passengers-title">
-            <h2 id="passengers-title" className="text-[17px] font-bold">
-              Passagers et suivi
-            </h2>
-            <DetailList
-              items={[
-                recurrence.nb_children != null && ['Enfants', recurrence.nb_children],
-                recurrence.nb_adults != null && ['Adultes', recurrence.nb_adults],
-                recurrence.activity_type_label && ['Activité', recurrence.activity_type_label],
-                organization && [
-                  'Organisation',
-                  `${organization.name} (${organization.type_label ?? ORGANIZATION_TYPE_LABELS[organization.type]})`,
-                ],
-              ]}
-            />
-            {statusCounts.length > 0 && (
-              <ul className="mt-4 flex flex-wrap gap-2" aria-label="Trajets par statut">
-                {statusCounts.map(([status, count]) => (
-                  <li key={status}>
-                    <StatusBadge status={status} label={`${RESERVATION_STATUS_LABELS[status] ?? status} : ${count}`} />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+        <div className="grid items-start gap-5 lg:grid-cols-2">
+          <Panel title="Informations">
+            <div className="px-5 pb-5">
+              <DetailList
+                items={[
+                  organization && [
+                    'Organisation',
+                    `${organization.name} (${organization.type_label ?? ORGANIZATION_TYPE_LABELS[organization.type]})`,
+                  ],
+                  recurrence.activity_type_label && ['Activité', recurrence.activity_type_label],
+                  ['Prise en charge', shortAddress(recurrence.pickup_location)],
+                  ['Destination', shortAddress(recurrence.destination_location)],
+                ]}
+              />
+              <StatusMix counts={recurrence.status_counts} className="mt-4" />
+            </div>
+          </Panel>
+          {recurrence.pickup_location && recurrence.destination_location && (
+            <Panel title="Carte du trajet">
+              <TripMap pickup={recurrence.pickup_location} destination={recurrence.destination_location} />
+            </Panel>
+          )}
         </div>
 
-        <section aria-labelledby="occurrences-title" className="rounded-card border border-line bg-surface pt-5.5 pb-2">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-5.5">
-            <h2 id="occurrences-title" className="text-[17px] font-bold">
-              Trajets de la série
-            </h2>
-            <div role="group" aria-label="Période" className="flex rounded-control border border-line-strong bg-surface p-1">
-              {PERIODS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  aria-pressed={period === option.value}
-                  onClick={() => setPeriod(option.value)}
-                  className={cx(
-                    'min-h-9 rounded-md px-3 text-sm font-semibold',
-                    period === option.value ? 'bg-primary text-on-primary' : 'text-muted hover:text-ink',
-                  )}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+        <Panel title="Trajets de la série" action={periodSwitch}>
+          <div className="p-5">
+            <p className="mb-4 text-sm text-muted">Chaque trajet s’ouvre, se modifie ou s’annule séparément.</p>
+            {occurrences.length === 0 ? (
+              <EmptyState icon={CalendarX2} title="Aucun trajet">
+                {EMPTY_MESSAGES[period] ?? EMPTY_MESSAGES.tous}
+              </EmptyState>
+            ) : (
+              <>
+                <ol className="relative ml-1.5 grid gap-3 border-l-2 border-line-strong pl-7">
+                  {occurrences.slice(0, visible).map((reservation) => (
+                    <ReservationEvent key={reservation.id} reservation={reservation} showSeries={false} />
+                  ))}
+                </ol>
+                {occurrences.length > visible && (
+                  <div className="mt-4 flex justify-center">
+                    <Button variant="secondary" onClick={() => setVisible((count) => count + PAGE_SIZE)}>
+                      <ChevronDown className="size-4" aria-hidden="true" /> Afficher plus ({occurrences.length - visible})
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
-          {occurrences.length === 0 ? (
-            <EmptyState icon={CalendarX2} title="Aucun trajet" className="mx-5.5 mt-4 mb-3.5">
-              {EMPTY_MESSAGES[period] ?? EMPTY_MESSAGES.tous}
-            </EmptyState>
-          ) : (
-            <ul className="mt-3 divide-y divide-line border-t border-line">
-              {occurrences.map((reservation) => (
-                <OccurrenceRow key={reservation.id} reservation={reservation} />
-              ))}
-            </ul>
-          )}
-        </section>
-
-        {canCancelSeries && (
-          <Card as="section" aria-labelledby="actions-title" className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h2 id="actions-title" className="text-[17px] font-bold">
-                Actions
-              </h2>
-              <p className="mt-1 text-sm text-muted">
-                Pour un seul trajet, ouvrez-le dans la liste ci-dessus : il peut être modifié ou annulé séparément.
-              </p>
-            </div>
-            <Button variant="danger" onClick={() => setDialog('cancel')}>
-              <Ban className="size-4" aria-hidden="true" /> Annuler la série
-            </Button>
-          </Card>
-        )}
+        </Panel>
       </div>
 
       <CancelRecurrenceModal
