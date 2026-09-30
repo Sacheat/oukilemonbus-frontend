@@ -4,10 +4,10 @@ import { useSearchParams } from 'react-router'
 import { getRecurrences } from '../../api/recurrences'
 import { useAuth } from '../../auth/useAuth'
 import { RecurrenceCard } from '../../components/recurrences/RecurrenceCard'
+import { RecurrencesSkeleton } from '../../components/recurrences/RecurrencesSkeleton'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ErrorState } from '../../components/ui/ErrorState'
-import { Loader } from '../../components/ui/Loader'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Pagination } from '../../components/ui/Pagination'
 import { useApi } from '../../hooks/useApi'
@@ -95,7 +95,7 @@ export function RecurrencesPage() {
         {recurrences.error ? (
           <ErrorState error={recurrences.error} onRetry={recurrences.reload} />
         ) : !recurrences.data ? (
-          <Loader />
+          <RecurrencesSkeleton />
         ) : recurrences.data.data.length === 0 ? (
           <EmptyState icon={Repeat} title="Aucune récurrence" actions={createButton}>
             {EMPTY_MESSAGES[state] ?? EMPTY_MESSAGES.toutes}

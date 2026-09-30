@@ -88,3 +88,18 @@ export const NOTIFICATION_CATEGORY_LABELS = {
   driver_planning: 'Planning chauffeur',
   last_minute_cancellation: 'Annulation de dernière minute',
 }
+
+// Statut accordé au nombre, pour les décomptes (« 28 confirmés », « 1 annulé », « 2 en conflit »)
+const STATUS_COUNT_LABELS = {
+  en_attente: ['en attente', 'en attente'],
+  approuve: ['approuvé', 'approuvés'],
+  confirme: ['confirmé', 'confirmés'],
+  en_conflit: ['en conflit', 'en conflit'],
+  refuse: ['refusé', 'refusés'],
+  annule: ['annulé', 'annulés'],
+}
+
+export function statusCountLabel(status, count) {
+  const [one, many] = STATUS_COUNT_LABELS[status] ?? [status, status]
+  return `${count} ${count > 1 ? many : one}`
+}

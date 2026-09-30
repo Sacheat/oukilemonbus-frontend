@@ -1,59 +1,89 @@
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, CalendarClock } from 'lucide-react'
 import { Link } from 'react-router'
 import { cx } from '../../lib/cx'
 import { formatDate, formatTime } from '../../lib/dates'
-import { describeFrequency, recurrenceState } from '../../lib/recurrences'
-import { shortAddress } from '../../lib/reservations'
+import { countdown } from '../../lib/home'
+import { describeFrequency, recurrenceState, seriesStubDays } from '../../lib/recurrences'
+import { trackSpotlight } from '../../lib/spotlight'
 import { Badge } from '../ui/Badge'
+import { StatusMix } from './StatusMix'
 
-const SHORT_DATE = { day: 'numeric', month: 'long', year: 'numeric' }
+const SHORT_DATE = { day: 'numeric', month: 'short', year: 'numeric' }
 
-// Carte d'une série dans la liste des récurrences. Organisation, trajet, horaires et prochaine
-// date ne s'affichent que si le backend les renvoie (RecurrenceResource enrichie).
+// Ville d'un lieu (la carte n'a pas la place pour l'adresse complète)
+function city(location) {
+  return location?.city || location?.formatted_address || null
+}
+
+// Carte d'une série, façon billet et entièrement cliquable : talon avec les jours de passage,
+// motif, fréquence et horaires, trajet, période, répartition des trajets par statut, prochain trajet.
+// Organisation, trajet, horaires et prochaine date ne s'affichent que si le backend les renvoie.
 export function RecurrenceCard({ recurrence }) {
   const state = recurrenceState(recurrence)
+  const active = state.label === 'Active'
   const frequency = describeFrequency(recurrence)
+  const days = seriesStubDays(recurrence)
   const count = recurrence.reservations_count ?? recurrence.occurrence_count
-  const pickup = shortAddress(recurrence.pickup_location)
-  const destination = shortAddress(recurrence.destination_location)
+  const route = [city(recurrence.pickup_location), city(recurrence.destination_location)].filter(Boolean).join(' → ')
   const times =
-    recurrence.departure_time && `${formatTime(recurrence.departure_time)} → ${formatTime(recurrence.return_time)}`
-  // Avec un motif en titre, la fréquence passe en sous-titre
-  const subtitle = [recurrence.trip_purpose && frequency, times].filter(Boolean).join(' · ')
+    recurrence.departure_time && `Aller ${formatTime(recurrence.departure_time)} · retour ${formatTime(recurrence.return_time)}`
 
   return (
-    <li>
-      <article className="rounded-xl border border-line bg-surface px-5 py-4.5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Badge tone={state.tone}>{state.label}</Badge>
-          <Link
-            to={`/espace/recurrences/${recurrence.id}`}
-            className="inline-flex items-center gap-1 py-2 text-sm font-bold text-link hover:underline"
-            aria-label={`Ouvrir la récurrence « ${frequency} »`}
-          >
-            Ouvrir <ArrowRight className="size-4" aria-hidden="true" />
-          </Link>
+    <li className="min-w-0">
+      <Link
+        to={`/espace/recurrences/${recurrence.id}`}
+        onPointerMove={trackSpotlight}
+        className={cx(
+          'spotlight card-hover group flex overflow-hidden rounded-card border border-line bg-surface shadow-soft',
+          !active && 'opacity-75 hover:opacity-100',
+        )}
+      >
+        {/* Talon : jours de passage de la série */}
+        <span
+          aria-hidden="true"
+          className={cx(
+            'grid w-20 shrink-0 place-content-center gap-1 px-2 text-center leading-none',
+            active ? 'bg-accent text-on-accent' : 'bg-neutral-soft text-neutral',
+          )}
+        >
+          {days.map((day) => (
+            <span key={day} className="text-sm font-extrabold uppercase">
+              {day}
+            </span>
+          ))}
+          {recurrence.frequency === 'bihebdomadaire' && <span className="text-[10px] font-bold">1 sem. / 2</span>}
+        </span>
+
+        <div className="min-w-0 flex-1 px-4.5 py-3.5">
+          <span className="flex flex-wrap items-center gap-2">
+            <Badge tone={state.tone}>{state.label}</Badge>
+            {recurrence.organization && <span className="truncate text-xs text-muted">{recurrence.organization.name}</span>}
+          </span>
+          <span className="mt-1 block truncate text-base font-bold">{recurrence.trip_purpose ?? frequency}</span>
+          <span className="mt-0.5 block text-sm text-muted">
+            {[recurrence.trip_purpose && frequency, times, route].filter(Boolean).join(' · ')}
+          </span>
+          <span className="mt-0.5 block text-sm text-muted">
+            Du {formatDate(recurrence.start_date, SHORT_DATE)} au {formatDate(recurrence.end_date, SHORT_DATE)}
+            {count != null && ` · ${count} ${count > 1 ? 'trajets' : 'trajet'}`}
+          </span>
+
+          <StatusMix counts={recurrence.status_counts} className="mt-3 max-w-md" />
+
+          {recurrence.next_trip_date && active && (
+            <span className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-soft px-2 py-1 text-xs font-bold text-link">
+              <CalendarClock className="size-3.5" aria-hidden="true" />
+              Prochain trajet {formatDate(recurrence.next_trip_date, { weekday: 'long', day: 'numeric', month: 'long' })},{' '}
+              {countdown(recurrence.next_trip_date)}
+            </span>
+          )}
         </div>
-        <h3 className="mt-1 text-[17px] font-bold">{recurrence.trip_purpose ?? frequency}</h3>
-        {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
-        <p className={cx('text-sm text-muted', !subtitle && 'mt-1')}>
-          Du {formatDate(recurrence.start_date, SHORT_DATE)} au {formatDate(recurrence.end_date, SHORT_DATE)}
-          {count != null && ` · ${count} ${count > 1 ? 'trajets' : 'trajet'}`}
-        </p>
-        {(destination || recurrence.organization) && (
-          <p className="text-sm text-muted">
-            {[
-              destination && (pickup ? `${pickup} → ${destination}` : `Vers ${destination}`),
-              recurrence.organization?.name,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          </p>
-        )}
-        {recurrence.next_trip_date && state.label === 'Active' && (
-          <p className="mt-2 text-xs text-muted">Prochain trajet le {formatDate(recurrence.next_trip_date)}</p>
-        )}
-      </article>
+
+        <span className="hidden items-center pr-4.5 text-link sm:flex">
+          <ArrowRight className="size-5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+          <span className="sr-only">Ouvrir la série</span>
+        </span>
+      </Link>
     </li>
   )
 }
