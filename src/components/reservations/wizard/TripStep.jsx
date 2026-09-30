@@ -1,10 +1,14 @@
 import { LoaderCircle } from 'lucide-react'
+import { formatDate } from '../../../lib/dates'
+import { countdown } from '../../../lib/home'
 import { mapApiErrors, minTripDate, PRIORITY_ORGANIZATION_TYPES } from '../../../lib/reservationForm'
 import { getErrorMessage } from '../../../lib/errors'
 import { Alert } from '../../ui/Alert'
 import { Field, Input, Select } from '../../ui/Field'
 import { LocationPicker } from '../LocationPicker'
-import { AvailabilityNotice, TripFacts, WarningsList } from './PreviewResult'
+import { TripMap } from '../TripMap'
+import { AvailabilityNotice, WarningsList } from './PreviewResult'
+import { TripCheckFacts } from './TripCheckFacts'
 
 // Étape 1 : organisation, date, horaires et lieux, vérifiés en direct (useTripCheck)
 // `withDate` : false pour une récurrence (les dates sont choisies à l'étape Calendrier) ;
@@ -56,7 +60,12 @@ export function TripStep({
         <Field
           label="Date du trajet"
           required
-          hint="Au moins 15 jours à l’avance, du lundi au vendredi."
+          // Une fois choisie, la date en toutes lettres (évite de confondre jour et mois)
+          hint={
+            values.trip_date
+              ? `${formatDate(values.trip_date)}, ${countdown(values.trip_date)}.`
+              : 'Au moins 15 jours à l’avance, du lundi au vendredi.'
+          }
           error={fieldErrors.trip_date}
         >
           {(props) => (
@@ -105,6 +114,15 @@ export function TripStep({
         )}
       </Field>
 
+      {values.pickup && values.destination && (
+        <TripMap
+          pickup={values.pickup}
+          destination={values.destination}
+          height="h-48"
+          className="overflow-hidden rounded-card border border-line sm:col-span-2"
+        />
+      )}
+
       {tripCheck && (
         <div className="grid gap-3 sm:col-span-2" aria-live="polite">
           {tripCheck.pending && (
@@ -115,10 +133,7 @@ export function TripStep({
           {globalCheckError && <Alert tone="danger">{globalCheckError}</Alert>}
           {tripCheck.result && (
             <>
-              <div className="rounded-[10px] border border-line bg-surface-muted p-4">
-                <p className="mb-2 text-sm font-bold">Trajet vérifié</p>
-                <TripFacts result={tripCheck.result} />
-              </div>
+              <TripCheckFacts result={tripCheck.result} />
               <AvailabilityNotice availability={tripCheck.result.availability} onUseSlot={onUseSlot} />
               <WarningsList warnings={tripCheck.result.warnings} />
             </>

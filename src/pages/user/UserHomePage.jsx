@@ -6,7 +6,7 @@ import { getOrgRegistrationRequests, getUserOrgRequests } from '../../api/organi
 import { getNextTrip, getReservations } from '../../api/reservations'
 import { useAuth } from '../../auth/useAuth'
 import { HomeHero } from '../../components/home/HomeHero'
-import { HomePanel } from '../../components/home/HomePanel'
+import { Panel } from '../../components/ui/Panel'
 import { RecentActivity } from '../../components/home/RecentActivity'
 import { StatTile } from '../../components/home/StatTile'
 import { TodoList } from '../../components/home/TodoList'
@@ -132,11 +132,11 @@ export function UserHomePage() {
       </section>
 
       <div className="grid gap-7 lg:grid-cols-2">
-        <HomePanel title="À faire">
+        <Panel title="À faire">
           {dashboard.data ? <TodoList items={todo} /> : dashboard.error ? null : <Loader />}
-        </HomePanel>
+        </Panel>
 
-        <HomePanel
+        <Panel
           title="Activité récente"
           action={
             <Link to="/notifications" className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-link hover:underline">
@@ -151,7 +151,7 @@ export function UserHomePage() {
           ) : (
             <Loader />
           )}
-        </HomePanel>
+        </Panel>
       </div>
     </div>
   )

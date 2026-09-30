@@ -20,15 +20,6 @@ export function formatDate(value, options = { weekday: 'long', day: 'numeric', m
   return new Intl.DateTimeFormat(LOCALE, options).format(parseLocal(value))
 }
 
-// "2026-06-16" → { day: "16", month: "JUIN" } pour la pastille de date de la DA
-export function dateBadgeParts(value) {
-  const date = parseLocal(value)
-  return {
-    day: String(date.getDate()),
-    month: new Intl.DateTimeFormat(LOCALE, { month: 'short' }).format(date).toUpperCase(),
-  }
-}
-
 // "09:00:00" → "09:00"
 export function formatTime(value) {
   return value ? value.slice(0, 5) : ''
@@ -82,6 +73,15 @@ export function formatLocalRange(start, end) {
     return `de ${time.format(parseLocal(start))} à ${time.format(parseLocal(end))}`
   }
   return `du ${formatLocalDateTime(start)} au ${formatLocalDateTime(end)}`
+}
+
+// LocalDateTime estimé → heure arrondie aux `step` minutes les plus proches : "2026-06-16T10:18:00" → "10:20"
+// (une estimation ne doit pas annoncer une précision à la minute)
+export function formatApproxTime(value, step = 5) {
+  if (!value) return ''
+  const date = parseLocal(value)
+  date.setMinutes(Math.round(date.getMinutes() / step) * step, 0)
+  return new Intl.DateTimeFormat(LOCALE, TIME).format(date)
 }
 
 // Date → "2026-06-16" pour les envois au backend

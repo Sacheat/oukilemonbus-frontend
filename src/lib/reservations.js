@@ -1,5 +1,5 @@
 import { isManagerOf } from '../auth/permissions'
-import { toApiDate } from './dates'
+import { formatApproxTime, toApiDate } from './dates'
 
 export const TERMINAL_STATUSES = ['refuse', 'annule']
 export const CANCELLABLE_STATUSES = ['en_attente', 'en_conflit', 'approuve', 'confirme']
@@ -85,4 +85,14 @@ export function yesterdayApiDate() {
 // Clé de tri chronologique : "2026-10-16 10:00:00"
 export function tripKey(reservation) {
   return `${reservation.trip_date} ${reservation.departure_time}`
+}
+
+// Heures d'arrivée estimées, calculées par le backend dans `estimated_occupation` (détail, liste, preview,
+// check-trip) : à destination (`outbound_arrival_at`) et de retour au lieu de départ (`return_arrival_at`).
+// Arrondies à 5 min ; null tant que le backend ne les renvoie pas ou sans durée estimée.
+export function estimatedArrivals(result) {
+  const occupation = result?.estimated_occupation
+  const outbound = formatApproxTime(occupation?.outbound_arrival_at)
+  const back = formatApproxTime(occupation?.return_arrival_at)
+  return outbound || back ? { outbound, back } : null
 }
