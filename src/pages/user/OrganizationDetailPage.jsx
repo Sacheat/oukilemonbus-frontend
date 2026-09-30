@@ -1,26 +1,28 @@
-import { ArrowLeft, Route } from 'lucide-react'
+import { ArrowLeft, CalendarCheck, Inbox, Route, ShieldCheck, Users } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { getOrganization, getOrganizationMembers, getUserOrgRequests } from '../../api/organizations'
 import { useAuth } from '../../auth/useAuth'
 import { EditMemberRoleModal } from '../../components/organizations/EditMemberRoleModal'
 import { MemberRow } from '../../components/organizations/MemberRow'
+import { OrganizationHero } from '../../components/organizations/OrganizationHero'
 import { PendingJoinRequest } from '../../components/organizations/PendingJoinRequest'
+import { QuotaGauge } from '../../components/organizations/QuotaGauge'
 import { RemoveMemberModal } from '../../components/organizations/RemoveMemberModal'
+import { FactTiles } from '../../components/reservations/FactTiles'
 import { Alert } from '../../components/ui/Alert'
-import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
-import { Card } from '../../components/ui/Card'
 import { DetailList } from '../../components/ui/DetailList'
 import { ErrorState } from '../../components/ui/ErrorState'
-import { Loader } from '../../components/ui/Loader'
+import { Panel } from '../../components/ui/Panel'
+import { Skeleton } from '../../components/ui/Skeleton'
 import { useApi } from '../../hooks/useApi'
-import { ORGANIZATION_TYPE_LABELS, RELATIONSHIP_TYPE_LABELS } from '../../lib/labels'
+import { RELATIONSHIP_TYPE_LABELS } from '../../lib/labels'
 import { pendingJoinRequestsFor } from '../../lib/organizations'
 import { shortAddress } from '../../lib/reservations'
 
-// Détail d'une de mes organisations : informations, membres et, pour un responsable,
-// gestion des membres et demandes d'adhésion en cours (décidées par la commune)
+// Détail d'une de mes organisations : bandeau, chiffres clés, informations et quota, puis pour un responsable
+// les demandes d'adhésion en cours (décidées par la commune) et la gestion des membres
 export function OrganizationDetailPage() {
   const { id } = useParams()
   const organizationId = Number(id)
@@ -74,76 +76,118 @@ export function OrganizationDetailPage() {
   }
 
   const data = organization.data
-  if (!data || (organization.loading && data.id !== organizationId)) return <Loader />
+  if (!data || (organization.loading && data.id !== organizationId)) {
+    return (
+      <div role="status" className="grid gap-5">
+        <span className="sr-only">Chargement de l’organisation…</span>
+        {backLink}
+        <Skeleton className="h-40 w-full rounded-panel" />
+        <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((index) => (
+            <Skeleton key={index} className="h-20 rounded-card" />
+          ))}
+        </div>
+        <Skeleton className="h-64 w-full rounded-card" />
+      </div>
+    )
+  }
 
   const pending = pendingJoinRequestsFor(organizationId, user.id, requests.data)
   const membership = user.organizations?.find((item) => item.id === organizationId)?.membership
+  // Responsables et directeurs d'abord, puis par nom
+  const sortedMembers = members.data
+    ? [...members.data].sort((a, b) => Number(b.is_manager) - Number(a.is_manager) || a.full_name.localeCompare(b.full_name, 'fr'))
+    : null
+  const managerCount = members.data?.filter((member) => member.is_manager).length
+
+  const facts = [
+    members.data && { icon: Users, label: 'Membres', value: members.data.length },
+    members.data && { icon: ShieldCheck, label: 'Responsables', value: managerCount },
+    data.is_priority
+      ? { icon: CalendarCheck, label: 'Réservations', value: 'Sans quota', detail: 'approbation automatique' }
+      : {
+          icon: CalendarCheck,
+          label: 'Cette année',
+          value: `${data.reservations_used_this_year} / ${data.annual_quota}`,
+          detail: 'réservations',
+        },
+    canManage && { icon: Inbox, label: 'Demandes en cours', value: requests.data ? pending.length : '…' },
+  ].filter(Boolean)
 
   return (
-    <div className="max-w-4xl">
-      {backLink}
+    <div className="grid gap-5">
+      <div>{backLink}</div>
 
-      <header className="mt-2 flex flex-wrap items-end justify-between gap-4 pb-6">
-        <div>
-          <p className="text-[11px] font-extrabold tracking-[.13em] text-link uppercase">Organisation</p>
-          <h1 className="mt-1 text-[27px] leading-tight font-bold tracking-tight">{data.name}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted">
-            <span>{data.type_label ?? ORGANIZATION_TYPE_LABELS[data.type]}</span>
-            {membership && (
-              <Badge tone={membership.is_manager ? 'info' : 'neutral'}>
-                {RELATIONSHIP_TYPE_LABELS[membership.relationship_type]}
-              </Badge>
-            )}
-            {data.is_banned && <Badge tone="danger">Bannie</Badge>}
-          </div>
-        </div>
-        <Button variant="secondary" to={`/espace/deplacements?organisation=${organizationId}&periode=tous`}>
+      <OrganizationHero organization={data} membership={membership}>
+        <Button variant="accent" to={`/espace/deplacements?organisation=${organizationId}&periode=tous`}>
           <Route className="size-4" aria-hidden="true" /> Réservations de l’organisation
         </Button>
-      </header>
+      </OrganizationHero>
 
-      <div className="grid gap-4">
-        {notice && <Alert tone="success">{notice}</Alert>}
-        {data.is_banned && (
-          <Alert tone="danger" title="Organisation bannie">
-            Elle ne peut plus réserver{data.banned_reason ? ` : ${data.banned_reason}` : '.'}
-          </Alert>
+      {notice && <Alert tone="success">{notice}</Alert>}
+      {data.is_banned && (
+        <Alert tone="danger" title="Organisation bannie">
+          Elle ne peut plus réserver{data.banned_reason ? ` : ${data.banned_reason}` : '.'}
+        </Alert>
+      )}
+
+      <FactTiles facts={facts} />
+
+      <div className="grid items-start gap-5 lg:grid-cols-2">
+        <Panel title="Informations">
+          <div className="px-5 pb-5">
+            <DetailList
+              items={[
+                data.official_email && ['E-mail officiel', data.official_email],
+                data.phone_contact && ['Téléphone', data.phone_contact],
+                data.name_contact && ['Contact', data.name_contact],
+                data.location && ['Adresse', shortAddress(data.location)],
+                data.is_priority && ['Réservations', 'Approbation automatique, pas de quota annuel'],
+              ]}
+            />
+            {!data.is_priority && (
+              <QuotaGauge used={data.reservations_used_this_year} quota={data.annual_quota} className="mt-4" />
+            )}
+          </div>
+        </Panel>
+
+        {canManage && (
+          <Panel title={`Demandes d’adhésion en cours${requests.data ? ` (${pending.length})` : ''}`}>
+            <p className="px-5 pt-4 text-sm text-muted">La commune examine ces demandes et décide de l’adhésion.</p>
+            {!requests.data ? (
+              <Skeleton className="m-5 h-16 rounded-card" />
+            ) : pending.length === 0 ? (
+              <p className="px-5 pt-2 pb-5 text-sm">Aucune demande en cours.</p>
+            ) : (
+              <ul className="mt-3 divide-y divide-line border-t border-line">
+                {pending.map((request) => (
+                  <PendingJoinRequest key={request.request_id} request={request} />
+                ))}
+              </ul>
+            )}
+          </Panel>
         )}
+      </div>
 
-        <Card as="section" aria-labelledby="info-title">
-          <h2 id="info-title" className="text-[17px] font-bold">
-            Informations
-          </h2>
-          <DetailList
-            items={[
-              data.official_email && ['E-mail officiel', data.official_email],
-              data.phone_contact && ['Téléphone', data.phone_contact],
-              data.name_contact && ['Contact', data.name_contact],
-              data.location && ['Adresse', shortAddress(data.location)],
-              data.is_priority
-                ? ['Réservations', 'Approbation automatique, pas de quota annuel']
-                : ['Réservations cette année', `${data.reservations_used_this_year} sur ${data.annual_quota}`],
-            ]}
-          />
-        </Card>
-
-        <section aria-labelledby="members-title" aria-busy={members.loading} className="rounded-card border border-line bg-surface pt-5.5 pb-1">
-          <h2 id="members-title" className="px-5.5 text-[17px] font-bold">
-            Membres{members.data && <span className="font-normal text-muted"> ({members.data.length})</span>}
-          </h2>
+      <section aria-busy={members.loading}>
+        <Panel title={`Membres${members.data ? ` (${members.data.length})` : ''}`}>
           {canManage && (
-            <p className="mt-1 px-5.5 text-sm text-muted">
+            <p className="px-5 pt-4 text-sm text-muted">
               Responsable et directeur gèrent les membres et toutes les réservations de l’organisation. Il doit toujours en rester
               au moins un.
             </p>
           )}
           {members.error ? (
-            <ErrorState error={members.error} onRetry={members.reload} className="mx-5.5 my-4" />
-          ) : !members.data ? (
-            <Loader />
+            <ErrorState error={members.error} onRetry={members.reload} className="m-5" />
+          ) : !sortedMembers ? (
+            <div role="status" className="grid gap-2 p-5">
+              <span className="sr-only">Chargement des membres…</span>
+              <Skeleton className="h-12 rounded-card" />
+              <Skeleton className="h-12 rounded-card" />
+            </div>
           ) : (
             <ul className="mt-3 divide-y divide-line border-t border-line">
-              {members.data.map((member) => (
+              {sortedMembers.map((member) => (
                 <MemberRow
                   key={member.user_id}
                   member={member}
@@ -155,22 +199,8 @@ export function OrganizationDetailPage() {
               ))}
             </ul>
           )}
-        </section>
-
-        {canManage && pending.length > 0 && (
-          <section aria-labelledby="requests-title" className="rounded-card border border-line bg-surface pt-5.5 pb-1">
-            <h2 id="requests-title" className="px-5.5 text-[17px] font-bold">
-              Demandes d’adhésion en cours ({pending.length})
-            </h2>
-            <p className="mt-1 px-5.5 text-sm text-muted">La commune examine ces demandes et décide de l’adhésion.</p>
-            <ul className="mt-3 divide-y divide-line border-t border-line">
-              {pending.map((request) => (
-                <PendingJoinRequest key={request.request_id} request={request} />
-              ))}
-            </ul>
-          </section>
-        )}
-      </div>
+        </Panel>
+      </section>
 
       <EditMemberRoleModal
         organizationId={organizationId}
