@@ -1,24 +1,107 @@
+import { BadgeCheck, Bell, Circle, CircleCheck, KeyRound, UserRound } from 'lucide-react'
 import { useState } from 'react'
 import { updatePassword, updateProfile } from '../../api/users'
 import { useAuth } from '../../auth/useAuth'
 import { NotificationPreferencesCard } from '../../components/notifications/NotificationPreferencesCard'
+import { OrganizationAvatar } from '../../components/organizations/OrganizationAvatar'
+import { ResendVerificationButton } from '../../components/ResendVerificationButton'
 import { Alert } from '../../components/ui/Alert'
+import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { Field, Input, PasswordInput } from '../../components/ui/Field'
 import { PageHeader } from '../../components/ui/PageHeader'
+import { useActiveSection } from '../../hooks/useActiveSection'
 import { useForm } from '../../hooks/useForm'
+import { cx } from '../../lib/cx'
+import { ROLE_LABELS } from '../../lib/labels'
 
+const SECTIONS = [
+  { id: 'informations', label: 'Informations', icon: UserRound },
+  { id: 'securite', label: 'Sécurité', icon: KeyRound },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
+]
+
+// Mon compte : en-tête de profil, puis les sections Informations, Sécurité et Notifications,
+// avec un sommaire à gauche en grand écran qui suit la section visible
 export function AccountPage() {
+  const active = useActiveSection(SECTIONS.map((section) => section.id))
   return (
     <>
-      <PageHeader eyebrow="Mon compte" title="Mes informations" description="Vos coordonnées, votre mot de passe et vos notifications." />
-      <div className="grid items-start gap-5 lg:grid-cols-2">
-        <ProfileForm />
-        <PasswordForm />
-        <NotificationPreferencesCard />
+      <PageHeader eyebrow="Mon compte" title="Mon compte" description="Vos coordonnées, votre mot de passe et vos notifications." />
+      <ProfileHeader />
+      <div className="mt-6 grid items-start gap-6 lg:grid-cols-[200px_minmax(0,1fr)]">
+        <nav aria-label="Sections du compte" className="hidden lg:sticky lg:top-6 lg:block">
+          <ul className="grid gap-1">
+            {SECTIONS.map(({ id, label, icon: Icon }) => (
+              <li key={id}>
+                <a
+                  href={`#${id}`}
+                  aria-current={active === id ? 'true' : undefined}
+                  className={cx(
+                    'flex min-h-11 items-center gap-2.5 rounded-control px-3 text-sm font-semibold',
+                    active === id ? 'bg-soft text-link' : 'text-muted hover:bg-surface hover:text-ink',
+                  )}
+                >
+                  <Icon className="size-4" aria-hidden="true" /> {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <div className="grid gap-5">
+          <ProfileForm />
+          <PasswordForm />
+          <NotificationPreferencesCard />
+        </div>
       </div>
     </>
+  )
+}
+
+// En-tête de profil : initiales, nom, e-mail (vérifié ou non, avec renvoi du lien), rôle, organisations
+function ProfileHeader() {
+  const { user } = useAuth()
+  const roles = (user.roles ?? []).map((name) => ROLE_LABELS[name] ?? name)
+  const organizations = user.organizations?.length ?? 0
+  const since = new Intl.DateTimeFormat('fr-BE', { month: 'long', year: 'numeric', timeZone: 'Europe/Brussels' }).format(
+    new Date(user.created_at),
+  )
+
+  return (
+    <Card as="section" aria-label="Profil" className="flex flex-wrap items-center gap-5">
+      <OrganizationAvatar name={user.full_name} className="size-16 rounded-full text-xl" />
+      <div className="min-w-0 flex-1">
+        <p className="text-xl font-bold break-words">{user.full_name}</p>
+        <p className="mt-0.5 flex flex-wrap items-center gap-2 text-sm">
+          <span className="break-all text-muted">{user.email}</span>
+          {user.email_verified_at ? (
+            <Badge tone="success">
+              <BadgeCheck className="mr-1 inline size-3.5 align-[-2px]" aria-hidden="true" />
+              Vérifié
+            </Badge>
+          ) : (
+            <Badge tone="warning">Non vérifié</Badge>
+          )}
+        </p>
+        <p className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted">
+          {roles.map((role) => (
+            <Badge key={role} tone="info">
+              {role}
+            </Badge>
+          ))}
+          <span>
+            {organizations > 0 && `${organizations} organisation${organizations > 1 ? 's' : ''} · `}
+            Inscrit depuis {since}
+          </span>
+        </p>
+      </div>
+      {!user.email_verified_at && (
+        <div className="w-full sm:w-auto">
+          <ResendVerificationButton variant="secondary" />
+        </div>
+      )}
+    </Card>
   )
 }
 
@@ -43,9 +126,9 @@ function ProfileForm() {
   }
 
   return (
-    <Card as="section" aria-labelledby="profile-title">
+    <Card as="section" id="informations" aria-labelledby="profile-title" className="scroll-mt-6">
       <h2 id="profile-title" className="text-[17px] font-bold">
-        Profil
+        Informations
       </h2>
       <form onSubmit={handleSubmit} noValidate className="mt-5 grid gap-4 sm:grid-cols-2">
         {saved && (
@@ -90,6 +173,14 @@ function ProfileForm() {
 
 const EMPTY_PASSWORDS = { current_password: '', password: '', password_confirmation: '' }
 
+// Règles du nouveau mot de passe, affichées en direct sous les champs
+function passwordRules({ password, password_confirmation: confirmation }) {
+  return [
+    { label: '8 caractères minimum', ok: password.length >= 8 },
+    { label: 'Confirmation identique', ok: confirmation !== '' && confirmation === password },
+  ]
+}
+
 function PasswordForm() {
   const { user } = useAuth()
   const [saved, setSaved] = useState(false)
@@ -107,9 +198,9 @@ function PasswordForm() {
   }
 
   return (
-    <Card as="section" aria-labelledby="password-title">
+    <Card as="section" id="securite" aria-labelledby="password-title" className="scroll-mt-6">
       <h2 id="password-title" className="text-[17px] font-bold">
-        Mot de passe
+        Sécurité
       </h2>
       <form onSubmit={handleSubmit} noValidate className="mt-5 grid gap-4">
         <p className="text-sm text-muted">Vos autres appareils seront déconnectés ; cette session reste ouverte.</p>
@@ -126,7 +217,7 @@ function PasswordForm() {
             />
           )}
         </Field>
-        <Field label="Nouveau mot de passe" required hint="8 caractères minimum." error={form.errors.password}>
+        <Field label="Nouveau mot de passe" required error={form.errors.password}>
           {(props) => (
             <PasswordInput {...props} autoComplete="new-password" value={form.values.password} onChange={form.handle('password')} />
           )}
@@ -141,6 +232,17 @@ function PasswordForm() {
             />
           )}
         </Field>
+
+        {/* Règles vérifiées en direct (le backend reste l'autorité) */}
+        <ul aria-live="polite" className="grid gap-1 text-sm">
+          {passwordRules(form.values).map((rule) => (
+            <li key={rule.label} className={cx('flex items-center gap-2', rule.ok ? 'text-success' : 'text-muted')}>
+              {rule.ok ? <CircleCheck className="size-4" aria-hidden="true" /> : <Circle className="size-4" aria-hidden="true" />}
+              {rule.label}
+              <span className="sr-only">{rule.ok ? ' : respecté' : ' : pas encore'}</span>
+            </li>
+          ))}
+        </ul>
 
         <div>
           <Button type="submit" loading={form.submitting}>
