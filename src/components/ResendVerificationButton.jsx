@@ -12,7 +12,9 @@ export function ResendVerificationButton({ variant = 'primary' }) {
   async function handleClick() {
     setSending(true)
     try {
-      setResult({ tone: 'success', message: await resendVerificationEmail() })
+      // L'email part en arrière-plan : il peut arriver quelques secondes après la réponse
+      const message = await resendVerificationEmail()
+      setResult({ tone: 'success', message: `${message} Il peut mettre quelques instants à arriver.` })
     } catch (error) {
       setResult({ tone: 'danger', message: getErrorMessage(error) })
     } finally {

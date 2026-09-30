@@ -25,7 +25,7 @@ export function UserMenu({ className, inverted = false }) {
   return (
     <div className={cx('flex items-center gap-3', className)}>
       <Link to="/compte" title="Mon compte" className="rounded-control px-2 py-1 text-right text-xs leading-tight hover:bg-black/5 dark:hover:bg-white/10">
-        <span className="block font-bold">{user?.full_name}</span>
+        <span className="block font-bold whitespace-nowrap">{user?.full_name}</span>
         {role && <span className={cx('block', inverted ? 'text-nav-muted' : 'text-muted')}>{role}</span>}
       </Link>
       <button

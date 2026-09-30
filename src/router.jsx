@@ -14,7 +14,21 @@ import { ResetPasswordPage } from './pages/auth/ResetPasswordPage'
 import { VerifyEmailPage } from './pages/auth/VerifyEmailPage'
 import { NotFoundPage } from './pages/errors/NotFoundPage'
 import { RouteErrorPage } from './pages/errors/RouteErrorPage'
+import { NotificationsPage } from './pages/NotificationsPage'
 import { SpaceHomePage } from './pages/SpaceHomePage'
+import { CreateOrganizationRequestPage } from './pages/user/CreateOrganizationRequestPage'
+import { DocumentsPage } from './pages/user/DocumentsPage'
+import { EditReservationPage } from './pages/user/EditReservationPage'
+import { JoinOrganizationPage } from './pages/user/JoinOrganizationPage'
+import { NewRecurrencePage } from './pages/user/NewRecurrencePage'
+import { NewReservationPage } from './pages/user/NewReservationPage'
+import { OrganizationDetailPage } from './pages/user/OrganizationDetailPage'
+import { OrganizationsPage } from './pages/user/OrganizationsPage'
+import { RecurrenceDetailPage } from './pages/user/RecurrenceDetailPage'
+import { RecurrencesPage } from './pages/user/RecurrencesPage'
+import { TripDetailPage } from './pages/user/TripDetailPage'
+import { TripsPage } from './pages/user/TripsPage'
+import { UserHomePage } from './pages/user/UserHomePage'
 import { VehiclesPage } from './pages/backoffice/VehiclesPage'
 
 // Chemins en français, sauf /verify-email et /reset-password imposés par les liens
@@ -60,7 +74,10 @@ export const router = createBrowserRouter([
           // Pages communes à tous les rôles, dans le layout de l'espace de l'utilisateur
           {
             element: <RoleLayout />,
-            children: [{ path: 'compte', element: <AccountPage /> }],
+            children: [
+              { path: 'compte', element: <AccountPage /> },
+              { path: 'notifications', element: <NotificationsPage /> },
+            ],
           },
 
           // Espace usager (membres et responsables d'organisations)
@@ -71,12 +88,79 @@ export const router = createBrowserRouter([
               {
                 element: <TopNavLayout nav={USER_NAV} />,
                 children: [
-                  { index: true, element: <SpaceHomePage eyebrow="Espace demandeur" /> },
-                  soon('deplacements', 'Suivi de vos demandes', 'Mes déplacements', 'reservations.view'),
-                  soon('reservations/nouvelle', 'Nouvelle réservation', 'Commençons par votre trajet', 'reservations.create'),
-                  soon('recurrences', 'Écoles et personnel communal', 'Récurrences', 'reservations.view'),
-                  soon('organisations', 'Mon espace', 'Mes organisations', 'organizations.view'),
-                  soon('documents', 'Mon espace', 'Documents', 'documents.view'),
+                  { index: true, element: <UserHomePage /> },
+                  {
+                    path: 'deplacements',
+                    element: <RequirePermission permission="reservations.view" />,
+                    children: [
+                      { index: true, element: <TripsPage /> },
+                      { path: ':id', element: <TripDetailPage /> },
+                      {
+                        path: ':id/modifier',
+                        element: (
+                          <RequirePermission permission="reservations.update">
+                            <EditReservationPage />
+                          </RequirePermission>
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    path: 'reservations/nouvelle',
+                    element: (
+                      <RequirePermission permission="reservations.create">
+                        <NewReservationPage />
+                      </RequirePermission>
+                    ),
+                  },
+                  {
+                    path: 'recurrences',
+                    element: <RequirePermission permission="reservations.view" />,
+                    children: [
+                      { index: true, element: <RecurrencesPage /> },
+                      {
+                        path: 'nouvelle',
+                        element: (
+                          <RequirePermission permission="reservations.create">
+                            <NewRecurrencePage />
+                          </RequirePermission>
+                        ),
+                      },
+                      { path: ':id', element: <RecurrenceDetailPage /> },
+                    ],
+                  },
+                  {
+                    path: 'organisations',
+                    element: <RequirePermission permission="organizations.view" />,
+                    children: [
+                      { index: true, element: <OrganizationsPage /> },
+                      {
+                        path: 'rejoindre',
+                        element: (
+                          <RequirePermission permission="user-org-requests.create">
+                            <JoinOrganizationPage />
+                          </RequirePermission>
+                        ),
+                      },
+                      {
+                        path: 'creer',
+                        element: (
+                          <RequirePermission permission="org-registration-requests.create">
+                            <CreateOrganizationRequestPage />
+                          </RequirePermission>
+                        ),
+                      },
+                      { path: ':id', element: <OrganizationDetailPage /> },
+                    ],
+                  },
+                  {
+                    path: 'documents',
+                    element: (
+                      <RequirePermission permission="documents.view">
+                        <DocumentsPage />
+                      </RequirePermission>
+                    ),
+                  },
                 ],
               },
             ],

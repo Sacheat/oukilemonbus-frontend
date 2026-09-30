@@ -34,20 +34,54 @@ export function formatTime(value) {
   return value ? value.slice(0, 5) : ''
 }
 
+const DATE_TIME = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }
+const TIME = { hour: '2-digit', minute: '2-digit' }
+
 // Horodatage UTC → "16/06/2026 11:00" en heure de Bruxelles
 export function formatDateTime(value) {
   if (!value) return ''
-  return new Intl.DateTimeFormat(LOCALE, {
-    dateStyle: 'short',
-    timeStyle: 'short',
-    timeZone: TIME_ZONE,
-  }).format(new Date(value))
+  return new Intl.DateTimeFormat(LOCALE, { ...DATE_TIME, timeZone: TIME_ZONE }).format(new Date(value))
+}
+
+// Horodatage UTC → "16/06/2026" (jour à Bruxelles)
+export function formatDay(value) {
+  if (!value) return ''
+  return new Intl.DateTimeFormat(LOCALE, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: TIME_ZONE }).format(
+    new Date(value),
+  )
+}
+
+// Horodatage UTC → date relative : « à l'instant », « il y a 5 min », « il y a 3 h »,
+// « hier à 14:05 », puis la date complète au-delà
+export function formatRelative(value, now = new Date()) {
+  if (!value) return ''
+  const date = new Date(value)
+  const minutes = Math.floor((now - date) / 60000)
+  if (minutes < 1) return 'à l’instant'
+  if (minutes < 60) return `il y a ${minutes} min`
+  const day = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE }).format(d) // AAAA-MM-JJ à Bruxelles
+  const yesterday = new Date(now)
+  yesterday.setDate(yesterday.getDate() - 1)
+  if (day(date) === day(now)) return `il y a ${Math.floor(minutes / 60)} h`
+  const time = new Intl.DateTimeFormat(LOCALE, { ...TIME, timeZone: TIME_ZONE }).format(date)
+  if (day(date) === day(yesterday)) return `hier à ${time}`
+  return formatDateTime(value)
 }
 
 // LocalDateTime sans fuseau → "16/06/2026 09:00"
 export function formatLocalDateTime(value) {
   if (!value) return ''
-  return new Intl.DateTimeFormat(LOCALE, { dateStyle: 'short', timeStyle: 'short' }).format(parseLocal(value))
+  return new Intl.DateTimeFormat(LOCALE, DATE_TIME).format(parseLocal(value))
+}
+
+// Plage de LocalDateTime : "de 09:00 à 12:20" le même jour, sinon dates complètes
+export function formatLocalRange(start, end) {
+  if (!start || !end) return ''
+  if (start.slice(0, 10) === end.slice(0, 10)) {
+    const time = new Intl.DateTimeFormat(LOCALE, TIME)
+    return `de ${time.format(parseLocal(start))} à ${time.format(parseLocal(end))}`
+  }
+  return `du ${formatLocalDateTime(start)} au ${formatLocalDateTime(end)}`
 }
 
 // Date → "2026-06-16" pour les envois au backend

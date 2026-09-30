@@ -19,8 +19,8 @@ export function EmailNotVerifiedPage() {
       }
     >
       <p>
-        Un lien de vérification a été envoyé à <strong className="text-ink">{user.email}</strong>. Ouvrez-le pour accéder à
-        votre espace. Pensez à vérifier vos courriers indésirables.
+        Un lien de vérification a été envoyé à <strong className="text-ink">{user.email}</strong>. Il peut mettre quelques
+        instants à arriver. Ouvrez-le pour accéder à votre espace, et pensez à vérifier vos courriers indésirables.
       </p>
     </MessagePage>
   )

@@ -46,6 +46,14 @@
   --conflict-soft: #f1edfa;
   --neutral: #56657a;
   --neutral-soft: #eef1f5;
+
+  /* Relief et bannières (voir les utilitaires en fin de fichier) */
+  --shadow-soft: 0 1px 2px rgb(23 43 77 / 0.05), 0 6px 20px rgb(23 43 77 / 0.06);
+  --shadow-lift: 0 2px 6px rgb(23 43 77 / 0.08), 0 16px 36px rgb(23 43 77 / 0.14);
+  --hero-from: #172b4d;
+  --hero-to: #2563eb;
+  --spot-color: rgb(37 99 235 / 0.08);
+  --spot-border: rgb(37 99 235 / 0.55);
 }
 
 :root[data-theme="dark"] {
@@ -87,6 +95,13 @@
   --conflict-soft: #2c2450;
   --neutral: #aab5c5;
   --neutral-soft: #232e42;
+
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 20px rgb(0 0 0 / 0.22);
+  --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.35), 0 16px 36px rgb(0 0 0 / 0.4);
+  --hero-from: #0a101b;
+  --hero-to: #1e4fc4;
+  --spot-color: rgb(140 180 255 / 0.09);
+  --spot-border: rgb(140 180 255 / 0.6);
 }
 
 @theme inline {
@@ -132,6 +147,36 @@
   --radius-control: 9px;
   --radius-card: 13px;
   --radius-panel: 16px;
+
+  /* Panneau latéral (aperçu rapide) qui glisse depuis la droite */
+  --animate-drawer-in: drawer-in 0.25s ease-out;
+
+  @keyframes drawer-in {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  /* Petit bus qui avance d'arrêt en arrêt sur la ligne de la bannière d'accueil */
+  --animate-bus-ride: bus-ride 10s ease-in-out infinite;
+
+  @keyframes bus-ride {
+    0%,
+    14% {
+      left: 0%;
+    }
+    40%,
+    60% {
+      left: 50%;
+    }
+    86%,
+    100% {
+      left: 100%;
+    }
+  }
 }
 
 @layer base {
@@ -144,5 +189,132 @@
   :focus-visible {
     outline: 3px solid var(--ring);
     outline-offset: 2px;
+  }
+}
+
+/* ----- Relief et ambiance (base partagée pour le polissage des pages) ----- */
+
+/* Ombre douce des cartes */
+@utility shadow-soft {
+  box-shadow: var(--shadow-soft);
+}
+
+/* Carte cliquable : légère élévation au survol (sans mouvement si « réduire les animations ») */
+@utility card-hover {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lift);
+    border-color: var(--line-strong);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover {
+      transform: none;
+    }
+  }
+}
+
+/* Bannière : dégradé nuit → bleu avec un halo jaune (couleur du bus) */
+@utility bg-hero {
+  background:
+    radial-gradient(55% 85% at 92% 0%, rgb(244 201 93 / 0.3), transparent 62%),
+    radial-gradient(45% 70% at 0% 100%, rgb(37 99 235 / 0.35), transparent 70%),
+    linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 135%);
+}
+
+/* Texture de points pour les zones sombres (calque décoratif en position absolue) */
+@utility texture-dots {
+  background-image: radial-gradient(rgb(255 255 255 / 0.1) 1px, transparent 1.3px);
+  background-size: 14px 14px;
+  mask-image: linear-gradient(to left, black, transparent 75%);
+}
+
+/* Lumière qui suit la souris : halo sous le curseur et liseré lumineux sur le bord.
+   Position fournie par trackSpotlight (src/lib/spotlight.js) dans --spot-x / --spot-y.
+   Absente sur écran tactile et si « réduire les animations ». */
+@utility spotlight {
+  position: relative;
+  isolation: isolate;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  /* Halo, sous le contenu */
+  &::before {
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(
+      var(--spot-size, 320px) circle at var(--spot-x, 50%) var(--spot-y, 50%),
+      var(--spot-color),
+      transparent 70%
+    );
+  }
+
+  /* Liseré : même dégradé, visible seulement sur la bordure */
+  &::after {
+    inset: -1px;
+    padding: 1px;
+    background: radial-gradient(
+      180px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+      var(--spot-border),
+      transparent 70%
+    );
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+  }
+
+  &:hover::before,
+  &:hover::after {
+    opacity: 1;
+  }
+
+  @media (hover: none), (prefers-reduced-motion: reduce) {
+    &::before,
+    &::after {
+      display: none;
+    }
+  }
+}
+
+/* Variante chaude pour la bannière : halo jaune (couleur du bus), plus large */
+@utility spotlight-warm {
+  --spot-color: rgb(244 201 93 / 0.22);
+  --spot-border: rgb(244 201 93 / 0.55);
+  --spot-size: 460px;
+}
+
+/* Squelette de chargement : forme grise parcourue d'un reflet (immobile si « réduire les animations ») */
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+@utility skeleton {
+  background: linear-gradient(90deg, var(--neutral-soft) 30%, var(--surface-muted) 50%, var(--neutral-soft) 70%);
+  background-size: 300% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 }

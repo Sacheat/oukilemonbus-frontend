@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
 import { updatePassword, updateProfile } from '../../api/users'
 import { useAuth } from '../../auth/useAuth'
+import { NotificationPreferencesCard } from '../../components/notifications/NotificationPreferencesCard'
 import { Alert } from '../../components/ui/Alert'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
@@ -12,10 +12,11 @@ import { useForm } from '../../hooks/useForm'
 export function AccountPage() {
   return (
     <>
-      <PageHeader eyebrow="Mon compte" title="Mes informations" description="Vos coordonnées et votre mot de passe." />
+      <PageHeader eyebrow="Mon compte" title="Mes informations" description="Vos coordonnées, votre mot de passe et vos notifications." />
       <div className="grid items-start gap-5 lg:grid-cols-2">
         <ProfileForm />
         <PasswordForm />
+        <NotificationPreferencesCard />
       </div>
     </>
   )
@@ -87,21 +88,21 @@ function ProfileForm() {
   )
 }
 
-function PasswordForm() {
-  const { user, clearSession } = useAuth()
-  const navigate = useNavigate()
-  const form = useForm({ current_password: '', password: '', password_confirmation: '' })
+const EMPTY_PASSWORDS = { current_password: '', password: '', password_confirmation: '' }
 
+function PasswordForm() {
+  const { user } = useAuth()
+  const [saved, setSaved] = useState(false)
+  const form = useForm(EMPTY_PASSWORDS)
+
+  // La session en cours reste valide ; le backend ferme les sessions des autres appareils
   async function handleSubmit(event) {
     event.preventDefault()
+    setSaved(false)
     const result = await form.submit((values) => updatePassword(user.id, values))
     if (result.ok) {
-      // Le backend invalide la session en cours quand le mot de passe change
-      await clearSession({
-        tone: 'success',
-        message: 'Votre mot de passe a été modifié. Reconnectez-vous avec votre nouveau mot de passe.',
-      })
-      navigate('/connexion', { replace: true })
+      form.setValues(EMPTY_PASSWORDS)
+      setSaved(true)
     }
   }
 
@@ -111,7 +112,8 @@ function PasswordForm() {
         Mot de passe
       </h2>
       <form onSubmit={handleSubmit} noValidate className="mt-5 grid gap-4">
-        <p className="text-sm text-muted">Vous devrez vous reconnecter après le changement.</p>
+        <p className="text-sm text-muted">Vos autres appareils seront déconnectés ; cette session reste ouverte.</p>
+        {saved && <Alert tone="success">Votre mot de passe a été modifié.</Alert>}
         {form.error && <Alert tone="danger">{form.error}</Alert>}
 
         <Field label="Mot de passe actuel" required error={form.errors.current_password}>

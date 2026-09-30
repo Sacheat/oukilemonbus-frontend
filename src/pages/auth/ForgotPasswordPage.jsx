@@ -31,7 +31,10 @@ export function ForgotPasswordPage() {
       {sentMessage ? (
         <Alert tone="success" title="Demande envoyée">
           <p>{sentMessage}</p>
-          <p className="mt-1">Le lien est valable 60 minutes. Pensez à vérifier vos courriers indésirables.</p>
+          <p className="mt-1">
+            L’e-mail peut mettre quelques instants à arriver. Le lien est valable 60 minutes ; pensez à vérifier vos courriers
+            indésirables.
+          </p>
         </Alert>
       ) : (
         <form onSubmit={handleSubmit} noValidate className="grid gap-4">

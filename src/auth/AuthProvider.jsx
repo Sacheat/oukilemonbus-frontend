@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as authApi from '../api/auth'
 import { onSessionLost } from '../api/client'
+import { clearAllDrafts } from '../lib/drafts'
 import { AuthContext } from './AuthContext'
 import * as permissions from './permissions'
 
@@ -38,6 +39,7 @@ export function AuthProvider({ children }) {
             message: reason === 'disabled' ? message : 'Votre session a expiré. Reconnectez-vous.',
           })
         }
+        clearAllDrafts()
         setUser(null)
       }),
     [],
@@ -57,12 +59,13 @@ export function AuthProvider({ children }) {
     return newUser
   }, [])
 
-  // Termine une session que le backend a invalidée (changement ou réinitialisation du mot de passe).
+  // Termine une session que le backend a invalidée (réinitialisation du mot de passe par email).
   // Le cookie de session reste périmé côté navigateur : sans cet appel, la requête suivante
   // (même une route publique) recevrait une 401. L'échec attendu du logout vide la session côté backend.
   // `notice` : { tone, message } affiché sur la page de connexion.
   const clearSession = useCallback(async (notice = null) => {
     await authApi.logout().catch(() => {})
+    clearAllDrafts()
     setSessionNotice(notice)
     setUser(null)
   }, [])
@@ -71,6 +74,7 @@ export function AuthProvider({ children }) {
     try {
       await authApi.logout()
     } finally {
+      clearAllDrafts()
       setUser(null)
     }
   }, [])
