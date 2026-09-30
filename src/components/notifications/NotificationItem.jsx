@@ -6,8 +6,9 @@ import { formatRelative } from '../../lib/dates'
 import { categoryLabel, notificationTarget } from '../../lib/notifications'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
+import { NotificationIcon } from './NotificationIcon'
 
-// Une notification. Ouvrir sa cible (réservation, document) la marque comme lue ;
+// Une notification, avec la pastille d'icône de sa nature (point bleu tant qu'elle n'est pas lue). Ouvrir sa cible (réservation, document) la marque comme lue ;
 // sans cible, un bouton « Marquer comme lue ». `compact` : version du panneau de la cloche.
 export function NotificationItem({ notification, onRead, onNavigate, compact = false }) {
   const { user } = useAuth()
@@ -30,10 +31,12 @@ export function NotificationItem({ notification, onRead, onNavigate, compact = f
 
   return (
     <li className={cx('relative flex gap-3', compact ? 'px-4 py-3' : 'px-5.5 py-4', unread && 'bg-info-soft/40')}>
-      <span
-        aria-hidden="true"
-        className={cx('mt-1.5 size-2.5 shrink-0 rounded-full', unread ? 'bg-primary' : 'bg-transparent')}
-      />
+      <span className="relative self-start">
+        <NotificationIcon data={notification.data} compact={compact} />
+        {unread && (
+          <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 size-3 rounded-full border-2 border-surface bg-primary" />
+        )}
+      </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           {target?.to ? (
