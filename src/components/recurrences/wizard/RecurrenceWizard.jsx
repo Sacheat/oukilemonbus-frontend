@@ -5,6 +5,7 @@ import { useRecurrencePreview, useRecurrenceTripCheck } from '../../../hooks/use
 import { clearDraft, saveDraft } from '../../../lib/drafts'
 import { getErrorMessage, getFieldErrors } from '../../../lib/errors'
 import {
+  describeFrequency,
   mapRecurrenceErrors,
   missingRecurrenceFields,
   recurrenceStepOfField,
@@ -20,7 +21,9 @@ import { StepIndicator } from '../../reservations/wizard/StepIndicator'
 import { TripStep } from '../../reservations/wizard/TripStep'
 import { CalendarStep } from './CalendarStep'
 import { RecurrenceReviewStep } from './RecurrenceReviewStep'
-import { RecurrenceSummary } from './RecurrenceSummary'
+import { RequestSummary } from '../../reservations/wizard/RequestSummary'
+import { RequestSummaryBar } from '../../reservations/wizard/RequestSummaryBar'
+import { SeriesTicket } from './SeriesTicket'
 
 const STEPS = ['Trajet', 'Calendrier', 'Passagers', 'Vérification']
 const TITLES = { 1: 'Commençons par le trajet', 2: 'Quand a lieu ce trajet ?', 3: 'Qui voyage ?', 4: 'Vérifiez votre série' }
@@ -48,7 +51,9 @@ export function RecurrenceWizard({ initial, organizations, draft, onDone, onCanc
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState(null)
   const headingRef = useRef(null)
-  const tripCheck = useRecurrenceTripCheck(values, step === 1)
+  // Trajet vérifié sur une date témoin, gardé aux étapes suivantes (même corps, pas de nouvel appel) :
+  // il alimente les heures d'arrivée du récapitulatif et de la vérification
+  const tripCheck = useRecurrenceTripCheck(values, true)
   // Aperçu en direct à l'étape Calendrier, gardé à l'étape Passagers (même corps, pas de nouvel appel)
   // pour la capacité du bus (max_passengers)
   const livePreview = useRecurrencePreview(values, step === 2 || step === 3)
@@ -147,6 +152,22 @@ export function RecurrenceWizard({ initial, organizations, draft, onDone, onCanc
 
   const canSend = preview.status === 'done' && preview.result?.total_valid_occurrences > 0
 
+  const summaryProps = {
+    values,
+    organization,
+    step,
+    title: 'Votre série',
+    totalSteps: 5,
+    ticket: <SeriesTicket values={values} organization={organization} estimate={tripCheck.result} tripCount={tripCount} />,
+    note: 'Une réservation est créée pour chaque date retenue. Vous pourrez ensuite modifier ou annuler un trajet seul, ou annuler toute la série.',
+  }
+  const summaryLine = [
+    (values.frequency === 'mensuel' || values.days_of_week.length > 0) && describeFrequency(values),
+    [values.pickup?.city, values.destination?.city].filter(Boolean).join(' → '),
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
   return (
     <>
       <PageHeader
@@ -156,6 +177,7 @@ export function RecurrenceWizard({ initial, organizations, draft, onDone, onCanc
         className="pb-6"
       />
       <StepIndicator current={step} onSelect={goTo} steps={STEPS} />
+      <RequestSummaryBar {...summaryProps} line={summaryLine} />
 
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
         <Card as="section" aria-labelledby="step-title" className="p-5 sm:p-7">
@@ -202,6 +224,7 @@ export function RecurrenceWizard({ initial, organizations, draft, onDone, onCanc
             <RecurrenceReviewStep
               values={values}
               organization={organization}
+              estimate={tripCheck.result}
               preview={preview}
               onRetry={() => runPreview(values)}
               onEditStep={goTo}
@@ -231,7 +254,7 @@ export function RecurrenceWizard({ initial, organizations, draft, onDone, onCanc
           </div>
         </Card>
 
-        <RecurrenceSummary values={values} organization={organization} step={step} tripCount={tripCount} />
+        <RequestSummary {...summaryProps} />
       </div>
     </>
   )

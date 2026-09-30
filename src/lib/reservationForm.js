@@ -156,3 +156,38 @@ export function changedRowCount(changes) {
   const times = changes.includes('departure_time') || changes.includes('return_time')
   return changes.filter((field) => field !== 'departure_time' && field !== 'return_time').length + (times ? 1 : 0)
 }
+
+// Ce que deviendra la demande à l'envoi, d'après le preview (le backend crée la réservation avec son
+// `status`) : bloquée, en conflit, approuvée automatiquement ou examinée par la commune (en attente)
+export function reservationDecision(result, mode = 'create') {
+  const send = mode === 'edit' ? 'l’enregistrement' : 'l’envoi'
+  if (!result.is_allowed) {
+    return {
+      tone: 'danger',
+      title: mode === 'edit' ? 'Ces changements ne peuvent pas être enregistrés' : 'Cette demande ne peut pas être envoyée en l’état',
+      text: 'Modifiez le trajet ou les horaires : la vérification sera relancée.',
+    }
+  }
+  if (result.status === 'en_conflit') {
+    return {
+      tone: 'warning',
+      title: `En conflit dès ${send}`,
+      text: 'La demande sera enregistrée, mais la commune devra régler les points ci-dessous avant de la valider.',
+    }
+  }
+  if (result.status === 'approuve') {
+    return {
+      tone: 'success',
+      title: `Approuvée dès ${send}`,
+      text: 'Le créneau du bus vous est réservé ; le chauffeur et le véhicule sont ensuite affectés.',
+    }
+  }
+  return {
+    tone: 'info',
+    title: 'Examinée par la commune',
+    text:
+      result.warnings?.length > 0
+        ? 'Ces horaires demandent une dérogation : la demande sera soumise à la décision du Collège. Vous serez averti de la décision.'
+        : 'La demande sera examinée par la commune et soumise à la décision du Collège. Vous serez averti de la décision.',
+  }
+}
