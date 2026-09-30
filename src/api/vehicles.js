@@ -1,8 +1,14 @@
 import { api } from './client'
+import { fetchAllPages } from './pagination'
 
 export async function getVehicles(params = {}, { signal } = {}) {
   const { data } = await api.get('/vehicles', { params, signal })
   return data
+}
+
+// Tous les véhicules, toutes pages confondues (pour les listes de choix)
+export function getAllVehicles({ signal } = {}) {
+  return fetchAllPages((page, options) => getVehicles({ page }, options), { signal })
 }
 
 // `capacity` inclut le siège du chauffeur
