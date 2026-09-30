@@ -5,7 +5,7 @@ import { RECURRENCE_FREQUENCY_LABELS } from '../../../lib/labels'
 import { mapRecurrenceErrors, WEEK_DAYS } from '../../../lib/recurrences'
 import { minTripDate } from '../../../lib/reservationForm'
 import { Alert } from '../../ui/Alert'
-import { Field, Input, Select } from '../../ui/Field'
+import { Field, Input } from '../../ui/Field'
 import { SeriesCalendar } from './SeriesCalendar'
 
 // Étape 2 : fréquence, jours et période, avec l'aperçu de la série en direct (useRecurrencePreview)
@@ -29,17 +29,38 @@ export function CalendarStep({ values, setField, errors, preview }) {
 
   return (
     <div className="grid gap-4.5 sm:grid-cols-2">
-      <Field label="Fréquence" required error={fieldErrors.frequency} className="sm:col-span-2">
-        {(props) => (
-          <Select {...props} value={values.frequency} onChange={(event) => setField('frequency', event.target.value)}>
-            {Object.entries(RECURRENCE_FREQUENCY_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
+      <fieldset className="sm:col-span-2" aria-describedby={fieldErrors.frequency ? 'frequency-error' : undefined}>
+        <legend className="text-sm font-bold">
+          Fréquence <span aria-hidden="true">*</span>
+        </legend>
+        <div className="mt-1.5 flex flex-wrap gap-2">
+          {Object.entries(RECURRENCE_FREQUENCY_LABELS).map(([value, label]) => (
+            <label
+              key={value}
+              className={cx(
+                'inline-flex min-h-11 cursor-pointer items-center rounded-full border border-line-strong bg-surface px-4 text-sm font-semibold',
+                'hover:border-primary has-checked:border-primary has-checked:bg-soft has-checked:text-link',
+                'has-focus-visible:ring-2 has-focus-visible:ring-primary',
+              )}
+            >
+              <input
+                type="radio"
+                name="frequency"
+                value={value}
+                checked={values.frequency === value}
+                onChange={() => setField('frequency', value)}
+                className="sr-only"
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+        {fieldErrors.frequency && (
+          <p id="frequency-error" className="mt-1.5 text-xs font-semibold text-danger">
+            {fieldErrors.frequency}
+          </p>
         )}
-      </Field>
+      </fieldset>
 
       {monthly ? (
         <p className="text-sm text-muted sm:col-span-2">

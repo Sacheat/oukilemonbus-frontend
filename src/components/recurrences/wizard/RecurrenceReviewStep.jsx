@@ -1,18 +1,43 @@
 import { LoaderCircle } from 'lucide-react'
 import { formatDate } from '../../../lib/dates'
 import { ACTIVITY_TYPE_LABELS } from '../../../lib/labels'
-import { describeFrequency } from '../../../lib/recurrences'
+import { describeFrequency, draftRecurrence, seriesDecision } from '../../../lib/recurrences'
 import { shortAddress } from '../../../lib/reservations'
-import { Alert } from '../../ui/Alert'
 import { Button } from '../../ui/Button'
 import { ErrorState } from '../../ui/ErrorState'
+import { DecisionBanner } from '../../reservations/wizard/DecisionBanner'
+import { SeriesHero } from '../SeriesHero'
 import { SeriesCalendar } from './SeriesCalendar'
 
-// Étape 4 : récapitulatif + aperçu final de la série (avec les vrais passagers)
-export function RecurrenceReviewStep({ values, organization, preview, onRetry, onEditStep }) {
+// Étape 4 : bandeau de la série, ce qu'elle deviendra à la création (aperçu final, avec les vrais passagers),
+// calendrier des dates, puis le détail des informations saisies. `estimate` : trajet vérifié (heures d'arrivée).
+export function RecurrenceReviewStep({ values, organization, estimate, preview, onRetry, onEditStep }) {
   const result = preview.result
   return (
     <div className="grid gap-5">
+      <SeriesHero
+        recurrence={draftRecurrence(values)}
+        nextTrip={estimate}
+        eyebrow="Aperçu de votre série"
+        titleAs="h3"
+        showState={false}
+      />
+
+      <div className="grid gap-3" aria-live="polite">
+        {preview.status === 'loading' && (
+          <p className="flex items-center gap-2 text-sm text-muted">
+            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> Vérification complète de la série…
+          </p>
+        )}
+        {preview.status === 'error' && <ErrorState error={preview.error} onRetry={onRetry} />}
+        {result && preview.status === 'done' && (
+          <>
+            <DecisionBanner decision={seriesDecision(result)} eyebrow="À la création" />
+            <SeriesCalendar preview={result} />
+          </>
+        )}
+      </div>
+
       <ReviewSection
         title="Trajet"
         onEdit={() => onEditStep(1)}
@@ -41,25 +66,6 @@ export function RecurrenceReviewStep({ values, organization, preview, onRetry, o
           ['Motif', values.trip_purpose],
         ]}
       />
-
-      <div className="grid gap-3" aria-live="polite">
-        {preview.status === 'loading' && (
-          <p className="flex items-center gap-2 text-sm text-muted">
-            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> Vérification complète de la série…
-          </p>
-        )}
-        {preview.status === 'error' && <ErrorState error={preview.error} onRetry={onRetry} />}
-        {result && preview.status === 'done' && (
-          <>
-            {result.total_valid_occurrences > 0 && (
-              <Alert tone="success" title="Approbation automatique">
-                Les trajets de la série seront approuvés dès l’envoi, puis le chauffeur et le véhicule seront affectés.
-              </Alert>
-            )}
-            <SeriesCalendar preview={result} />
-          </>
-        )}
-      </div>
     </div>
   )
 }

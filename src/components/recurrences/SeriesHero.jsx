@@ -11,10 +11,12 @@ const SHORT_DATE = { day: 'numeric', month: 'long', year: 'numeric' }
 
 // En-tête du détail d'une série, façon billet (comme TripHero) : talon avec les jours de passage,
 // motif, état, fréquence et période, trajets aller et retour. Les heures d'arrivée estimées sont
-// celles du prochain trajet (`nextTrip`, une réservation de la série) ; les actions (children) à droite.
-export function SeriesHero({ recurrence, nextTrip = null, children }) {
+// celles du prochain trajet (`nextTrip` : une réservation de la série, ou une vérification du trajet) ;
+// les actions (children) à droite. Aperçu dans l'assistant : `eyebrow`, `titleAs`, `showState={false}`.
+export function SeriesHero({ recurrence, nextTrip = null, children, eyebrow = 'Récurrence', titleAs: Title = 'h1', showState = true }) {
   const state = recurrenceState(recurrence)
-  const active = state.label === 'Active'
+  // Un aperçu (pas encore d'état) garde les couleurs d'une série active
+  const active = !showState || state.label === 'Active'
   const frequency = describeFrequency(recurrence)
   const days = seriesStubDays(recurrence)
   const arrivals = estimatedArrivals(nextTrip)
@@ -48,12 +50,12 @@ export function SeriesHero({ recurrence, nextTrip = null, children }) {
 
       <div className="grid min-w-0 flex-1 items-center gap-6 p-6 sm:p-7 lg:grid-cols-[minmax(0,1fr)_auto]">
         <div className="min-w-0">
-          <p className="text-[11px] font-extrabold tracking-[.14em] text-accent uppercase">Récurrence</p>
-          <h1 id="series-title" className="mt-1 text-[26px] leading-tight font-bold tracking-tight break-words sm:text-[30px]">
+          <p className="text-[11px] font-extrabold tracking-[.14em] text-accent uppercase">{eyebrow}</p>
+          <Title id="series-title" className="mt-1 text-[26px] leading-tight font-bold tracking-tight break-words sm:text-[30px]">
             {recurrence.trip_purpose ?? frequency}
-          </h1>
+          </Title>
           <div className="mt-2.5 flex flex-wrap items-center gap-2 text-sm">
-            <Badge tone={state.tone}>{state.label}</Badge>
+            {showState && <Badge tone={state.tone}>{state.label}</Badge>}
             <span className="text-nav-ink">{frequency}</span>
           </div>
           <p className="mt-1.5 inline-flex items-center gap-1.5 text-sm text-nav-ink">

@@ -1,7 +1,7 @@
 import { LoaderCircle } from 'lucide-react'
 import { formatDate } from '../../../lib/dates'
 import { ACTIVITY_TYPE_LABELS } from '../../../lib/labels'
-import { draftReservation } from '../../../lib/reservationForm'
+import { draftReservation, reservationDecision } from '../../../lib/reservationForm'
 import { shortAddress } from '../../../lib/reservations'
 import { Alert } from '../../ui/Alert'
 import { Button } from '../../ui/Button'
@@ -66,7 +66,10 @@ export function ReviewStep({
         {preview.status === 'error' && <ErrorState error={preview.error} onRetry={onRetry} />}
         {result && preview.status === 'done' && (
           <>
-            <DecisionBanner result={result} mode={mode} />
+            <DecisionBanner
+              decision={reservationDecision(result, mode)}
+              eyebrow={mode === 'edit' ? 'Après l’enregistrement' : 'Après l’envoi'}
+            />
             <AvailabilityNotice availability={result.availability} onUseSlot={onUseSlot} />
             <ConflictsList conflicts={result.conflicts} />
             {result.warnings?.length > 0 && (

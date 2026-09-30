@@ -172,3 +172,46 @@ export function calendarMonths(start, end) {
   }
   return months
 }
+
+// Ce que deviendra la série à la création, d'après l'aperçu final (POST /recurrences/preview) :
+// aucun trajet possible, trajets créés dont certains avec un point à régler, ou tous approuvés
+// (écoles et personnel communal : approbation automatique)
+export function seriesDecision(preview) {
+  const count = preview.total_valid_occurrences
+  const trips = `${count} trajet${count > 1 ? 's' : ''}`
+  const skipped = preview.total_skipped > 0
+    ? ` ${preview.total_skipped > 1 ? `${preview.total_skipped} dates sont ignorées` : '1 date est ignorée'} (détail ci-dessous).`
+    : ''
+  if (count === 0) {
+    return { tone: 'danger', title: 'Aucun trajet ne peut être créé', text: 'Changez les jours ou la période de la série.' }
+  }
+  const conflicts = Object.keys(preview.conflicts_by_date ?? {}).length
+  if (conflicts > 0) {
+    return {
+      tone: 'warning',
+      title: `${trips} créé${count > 1 ? 's' : ''}, dont ${conflicts} avec un point à régler`,
+      text: `Ils seront quand même créés ; la commune réglera les points signalés.${skipped}`,
+    }
+  }
+  return {
+    tone: 'success',
+    title: `${trips} approuvé${count > 1 ? 's' : ''} dès la création`,
+    text: `Une réservation est créée pour chaque date ; le chauffeur et le véhicule sont ensuite affectés.${skipped}`,
+  }
+}
+
+// Série « en devenir » pour afficher son bandeau (SeriesHero) à l'étape Vérification
+export function draftRecurrence(values) {
+  return {
+    frequency: values.frequency,
+    days_of_week: values.days_of_week,
+    start_date: values.start_date,
+    end_date: values.end_date,
+    is_active: true,
+    trip_purpose: values.trip_purpose.trim() || 'Votre série',
+    pickup_location: values.pickup,
+    destination_location: values.destination,
+    departure_time: values.departure_time,
+    return_time: values.return_time,
+  }
+}
