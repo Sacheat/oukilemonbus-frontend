@@ -7,6 +7,7 @@ import { getErrorMessage, getFieldErrors } from '../../../lib/errors'
 import {
   capacityError,
   changedFields,
+  changedRowCount,
   mapApiErrors,
   missingFields,
   stepOfField,
@@ -178,7 +179,14 @@ export function ReservationWizard({ mode, initial, organizations, reservation = 
   const result = preview.result
   // Heures d'arrivée du récapitulatif : vérification en direct, puis preview à l'étape 3
   const estimate = step < 3 ? tripCheck.result : result
-  const summaryProps = { values, organization, estimate, step, title: mode === 'edit' ? 'Votre réservation' : 'Votre demande' }
+  const summaryProps = {
+    values,
+    organization,
+    estimate,
+    step,
+    title: mode === 'edit' ? 'Votre réservation' : 'Votre demande',
+    changeCount: changes ? changedRowCount(changes) : null,
+  }
   const canSend =
     preview.status === 'done' &&
     result?.is_allowed &&
@@ -255,7 +263,8 @@ export function ReservationWizard({ mode, initial, organizations, reservation = 
           <div className="mt-6.5 flex flex-wrap items-center justify-between gap-3">
             {step === 1 ? (
               <Button variant="secondary" onClick={onCancel}>
-                Annuler
+                {/* En modification, « Annuler » se confondrait avec l'annulation de la réservation */}
+                {mode === 'edit' ? 'Quitter sans enregistrer' : 'Annuler'}
               </Button>
             ) : (
               <Button variant="secondary" onClick={() => goTo(step - 1)}>

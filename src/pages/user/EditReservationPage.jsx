@@ -3,10 +3,11 @@ import { useCallback } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { getReservation } from '../../api/reservations'
 import { useAuth } from '../../auth/useAuth'
+import { TripHero } from '../../components/reservations/TripHero'
 import { ReservationWizard } from '../../components/reservations/wizard/ReservationWizard'
 import { Alert } from '../../components/ui/Alert'
 import { ErrorState } from '../../components/ui/ErrorState'
-import { Loader } from '../../components/ui/Loader'
+import { Skeleton } from '../../components/ui/Skeleton'
 import { useApi } from '../../hooks/useApi'
 import { reservationToValues } from '../../lib/reservationForm'
 import { canEdit, statusHint } from '../../lib/reservations'
@@ -43,20 +44,34 @@ export function EditReservationPage() {
     )
   }
 
-  if (!reservation || reservation.id !== Number(id)) return <Loader />
+  if (!reservation || reservation.id !== Number(id)) {
+    return (
+      <div role="status" className="grid gap-5">
+        <span className="sr-only">Chargement de la réservation…</span>
+        {backLink}
+        <Skeleton className="h-24 w-full max-w-md" />
+        <Skeleton className="h-11 w-full" />
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <Skeleton className="h-96 rounded-card" />
+          <Skeleton className="hidden h-72 rounded-card lg:block" />
+        </div>
+      </div>
+    )
+  }
 
   if (!canEdit(user, reservation)) {
     return (
-      <>
-        {backLink}
-        <Alert tone="warning" title="Cette réservation ne peut plus être modifiée" className="mt-4">
+      <div className="grid gap-5">
+        <div>{backLink}</div>
+        <TripHero reservation={reservation} />
+        <Alert tone="warning" title="Cette réservation ne peut plus être modifiée">
           <p>{statusHint(reservation)}</p>
           <p className="mt-1">
             Seules les demandes en attente ou en conflit peuvent être modifiées, par le demandeur ou un responsable de
             l’organisation.
           </p>
         </Alert>
-      </>
+      </div>
     )
   }
 
