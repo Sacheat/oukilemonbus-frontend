@@ -129,3 +129,10 @@ export function withoutSelfConflicts(result, reservationId) {
     conflicts: (result.conflicts ?? []).filter((conflict) => conflict.related_reservation_id !== reservationId),
   }
 }
+
+// Erreur de capacité à l'étape Passagers : plus de passagers que de places dans le plus grand bus
+// (`max` = max_passengers renvoyé par le backend ; null ou absent : pas de limite côté front)
+export function capacityError(values, max) {
+  const total = Number(values.nb_children || 0) + Number(values.nb_adults || 0)
+  return max != null && total > max ? { nb_children: `Trop de passagers : ${max} places au maximum.` } : null
+}

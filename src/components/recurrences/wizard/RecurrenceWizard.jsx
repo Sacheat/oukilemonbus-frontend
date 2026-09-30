@@ -10,6 +10,7 @@ import {
   recurrenceStepOfField,
   toRecurrencePayload,
 } from '../../../lib/recurrences'
+import { capacityError } from '../../../lib/reservationForm'
 import { Alert } from '../../ui/Alert'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
@@ -48,7 +49,9 @@ export function RecurrenceWizard({ initial, organizations, draft, onDone, onCanc
   const [sendError, setSendError] = useState(null)
   const headingRef = useRef(null)
   const tripCheck = useRecurrenceTripCheck(values, step === 1)
-  const livePreview = useRecurrencePreview(values, step === 2)
+  // Aperçu en direct à l'étape Calendrier, gardé à l'étape Passagers (même corps, pas de nouvel appel)
+  // pour la capacité du bus (max_passengers)
+  const livePreview = useRecurrencePreview(values, step === 2 || step === 3)
 
   const organization = organizations.find((item) => String(item.id) === String(values.organization_id))
   const tripCount = (step === 4 ? preview.result : livePreview.result)?.total_valid_occurrences ?? null
@@ -114,6 +117,12 @@ export function RecurrenceWizard({ initial, organizations, draft, onDone, onCanc
       if (calendarErrors.length > 0 || livePreview.result?.total_valid_occurrences === 0) return // déjà signalé sous l'aperçu
       goTo(3)
     } else if (step === 3) {
+      // Au-delà des places du plus grand bus (max_passengers), inutile d'aller jusqu'à l'aperçu final
+      const tooMany = capacityError(values, livePreview.result?.max_passengers)
+      if (tooMany) {
+        setErrors(tooMany)
+        return
+      }
       goTo(4)
       runPreview(values)
     }
@@ -180,7 +189,15 @@ export function RecurrenceWizard({ initial, organizations, draft, onDone, onCanc
             />
           )}
           {step === 2 && <CalendarStep values={values} setField={setField} errors={errors} preview={livePreview} />}
-          {step === 3 && <PassengersStep values={values} setField={setField} errors={errors} needsJustification={false} />}
+          {step === 3 && (
+            <PassengersStep
+              values={values}
+              setField={setField}
+              errors={errors}
+              needsJustification={false}
+              maxPassengers={livePreview.result?.max_passengers ?? null}
+            />
+          )}
           {step === 4 && (
             <RecurrenceReviewStep
               values={values}

@@ -5,6 +5,7 @@ import { useTripCheck } from '../../../hooks/useTripCheck'
 import { clearDraft, saveDraft } from '../../../lib/drafts'
 import { getErrorMessage, getFieldErrors } from '../../../lib/errors'
 import {
+  capacityError,
   changedFields,
   mapApiErrors,
   missingFields,
@@ -135,6 +136,12 @@ export function ReservationWizard({ mode, initial, organizations, reservation = 
       setNeedsJustification(tripCheck.result?.warnings?.length > 0)
       goTo(2)
     } else if (step === 2) {
+      // Au-delà des places du plus grand bus (max_passengers), inutile d'aller jusqu'au preview
+      const tooMany = capacityError(values, tripCheck.result?.max_passengers)
+      if (tooMany) {
+        setErrors(tooMany)
+        return
+      }
       goTo(3)
       runPreview(values)
     }
@@ -227,6 +234,7 @@ export function ReservationWizard({ mode, initial, organizations, reservation = 
               setField={setField}
               errors={errors}
               needsJustification={needsJustification || result?.warnings?.length > 0}
+              maxPassengers={tripCheck.result?.max_passengers ?? null}
             />
           )}
           {step === 3 && (
