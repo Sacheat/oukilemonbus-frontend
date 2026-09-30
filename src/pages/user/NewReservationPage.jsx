@@ -1,14 +1,16 @@
-import { Building2, CircleCheck } from 'lucide-react'
+import { ArrowRight, Building2, CircleCheck, Plus } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useAuth } from '../../auth/useAuth'
+import { KeyFacts } from '../../components/reservations/KeyFacts'
+import { TripHero } from '../../components/reservations/TripHero'
+import { TripProgress } from '../../components/reservations/TripProgress'
 import { ReservationWizard } from '../../components/reservations/wizard/ReservationWizard'
 import { StepIndicator } from '../../components/reservations/wizard/StepIndicator'
 import { Button } from '../../components/ui/Button'
-import { Card } from '../../components/ui/Card'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { PageHeader } from '../../components/ui/PageHeader'
-import { StatusBadge } from '../../components/ui/StatusBadge'
+import { Panel } from '../../components/ui/Panel'
 import { clearDraft, loadDraft } from '../../lib/drafts'
 import { EMPTY_RESERVATION } from '../../lib/reservationForm'
 import { statusHint, todayApiDate } from '../../lib/reservations'
@@ -83,25 +85,41 @@ export function NewReservationPage() {
       <>
         <PageHeader eyebrow="Nouvelle réservation" title="Demande envoyée" />
         <StepIndicator current={4} />
-        <Card className="mx-auto max-w-xl p-8 text-center">
-          <CircleCheck className="mx-auto size-11 text-success" aria-hidden="true" />
-          <h2 ref={headingRef} tabIndex={-1} className="mt-3 text-xl font-bold outline-none">
-            Votre demande a bien été envoyée
-          </h2>
-          <div className="mt-3 flex justify-center">
-            <StatusBadge status={created.status} label={created.status_label} />
+        <div className="grid gap-5">
+          <div className="flex items-start gap-3">
+            <CircleCheck className="mt-0.5 size-7 shrink-0 text-success" aria-hidden="true" />
+            <div>
+              <h2 ref={headingRef} tabIndex={-1} className="text-xl font-bold outline-none">
+                Votre demande a bien été envoyée
+              </h2>
+              <p className="mt-0.5 text-muted">{statusHint(created)}</p>
+            </div>
           </div>
-          <p className="mt-3 text-muted">{statusHint(created)}</p>
-          <div className="mt-6 flex flex-wrap justify-center gap-2">
-            <Button to={`/espace/deplacements/${created.id}`}>Voir le détail</Button>
-            <Button variant="secondary" to="/espace/deplacements">
-              Mes déplacements
+
+          <TripHero reservation={created} eyebrow="Votre demande" titleAs="h3">
+            <Button variant="accent" to={`/espace/deplacements/${created.id}`}>
+              Voir le détail <ArrowRight className="size-4" aria-hidden="true" />
             </Button>
-            <Button variant="link" onClick={restart}>
-              Nouvelle réservation
+            <Button variant="secondary" onClick={restart}>
+              <Plus className="size-4" aria-hidden="true" /> Nouvelle réservation
+            </Button>
+          </TripHero>
+
+          <div className="grid items-start gap-5 lg:grid-cols-2">
+            <Panel title="Et maintenant ?">
+              <div className="p-5">
+                <TripProgress reservation={created} />
+              </div>
+            </Panel>
+            <KeyFacts reservation={created} className="grid-cols-2" />
+          </div>
+
+          <div>
+            <Button variant="link" to="/espace/deplacements">
+              Voir tous mes déplacements
             </Button>
           </div>
-        </Card>
+        </div>
       </>
     )
   }

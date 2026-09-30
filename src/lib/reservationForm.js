@@ -136,3 +136,17 @@ export function capacityError(values, max) {
   const total = Number(values.nb_children || 0) + Number(values.nb_adults || 0)
   return max != null && total > max ? { nb_children: `Trop de passagers : ${max} places au maximum.` } : null
 }
+
+// Réservation « en devenir » pour afficher le billet (TripHero) à l'étape Vérification :
+// valeurs saisies + heures estimées du preview (`result`, facultatif)
+export function draftReservation(values, result = null) {
+  return {
+    trip_date: values.trip_date,
+    departure_time: values.departure_time,
+    return_time: values.return_time,
+    pickup_location: values.pickup,
+    destination_location: values.destination,
+    trip_purpose: values.trip_purpose.trim() || 'Votre déplacement',
+    estimated_occupation: result?.estimated_occupation ?? null,
+  }
+}
