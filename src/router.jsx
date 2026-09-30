@@ -29,6 +29,7 @@ import { RecurrencesPage } from './pages/user/RecurrencesPage'
 import { TripDetailPage } from './pages/user/TripDetailPage'
 import { TripsPage } from './pages/user/TripsPage'
 import { UserHomePage } from './pages/user/UserHomePage'
+import { DriversPage } from './pages/backoffice/DriversPage'
 import { VehiclesPage } from './pages/backoffice/VehiclesPage'
 
 // Chemins en français, sauf /verify-email et /reset-password imposés par les liens
@@ -197,15 +198,22 @@ export const router = createBrowserRouter([
                   soon('demandes', 'Gestion', 'Demandes', 'org-registration-requests.review'),
                   soon('organisations', 'Gestion', 'Organisations', 'organizations.update'),
                   soon('documents', 'Gestion', 'Documents', 'documents.generate'),
-                     {
-                      path: 'vehicules',
-                      element: (
-                        <RequirePermission permission="vehicles.update">
-                          <VehiclesPage />
-                        </RequirePermission>
-                      ),
-                    },
-                  soon('chauffeurs', 'Flotte', 'Chauffeurs', 'drivers.update'),
+                  {
+                    path: 'vehicules',
+                    element: (
+                      <RequirePermission permission="vehicles.update">
+                        <VehiclesPage />
+                      </RequirePermission>
+                    ),
+                  },
+                  {
+                    path: 'chauffeurs',
+                    element: (
+                      <RequirePermission permission="drivers.update">
+                        <DriversPage />
+                      </RequirePermission>
+                    ),
+                  },
                   soon('indisponibilites', 'Flotte', 'Indisponibilités', 'unavailabilities.create'),
                   soon('utilisateurs', 'Administration', 'Utilisateurs', 'users.manage-roles'),
                   soon('outils', 'Administration', 'Outils', 'tooling.access'),
