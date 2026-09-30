@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { cx } from '../../lib/cx'
 import { formatDate, formatTime } from '../../lib/dates'
 import { countdown } from '../../lib/home'
-import { isTerminal, shortAddress, statusHint, todayApiDate, totalPassengers } from '../../lib/reservations'
+import { estimatedArrivals, isTerminal, shortAddress, statusHint, todayApiDate, totalPassengers } from '../../lib/reservations'
 import { trackSpotlight } from '../../lib/spotlight'
 import { STATUS_DOTS } from '../../lib/trips'
 import { StatusBadge } from '../ui/StatusBadge'
@@ -19,6 +19,7 @@ export function ReservationEvent({ reservation, to = `/espace/deplacements/${res
   const soon = !terminal && reservation.trip_date >= today ? countdown(reservation.trip_date) : null
   const showSoon = soon === 'aujourd’hui' || soon === 'demain'
   const day = formatDate(reservation.trip_date, { weekday: 'short' }).replace('.', '')
+  const arrivals = estimatedArrivals(reservation)
 
   return (
     <li id={`trajet-${reservation.id}`} className="relative scroll-mt-24">
@@ -70,7 +71,14 @@ export function ReservationEvent({ reservation, to = `/espace/deplacements/${res
             {destination && ` · ${destination}`}
           </span>
           <span className="mt-1 block text-xs text-muted">
-            {[reservation.organization?.name, statusHint(reservation)].filter(Boolean).join(' · ')}
+            {[
+              arrivals?.outbound && `Arrivée vers ${arrivals.outbound}`,
+              arrivals?.back && `retour vers ${arrivals.back}`,
+              reservation.organization?.name,
+              statusHint(reservation),
+            ]
+              .filter(Boolean)
+              .join(' · ')}
           </span>
         </span>
 

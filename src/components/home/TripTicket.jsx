@@ -1,15 +1,20 @@
-import { ArrowRight, Bus, CalendarDays, Users } from 'lucide-react'
+import { ArrowRight, CalendarDays, Users } from 'lucide-react'
 import { Link } from 'react-router'
 import { formatDate, formatTime } from '../../lib/dates'
 import { countdown } from '../../lib/home'
-import { shortAddress, totalPassengers } from '../../lib/reservations'
+import { estimatedArrivals, shortAddress, totalPassengers } from '../../lib/reservations'
+import { TripLeg } from '../reservations/TripLeg'
 import { StatusBadge } from '../ui/StatusBadge'
 
 // Prochain trajet présenté comme un billet pleine largeur : talon daté à gauche,
-// puis le motif, le trajet départ → destination et le lien vers le détail
+// puis le motif, les trajets aller et retour (heures d'arrivée estimées) et le lien vers le détail
 export function TripTicket({ reservation }) {
   const pickup = shortAddress(reservation.pickup_location)
   const destination = shortAddress(reservation.destination_location)
+  const arrivals = estimatedArrivals(reservation)
+  // Sous 1024 px, la ville seule (les adresses complètes seraient coupées trop tôt)
+  const pickupCity = reservation.pickup_location?.city || pickup
+  const destinationCity = reservation.destination_location?.city || destination
   const day = formatDate(reservation.trip_date, { weekday: 'short' }).replace('.', '')
   const [dayNumber, month] = formatDate(reservation.trip_date, { day: 'numeric', month: 'short' }).split(' ')
 
@@ -40,20 +45,27 @@ export function TripTicket({ reservation }) {
           </div>
         </div>
 
-        <div className="min-w-0 text-sm">
-          <div className="flex items-center gap-3">
-            <span className="text-lg font-bold tabular-nums">{formatTime(reservation.departure_time)}</span>
-            <span aria-hidden="true" className="relative h-0 flex-1 border-t-2 border-dashed border-line-strong">
-              <span className="absolute top-1/2 -left-1 size-2.5 -translate-y-1/2 rounded-full bg-link" />
-              <Bus className="absolute top-1/2 left-1/2 size-5 -translate-x-1/2 -translate-y-1/2 bg-surface px-0.5 text-link transition-transform duration-500 group-hover:translate-x-6 motion-reduce:transition-none" />
-              <span className="absolute top-1/2 -right-1 size-2.5 -translate-y-1/2 rounded-full border-2 border-link bg-surface" />
-            </span>
-            <span className="text-lg font-bold tabular-nums">{formatTime(reservation.return_time)}</span>
-          </div>
-          <div className="mt-1 flex justify-between gap-4 text-muted">
-            <span className="truncate">{pickup}</span>
-            <span className="truncate text-right">{destination}</span>
-          </div>
+        <div className="grid min-w-0 gap-3">
+          <TripLeg
+            variant="card"
+            label="Aller"
+            departure={formatTime(reservation.departure_time)}
+            arrival={arrivals?.outbound}
+            from={pickup}
+            to={destination}
+            fromCity={pickupCity}
+            toCity={destinationCity}
+          />
+          <TripLeg
+            variant="card"
+            label="Retour"
+            departure={formatTime(reservation.return_time)}
+            arrival={arrivals?.back}
+            from={destination}
+            to={pickup}
+            fromCity={destinationCity}
+            toCity={pickupCity}
+          />
         </div>
 
         <div className="flex items-center justify-between gap-4 md:flex-col md:items-end">

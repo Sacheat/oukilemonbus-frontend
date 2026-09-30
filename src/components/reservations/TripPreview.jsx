@@ -6,7 +6,17 @@ import { useAuth } from '../../auth/useAuth'
 import { useApi } from '../../hooks/useApi'
 import { formatDate, formatDateTime, formatTime } from '../../lib/dates'
 import { countdown } from '../../lib/home'
-import { canCancel, canConfirmPassengers, canEdit, isTerminal, shortAddress, statusHint, todayApiDate, totalPassengers } from '../../lib/reservations'
+import {
+  canCancel,
+  canConfirmPassengers,
+  canEdit,
+  estimatedArrivals,
+  isTerminal,
+  shortAddress,
+  statusHint,
+  todayApiDate,
+  totalPassengers,
+} from '../../lib/reservations'
 import { TripDocumentsCard } from '../documents/TripDocumentsCard'
 import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
@@ -47,6 +57,7 @@ export function TripPreview({ reservationId, onChanged }) {
 
   const upcoming = !isTerminal(reservation) && reservation.trip_date >= todayApiDate()
   const openConflicts = (reservation.conflicts ?? []).filter((conflict) => !conflict.is_resolved)
+  const arrivals = estimatedArrivals(reservation)
   const actions = {
     edit: canEdit(user, reservation),
     passengers: canConfirmPassengers(user, reservation),
@@ -93,6 +104,8 @@ export function TripPreview({ reservationId, onChanged }) {
           items={[
             ['Prise en charge', shortAddress(reservation.pickup_location)],
             ['Destination', shortAddress(reservation.destination_location)],
+            arrivals?.outbound && ['Arrivée à destination', `vers ${arrivals.outbound}`],
+            arrivals?.back && ['Retour au départ', `vers ${arrivals.back}`],
             [
               'Passagers',
               `${totalPassengers(reservation)} (${reservation.nb_children} enfant${reservation.nb_children > 1 ? 's' : ''}, ${reservation.nb_adults} adulte${reservation.nb_adults > 1 ? 's' : ''})`,
