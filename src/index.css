@@ -318,3 +318,49 @@
     animation: none;
   }
 }
+
+/* ----- Carte du trajet (Leaflet, voir TripMap) ----- */
+
+/* Pastilles des lieux : départ plein, destination jaune (couleur du bus) */
+.trip-map-pin {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 3px solid var(--surface);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+}
+
+.trip-map-pin--from {
+  background: var(--primary);
+}
+
+.trip-map-pin--to {
+  background: var(--accent);
+}
+
+/* La feuille de Leaflet (hors @layer) passe devant les utilitaires Tailwind : on redonne ici le fond
+   du token, sinon le gris #ddd de Leaflet se voit entre les tuiles */
+.trip-map.leaflet-container {
+  background: var(--surface-muted);
+}
+
+/* Boutons de zoom à 44 px (cibles tactiles minimum) ; sélecteur plus fort que
+   `.leaflet-touch .leaflet-bar a` de Leaflet, chargé après */
+.trip-map .leaflet-control-zoom.leaflet-bar a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+  font-size: 22px;
+}
+
+/* Fond de carte assombri en thème sombre (les tuiles OpenStreetMap sont claires) */
+[data-theme="dark"] .trip-map .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+}
+
+[data-theme="dark"] .trip-map .leaflet-control-attribution,
+[data-theme="dark"] .trip-map .leaflet-bar a {
+  background: var(--surface);
+  color: var(--muted);
+}

@@ -6,28 +6,23 @@ import { useAuth } from '../../auth/useAuth'
 import { TripDocumentsCard } from '../../components/documents/TripDocumentsCard'
 import { CancelReservationModal } from '../../components/reservations/CancelReservationModal'
 import { ConfirmPassengersModal } from '../../components/reservations/ConfirmPassengersModal'
-import { DateBadge } from '../../components/reservations/DateBadge'
+import { KeyFacts } from '../../components/reservations/KeyFacts'
+import { TripHero } from '../../components/reservations/TripHero'
+import { TripMap } from '../../components/reservations/TripMap'
+import { TripProgress } from '../../components/reservations/TripProgress'
 import { Alert } from '../../components/ui/Alert'
 import { Button } from '../../components/ui/Button'
-import { Card } from '../../components/ui/Card'
 import { DetailList } from '../../components/ui/DetailList'
 import { ErrorState } from '../../components/ui/ErrorState'
-import { Loader } from '../../components/ui/Loader'
-import { StatusBadge } from '../../components/ui/StatusBadge'
+import { Panel } from '../../components/ui/Panel'
+import { Skeleton } from '../../components/ui/Skeleton'
 import { useApi } from '../../hooks/useApi'
-import { formatDate, formatDateTime, formatLocalRange, formatTime } from '../../lib/dates'
+import { formatDateTime } from '../../lib/dates'
 import { ORGANIZATION_TYPE_LABELS } from '../../lib/labels'
-import { canCancel, canConfirmPassengers, canEdit, shortAddress, statusHint, totalPassengers } from '../../lib/reservations'
+import { canCancel, canConfirmPassengers, canEdit } from '../../lib/reservations'
 
-const STATUS_TONES = {
-  en_attente: 'warning',
-  approuve: 'info',
-  confirme: 'success',
-  en_conflit: 'warning',
-  refuse: 'danger',
-  annule: 'info',
-}
-
+// Détail d'un déplacement : en-tête façon billet avec les actions, chiffres clés,
+// suivi de la demande en étapes, informations, carte du trajet, décision et documents
 export function TripDetailPage() {
   const { id } = useParams()
   const { user } = useAuth()
@@ -73,93 +68,83 @@ export function TripDetailPage() {
     )
   }
 
-  if (!reservation || (loading && reservation.id !== Number(id))) return <Loader />
+  if (!reservation || (loading && reservation.id !== Number(id))) {
+    return (
+      <div role="status" className="grid gap-5">
+        <span className="sr-only">Chargement du déplacement…</span>
+        {backLink}
+        <Skeleton className="h-52 w-full rounded-panel" />
+        <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((index) => (
+            <Skeleton key={index} className="h-20 rounded-card" />
+          ))}
+        </div>
+        <Skeleton className="h-64 w-full rounded-card" />
+      </div>
+    )
+  }
 
   const openConflicts = (reservation.conflicts ?? []).filter((conflict) => !conflict.is_resolved)
   const isRequester = reservation.requested_by_user_id === user.id
   const organization = reservation.organization
+  const stopped = reservation.status === 'annule' || reservation.status === 'refuse'
+  const actions = {
+    edit: canEdit(user, reservation),
+    passengers: canConfirmPassengers(user, reservation),
+    cancel: canCancel(user, reservation),
+  }
+  const hasActions = actions.edit || actions.passengers || actions.cancel
 
   return (
-    <>
-      {backLink}
+    <div className="grid gap-5">
+      <div>{backLink}</div>
 
-      <header className="mt-2 flex flex-wrap items-start gap-4.5 pb-6">
-        <DateBadge date={reservation.trip_date} />
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-extrabold tracking-[.13em] text-link uppercase">Déplacement</p>
-          <h1 className="mt-1 text-[27px] leading-tight font-bold tracking-tight">{reservation.trip_purpose}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted">
-            <StatusBadge status={reservation.status} label={reservation.status_label} />
-            <span>
-              {formatDate(reservation.trip_date)} · {formatTime(reservation.departure_time)} →{' '}
-              {formatTime(reservation.return_time)}
-            </span>
-          </div>
-        </div>
-      </header>
-
-      <div className="grid gap-4">
-        {notice && <Alert tone="success">{notice}</Alert>}
-        <Alert tone={STATUS_TONES[reservation.status]}>{statusHint(reservation)}</Alert>
-
-        {openConflicts.length > 0 && (
-          <Alert tone="warning" title="Points à régler">
-            <ul className="mt-1 list-disc pl-5">
-              {openConflicts.map((conflict) => (
-                <li key={conflict.id}>
-                  <strong>{conflict.type_label}</strong> : {conflict.message}
-                </li>
-              ))}
-            </ul>
-          </Alert>
+      <TripHero reservation={reservation}>
+        {hasActions && (
+          <>
+            {actions.passengers && (
+              <Button variant="accent" onClick={() => setDialog('passengers')}>
+                <Users className="size-4" aria-hidden="true" /> Confirmer les passagers
+              </Button>
+            )}
+            {actions.edit && (
+              <Button variant="secondary" to={`/espace/deplacements/${reservation.id}/modifier`}>
+                <Pencil className="size-4" aria-hidden="true" /> Modifier
+              </Button>
+            )}
+            {actions.cancel && (
+              <Button variant="danger" onClick={() => setDialog('cancel')} title="Au moins 24 heures avant le départ">
+                <Ban className="size-4" aria-hidden="true" /> Annuler
+              </Button>
+            )}
+          </>
         )}
+      </TripHero>
 
-        <div className="grid items-start gap-4 lg:grid-cols-2">
-          <Card as="section" aria-labelledby="trip-title">
-            <h2 id="trip-title" className="text-[17px] font-bold">
-              Trajet
-            </h2>
-            <DetailList
-              items={[
-                ['Prise en charge', shortAddress(reservation.pickup_location)],
-                ['Destination', shortAddress(reservation.destination_location)],
-                ['Date', formatDate(reservation.trip_date)],
-                ['Départ', formatTime(reservation.departure_time)],
-                ['Départ du retour', formatTime(reservation.return_time)],
-                reservation.distance_km && ['Distance', `${Number(reservation.distance_km).toLocaleString('fr-BE')} km`],
-                reservation.estimated_duration_min && ['Durée estimée du trajet', `${reservation.estimated_duration_min} min`],
-                reservation.estimated_occupation && [
-                  'Bus réservé',
-                  formatLocalRange(reservation.estimated_occupation.start_at, reservation.estimated_occupation.end_at),
-                ],
-              ]}
-            />
-          </Card>
+      {notice && <Alert tone="success">{notice}</Alert>}
+      {openConflicts.length > 0 && (
+        <Alert tone="warning" title="Points à régler">
+          <ul className="mt-1 list-disc pl-5">
+            {openConflicts.map((conflict) => (
+              <li key={conflict.id}>
+                <strong>{conflict.type_label}</strong> : {conflict.message}
+              </li>
+            ))}
+          </ul>
+        </Alert>
+      )}
 
-          <Card as="section" aria-labelledby="passengers-title">
-            <h2 id="passengers-title" className="text-[17px] font-bold">
-              Passagers
-            </h2>
-            <DetailList
-              items={[
-                ['Enfants', reservation.nb_children],
-                ['Adultes', reservation.nb_adults],
-                ['Total', totalPassengers(reservation)],
-                ['Activité', reservation.activity_type_label],
-                [
-                  'Nombre définitif',
-                  reservation.passengers_confirmed_at
-                    ? `Confirmé le ${formatDateTime(reservation.passengers_confirmed_at)}`
-                    : 'À confirmer',
-                ],
-              ]}
-            />
-          </Card>
+      <KeyFacts reservation={reservation} />
 
-          <Card as="section" aria-labelledby="follow-title">
-            <h2 id="follow-title" className="text-[17px] font-bold">
-              Suivi
-            </h2>
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Panel title="Suivi de la demande">
+          <div className="p-5">
+            <TripProgress reservation={reservation} />
+          </div>
+        </Panel>
+
+        <Panel title="Informations">
+          <div className="px-5 pb-5">
             <DetailList
               items={[
                 organization && [
@@ -167,59 +152,37 @@ export function TripDetailPage() {
                   `${organization.name} (${organization.type_label ?? ORGANIZATION_TYPE_LABELS[organization.type]})`,
                 ],
                 ['Demandeur', isRequester ? 'Vous' : 'Un membre de l’organisation'],
+                ['Activité', reservation.activity_type_label],
+                // « À confirmer » n'a plus de sens une fois le déplacement annulé ou refusé
+                reservation.passengers_confirmed_at
+                  ? ['Nombre définitif', `Confirmé le ${formatDateTime(reservation.passengers_confirmed_at)}`]
+                  : !stopped && ['Nombre définitif', 'À confirmer'],
                 ['Validation', reservation.approval_type_label],
-                ['Demande envoyée le', formatDateTime(reservation.created_at)],
-                reservation.validated_at && ['Validée le', formatDateTime(reservation.validated_at)],
-                reservation.cancelled_at && ['Annulée le', formatDateTime(reservation.cancelled_at)],
+                ['Véhicule', reservation.vehicle ? reservation.vehicle.licence_plate : 'Pas encore affecté'],
+                ['Chauffeur', reservation.driver ? 'Affecté' : 'Pas encore affecté'],
                 reservation.rejection_reason && ['Motif du refus', reservation.rejection_reason],
                 reservation.cancellation_reason && ['Motif de l’annulation', reservation.cancellation_reason],
               ]}
             />
-          </Card>
-
-          <Card as="section" aria-labelledby="assignment-title">
-            <h2 id="assignment-title" className="text-[17px] font-bold">
-              Affectation
-            </h2>
-            <DetailList
-              items={[
-                ['Véhicule', reservation.vehicle ? reservation.vehicle.licence_plate : 'Pas encore affecté'],
-                ['Chauffeur', reservation.driver ? 'Affecté' : 'Pas encore affecté'],
-              ]}
-            />
-          </Card>
-        </div>
-
-        <TripDocumentsCard reservationId={reservation.id} />
-
-        {(canEdit(user, reservation) || canConfirmPassengers(user, reservation) || canCancel(user, reservation)) && (
-          <Card as="section" aria-labelledby="actions-title" className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h2 id="actions-title" className="text-[17px] font-bold">
-                Actions
-              </h2>
-              <p className="mt-1 text-sm text-muted">L’annulation doit intervenir au moins 24 heures avant le départ.</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {canEdit(user, reservation) && (
-                <Button variant="secondary" to={`/espace/deplacements/${reservation.id}/modifier`}>
-                  <Pencil className="size-4" aria-hidden="true" /> Modifier
-                </Button>
-              )}
-              {canConfirmPassengers(user, reservation) && (
-                <Button variant="secondary" onClick={() => setDialog('passengers')}>
-                  <Users className="size-4" aria-hidden="true" /> Confirmer les passagers
-                </Button>
-              )}
-              {canCancel(user, reservation) && (
-                <Button variant="danger" onClick={() => setDialog('cancel')}>
-                  <Ban className="size-4" aria-hidden="true" /> Annuler
-                </Button>
-              )}
-            </div>
-          </Card>
-        )}
+            {reservation.recurrence_id && (
+              <Link
+                to={`/espace/recurrences/${reservation.recurrence_id}`}
+                className="mt-3 inline-flex min-h-11 items-center text-sm font-bold text-link hover:underline"
+              >
+                Fait partie d’une série : voir la série
+              </Link>
+            )}
+          </div>
+        </Panel>
       </div>
+
+      {reservation.pickup_location && reservation.destination_location && (
+        <Panel title="Carte du trajet">
+          <TripMap pickup={reservation.pickup_location} destination={reservation.destination_location} />
+        </Panel>
+      )}
+
+      <TripDocumentsCard reservationId={reservation.id} />
 
       <CancelReservationModal
         reservation={reservation}
@@ -233,6 +196,6 @@ export function TripDetailPage() {
         onClose={() => setDialog(null)}
         onConfirmed={() => handleDone('Le nombre de passagers a été confirmé.')}
       />
-    </>
+    </div>
   )
 }

@@ -20,15 +20,6 @@ export function formatDate(value, options = { weekday: 'long', day: 'numeric', m
   return new Intl.DateTimeFormat(LOCALE, options).format(parseLocal(value))
 }
 
-// "2026-06-16" → { day: "16", month: "JUIN" } pour la pastille de date de la DA
-export function dateBadgeParts(value) {
-  const date = parseLocal(value)
-  return {
-    day: String(date.getDate()),
-    month: new Intl.DateTimeFormat(LOCALE, { month: 'short' }).format(date).toUpperCase(),
-  }
-}
-
 // "09:00:00" → "09:00"
 export function formatTime(value) {
   return value ? value.slice(0, 5) : ''
