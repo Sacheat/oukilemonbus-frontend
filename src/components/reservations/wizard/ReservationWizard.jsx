@@ -20,6 +20,7 @@ import { Card } from '../../ui/Card'
 import { PageHeader } from '../../ui/PageHeader'
 import { PassengersStep } from './PassengersStep'
 import { RequestSummary } from './RequestSummary'
+import { RequestSummaryBar } from './RequestSummaryBar'
 import { ReviewStep } from './ReviewStep'
 import { StepIndicator } from './StepIndicator'
 import { TripStep } from './TripStep'
@@ -66,7 +67,9 @@ export function ReservationWizard({ mode, initial, organizations, reservation = 
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState(null)
   const headingRef = useRef(null)
-  const tripCheck = useTripCheck(step === 1 ? toTripPayload(values, reservationId) : null)
+  // Vérification en direct du trajet aux étapes 1 et 2 (à l'étape 2 le trajet ne change pas : le résultat
+  // est réutilisé sans nouvel appel ; il alimente les heures d'arrivée du récapitulatif). L'étape 3 a son preview.
+  const tripCheck = useTripCheck(step < 3 ? toTripPayload(values, reservationId) : null)
 
   const organization = organizations.find((item) => String(item.id) === String(values.organization_id))
   const changes = reservation ? changedFields(initial.values, values) : null
@@ -166,6 +169,9 @@ export function ReservationWizard({ mode, initial, organizations, reservation = 
   }
 
   const result = preview.result
+  // Heures d'arrivée du récapitulatif : vérification en direct, puis preview à l'étape 3
+  const estimate = step < 3 ? tripCheck.result : result
+  const summaryProps = { values, organization, estimate, step, title: mode === 'edit' ? 'Votre réservation' : 'Votre demande' }
   const canSend =
     preview.status === 'done' &&
     result?.is_allowed &&
@@ -181,6 +187,7 @@ export function ReservationWizard({ mode, initial, organizations, reservation = 
         className="pb-6"
       />
       <StepIndicator current={step} onSelect={goTo} lastLabel={mode === 'edit' ? 'Enregistrement' : 'Envoi'} />
+      <RequestSummaryBar {...summaryProps} />
 
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
         <Card as="section" aria-labelledby="step-title" className="p-5 sm:p-7">
@@ -264,7 +271,7 @@ export function ReservationWizard({ mode, initial, organizations, reservation = 
           </div>
         </Card>
 
-        <RequestSummary values={values} organization={organization} step={step} title={mode === 'edit' ? 'Votre réservation' : 'Votre demande'} />
+        <RequestSummary {...summaryProps} />
       </div>
     </>
   )
