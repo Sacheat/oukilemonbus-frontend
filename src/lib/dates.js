@@ -84,6 +84,67 @@ export function formatApproxTime(value, step = 5) {
   return new Intl.DateTimeFormat(LOCALE, TIME).format(date)
 }
 
+// Plage d'horodatages UTC, en heure de Bruxelles :
+// "mercredi 14 juillet 2027, de 09:00 à 17:00" le même jour, sinon "du 14/07/2027 09:00 au 15/07/2027 17:00"
+export function formatUtcRange(start, end) {
+  if (!start || !end) return ''
+  const dayKey = (value) => new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE }).format(new Date(value))
+  if (dayKey(start) === dayKey(end)) {
+    const day = new Intl.DateTimeFormat(LOCALE, {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: TIME_ZONE,
+    }).format(new Date(start))
+    const time = new Intl.DateTimeFormat(LOCALE, { ...TIME, timeZone: TIME_ZONE })
+    return `${day}, de ${time.format(new Date(start))} à ${time.format(new Date(end))}`
+  }
+  return `du ${formatDateTime(start)} au ${formatDateTime(end)}`
+}
+
+// Date → { year, month, day, hour, minute } telle qu'on la lit sur une horloge à Bruxelles
+function brusselsParts(date) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date)
+  return Object.fromEntries(parts.filter((part) => part.type !== 'literal').map((part) => [part.type, Number(part.value)]))
+}
+
+// Horodatage UTC → "2027-07-14T09:00" (heure de Bruxelles), pour remplir un <input type="datetime-local">
+export function toBrusselsInputValue(value) {
+  if (!value) return ''
+  const { year, month, day, hour, minute } = brusselsParts(new Date(value))
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${year}-${pad(month)}-${pad(day)}T${pad(hour)}:${pad(minute)}`
+}
+
+// "2027-07-14T09:00" saisi en heure de Bruxelles → horodatage UTC "2027-07-14T07:00:00.000Z".
+// Aucun décalage écrit en dur : Intl donne l'heure de Bruxelles à cet instant (été +2 h, hiver +1 h).
+//   1. on lit la saisie comme si c'était de l'UTC
+//   2. on mesure l'écart entre cette heure et ce qu'affiche une horloge à Bruxelles au même instant
+//   3. on retire cet écart ; un second passage corrige les jours de changement d'heure
+export function brusselsInputToUtc(value) {
+  if (!value) return ''
+  const [datePart, timePart] = value.split('T')
+  const [year, month, day] = datePart.split('-').map(Number)
+  const [hour, minute] = timePart.split(':').map(Number)
+  const wallClockAsUtc = Date.UTC(year, month - 1, day, hour, minute)
+
+  const brusselsOffset = (timestamp) => {
+    const clock = brusselsParts(new Date(timestamp))
+    return Date.UTC(clock.year, clock.month - 1, clock.day, clock.hour, clock.minute) - timestamp
+  }
+  const firstGuess = wallClockAsUtc - brusselsOffset(wallClockAsUtc)
+  return new Date(wallClockAsUtc - brusselsOffset(firstGuess)).toISOString()
+}
+
 // Date → "2026-06-16" pour les envois au backend
 export function toApiDate(date) {
   const pad = (n) => String(n).padStart(2, '0')

@@ -30,6 +30,7 @@ import { TripDetailPage } from './pages/user/TripDetailPage'
 import { TripsPage } from './pages/user/TripsPage'
 import { UserHomePage } from './pages/user/UserHomePage'
 import { DriversPage } from './pages/backoffice/DriversPage'
+import { UnavailabilitiesPage } from './pages/backoffice/UnavailabilitiesPage'
 import { VehiclesPage } from './pages/backoffice/VehiclesPage'
 
 // Chemins en français, sauf /verify-email et /reset-password imposés par les liens
@@ -214,7 +215,14 @@ export const router = createBrowserRouter([
                       </RequirePermission>
                     ),
                   },
-                  soon('indisponibilites', 'Flotte', 'Indisponibilités', 'unavailabilities.create'),
+                  {
+                    path: 'indisponibilites',
+                    element: (
+                      <RequirePermission permission="unavailabilities.create">
+                        <UnavailabilitiesPage />
+                      </RequirePermission>
+                    ),
+                  },
                   soon('utilisateurs', 'Administration', 'Utilisateurs', 'users.manage-roles'),
                   soon('outils', 'Administration', 'Outils', 'tooling.access'),
                   soon('communes', 'Administration', 'Communes', 'municipalities.manage'),
