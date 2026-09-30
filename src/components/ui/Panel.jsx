@@ -1,8 +1,8 @@
 import { useId } from 'react'
 
-// Carte de l'accueil : bandeau de titre (et lien facultatif à droite), contenu qui remplit la hauteur
+// Carte à bandeau de titre (et lien facultatif à droite), contenu qui remplit la hauteur
 // pour que deux cartes côte à côte gardent la même taille
-export function HomePanel({ title, action, children }) {
+export function Panel({ title, action, children }) {
   const titleId = useId()
   return (
     <section aria-labelledby={titleId} className="flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface shadow-soft">
