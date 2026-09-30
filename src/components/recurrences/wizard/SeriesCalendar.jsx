@@ -1,7 +1,8 @@
 import { cx } from '../../../lib/cx'
 import { formatDate } from '../../../lib/dates'
-import { calendarMonths, WEEK_DAYS } from '../../../lib/recurrences'
+import { calendarMonths } from '../../../lib/recurrences'
 import { Alert } from '../../ui/Alert'
+import { MonthGrid } from '../MonthGrid'
 
 const KINDS = {
   retained: { label: 'Trajet prévu', cell: 'bg-primary font-bold text-on-primary' },
@@ -53,38 +54,14 @@ export function SeriesCalendar({ preview }) {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {months.map((month) => (
-          <table key={month.key} className="w-full table-fixed border-separate border-spacing-1 text-center text-xs">
-            <caption className="pb-1 text-left text-sm font-bold first-letter:uppercase">
-              {formatDate(month.date, { month: 'long', year: 'numeric' })}
-            </caption>
-            <thead>
-              <tr>
-                {WEEK_DAYS.map((day) => (
-                  <th key={day.value} scope="col" className="font-semibold text-muted">
-                    <abbr title={day.label} className="no-underline">
-                      {day.short}
-                    </abbr>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {month.weeks.map((week) => (
-                <tr key={week.find(Boolean)}>
-                  {week.map((date, index) => {
-                    if (!date) return <td key={index} />
-                    const kind = kindOf(date)
-                    return (
-                      <td key={date} className={cx('h-7 rounded tabular-nums', kind ? KINDS[kind].cell : 'text-muted')}>
-                        {Number(date.slice(8, 10))}
-                        {kind && <span className="sr-only"> : {KINDS[kind].label.toLowerCase()}</span>}
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <MonthGrid
+            key={month.key}
+            month={month}
+            cellOf={(date) => {
+              const kind = kindOf(date)
+              return kind && { className: KINDS[kind].cell, label: KINDS[kind].label }
+            }}
+          />
         ))}
       </div>
 
