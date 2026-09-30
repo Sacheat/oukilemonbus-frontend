@@ -1,3 +1,4 @@
+import { formatDateTime } from './dates'
 import { RELATIONSHIP_TYPE_LABELS } from './labels'
 
 // Rôles qu'on peut demander en rejoignant une organisation (« membre » n'est pas proposé par le backend)
@@ -43,4 +44,35 @@ export function myRequests(userId, joinRequests = [], creationRequests = []) {
       .map((request) => ({ kind: 'adhesion', id: request.request_id, request })),
     ...creationRequests.map((request) => ({ kind: 'creation', id: request.id, request })),
   ].sort((a, b) => b.request.created_at.localeCompare(a.request.created_at))
+}
+
+// Initiales d'une organisation pour sa pastille : « Ecole communale de Dinant » → « EC »,
+// « ASBL Dinant Solidaire » → « AD » (les petits mots de liaison sont ignorés)
+const LINK_WORDS = ['de', 'du', 'des', 'la', 'le', 'les', 'et', 'l', 'd', 'à', 'au', 'aux']
+
+export function organizationInitials(name = '') {
+  return name
+    .split(/[\s'’-]+/)
+    .filter((word) => !LINK_WORDS.includes(word.toLowerCase()))
+    .map((word) => word.match(/\p{L}|\d/u)?.[0]) // première lettre (« [TEST » → « T »)
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+}
+
+// Suivi d'une demande (adhésion ou création) en trois étapes pour ProgressSteps :
+// envoyée, examen par la commune, décision (acceptée ou refusée)
+export function requestSteps(request) {
+  const decided = request.status !== 'en_attente'
+  const reviewed = request.reviewed_at ? formatDateTime(request.reviewed_at).slice(0, 10) : null
+  return [
+    { key: 'sent', label: 'Envoyée', detail: formatDateTime(request.created_at).slice(0, 10), state: 'done' },
+    { key: 'review', label: 'Examen', detail: decided ? null : 'en cours', state: decided ? 'done' : 'current' },
+    request.status === 'refuse'
+      ? { key: 'decision', label: 'Refusée', detail: reviewed, state: 'stopped' }
+      : request.status === 'approuve'
+        ? { key: 'decision', label: 'Acceptée', detail: reviewed, state: 'done' }
+        : { key: 'decision', label: 'Décision', detail: null, state: 'upcoming' },
+  ]
 }
