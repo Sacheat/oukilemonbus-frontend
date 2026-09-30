@@ -1,14 +1,18 @@
 import { CalendarClock } from 'lucide-react'
 import { formatLocalRange, formatTime } from '../../../lib/dates'
+import { estimatedArrivals } from '../../../lib/reservations'
 import { Alert } from '../../ui/Alert'
 import { Button } from '../../ui/Button'
 
 // Distance, durée et créneau pendant lequel le bus est bloqué (retour et marges compris)
 export function TripFacts({ result }) {
   const occupation = result.estimated_occupation
+  const arrivals = estimatedArrivals(result)
   const items = [
     result.distance_km != null && ['Distance', `${Number(result.distance_km).toLocaleString('fr-BE')} km`],
     result.estimated_duration_min != null && ['Trajet estimé', `${result.estimated_duration_min} min`],
+    arrivals?.outbound && ['Arrivée à destination', `vers ${arrivals.outbound}`],
+    arrivals?.back && ['Retour au départ', `vers ${arrivals.back}`],
     occupation && ['Bus réservé', formatLocalRange(occupation.start_at, occupation.end_at)],
   ].filter(Boolean)
 

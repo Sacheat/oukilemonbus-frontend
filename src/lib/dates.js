@@ -75,6 +75,15 @@ export function formatLocalRange(start, end) {
   return `du ${formatLocalDateTime(start)} au ${formatLocalDateTime(end)}`
 }
 
+// LocalDateTime estimé → heure arrondie aux `step` minutes les plus proches : "2026-06-16T10:18:00" → "10:20"
+// (une estimation ne doit pas annoncer une précision à la minute)
+export function formatApproxTime(value, step = 5) {
+  if (!value) return ''
+  const date = parseLocal(value)
+  date.setMinutes(Math.round(date.getMinutes() / step) * step, 0)
+  return new Intl.DateTimeFormat(LOCALE, TIME).format(date)
+}
+
 // Date → "2026-06-16" pour les envois au backend
 export function toApiDate(date) {
   const pad = (n) => String(n).padStart(2, '0')
