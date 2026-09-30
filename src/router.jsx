@@ -29,6 +29,8 @@ import { RecurrencesPage } from './pages/user/RecurrencesPage'
 import { TripDetailPage } from './pages/user/TripDetailPage'
 import { TripsPage } from './pages/user/TripsPage'
 import { UserHomePage } from './pages/user/UserHomePage'
+import { DriversPage } from './pages/backoffice/DriversPage'
+import { UnavailabilitiesPage } from './pages/backoffice/UnavailabilitiesPage'
 import { VehiclesPage } from './pages/backoffice/VehiclesPage'
 
 // Chemins en français, sauf /verify-email et /reset-password imposés par les liens
@@ -197,16 +199,30 @@ export const router = createBrowserRouter([
                   soon('demandes', 'Gestion', 'Demandes', 'org-registration-requests.review'),
                   soon('organisations', 'Gestion', 'Organisations', 'organizations.update'),
                   soon('documents', 'Gestion', 'Documents', 'documents.generate'),
-                     {
-                      path: 'vehicules',
-                      element: (
-                        <RequirePermission permission="vehicles.update">
-                          <VehiclesPage />
-                        </RequirePermission>
-                      ),
-                    },
-                  soon('chauffeurs', 'Flotte', 'Chauffeurs', 'drivers.update'),
-                  soon('indisponibilites', 'Flotte', 'Indisponibilités', 'unavailabilities.create'),
+                  {
+                    path: 'vehicules',
+                    element: (
+                      <RequirePermission permission="vehicles.update">
+                        <VehiclesPage />
+                      </RequirePermission>
+                    ),
+                  },
+                  {
+                    path: 'chauffeurs',
+                    element: (
+                      <RequirePermission permission="drivers.update">
+                        <DriversPage />
+                      </RequirePermission>
+                    ),
+                  },
+                  {
+                    path: 'indisponibilites',
+                    element: (
+                      <RequirePermission permission="unavailabilities.create">
+                        <UnavailabilitiesPage />
+                      </RequirePermission>
+                    ),
+                  },
                   soon('utilisateurs', 'Administration', 'Utilisateurs', 'users.manage-roles'),
                   soon('outils', 'Administration', 'Outils', 'tooling.access'),
                   soon('communes', 'Administration', 'Communes', 'municipalities.manage'),
