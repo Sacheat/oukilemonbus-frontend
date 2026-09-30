@@ -33,6 +33,16 @@ export function describeFrequency({ frequency, days_of_week: days, start_date: s
   return `Tous les ${joinFrench(dayLabels(days, true))}`
 }
 
+// Talon daté d'une série : les jours en abrégé (« Lun », « Jeu »), ou le jour du mois (« le 19 »)
+export function seriesStubDays({ frequency, days_of_week: days, start_date: startDate }) {
+  if (frequency === 'mensuel') return startDate ? [`le ${Number(startDate.slice(8, 10))}`] : ['mois']
+  return (days ?? [])
+    .slice()
+    .sort()
+    .map((day) => WEEK_DAYS.find((item) => item.value === Number(day))?.short)
+    .filter(Boolean)
+}
+
 // Les récurrences sont réservées aux écoles et au personnel communal
 export const RECURRENCE_ORGANIZATION_TYPES = ['ecole_communale', 'personnel_communal']
 
