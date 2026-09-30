@@ -54,3 +54,29 @@ export async function getBlobErrorMessage(error) {
   }
   return getErrorMessage(error)
 }
+
+// Tuile du type de fichier : libellé court et couleurs (tokens de la DA)
+export function fileKind(mimeType = '') {
+  if (mimeType === 'application/pdf') return { label: 'PDF', colors: 'bg-danger-soft text-danger' }
+  if (mimeType.startsWith('image/')) return { label: 'IMG', colors: 'bg-info-soft text-info' }
+  return { label: 'DOC', colors: 'bg-neutral-soft text-neutral' }
+}
+
+// Documents groupés par mois de création (heure de Bruxelles), les plus récents d'abord :
+// [{ key: '2026-06', label: 'juin 2026', items }]
+export function groupByMonth(documents) {
+  const groups = new Map()
+  const sorted = [...documents].sort((a, b) =>
+    (b.generated_at ?? b.created_at).localeCompare(a.generated_at ?? a.created_at),
+  )
+  for (const doc of sorted) {
+    const date = new Date(doc.generated_at ?? doc.created_at)
+    const key = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', timeZone: 'Europe/Brussels' }).format(date)
+    if (!groups.has(key)) {
+      const label = new Intl.DateTimeFormat('fr-BE', { month: 'long', year: 'numeric', timeZone: 'Europe/Brussels' }).format(date)
+      groups.set(key, { key, label, items: [] })
+    }
+    groups.get(key).items.push(doc)
+  }
+  return [...groups.values()]
+}
