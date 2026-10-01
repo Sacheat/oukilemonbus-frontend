@@ -1,7 +1,7 @@
 import { LoaderCircle } from 'lucide-react'
 import { formatDate } from '../../../lib/dates'
 import { ACTIVITY_TYPE_LABELS } from '../../../lib/labels'
-import { draftReservation, reservationDecision } from '../../../lib/reservationForm'
+import { agentEditDecision, draftReservation, reservationDecision } from '../../../lib/reservationForm'
 import { shortAddress } from '../../../lib/reservations'
 import { Alert } from '../../ui/Alert'
 import { Button } from '../../ui/Button'
@@ -15,6 +15,8 @@ import { TripCheckFacts } from './TripCheckFacts'
 // Étape 3 : billet de la demande, ce qu'elle deviendra à l'envoi (preview complet, avec les vrais passagers),
 // trajet calculé, puis le détail des informations saisies (avant → après en modification)
 export function ReviewStep({
+  agent = false,
+  currentStatus = null,
   values,
   original = null,
   changes = null,
@@ -40,7 +42,7 @@ export function ReviewStep({
       {changedRows.length > 0 && (
         <section aria-labelledby="review-changes" className="rounded-card border border-warning-line bg-surface p-4">
           <h3 id="review-changes" className="font-bold">
-            Vos changements <span className="font-normal text-muted">({changedRows.length})</span>
+            {agent ? 'Changements' : 'Vos changements'} <span className="font-normal text-muted">({changedRows.length})</span>
           </h3>
           <dl className={LIST_CLASSES}>
             {changedRows.map((row) => (
@@ -52,7 +54,7 @@ export function ReviewStep({
 
       <TripHero
         reservation={draftReservation(values, preview.status === 'done' ? result : null)}
-        eyebrow={mode === 'edit' ? 'Votre réservation modifiée' : 'Aperçu de votre demande'}
+        eyebrow={agent ? 'Réservation modifiée' : mode === 'edit' ? 'Votre réservation modifiée' : 'Aperçu de votre demande'}
         titleAs="h3"
         showStatus={false}
       />
@@ -60,14 +62,14 @@ export function ReviewStep({
       <div className="grid gap-3" aria-live="polite">
         {preview.status === 'loading' && (
           <p className="flex items-center gap-2 text-sm text-muted">
-            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> Vérification complète de votre demande…
+            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> {agent ? 'Vérification complète de la réservation…' : 'Vérification complète de votre demande…'}
           </p>
         )}
         {preview.status === 'error' && <ErrorState error={preview.error} onRetry={onRetry} />}
         {result && preview.status === 'done' && (
           <>
             <DecisionBanner
-              decision={reservationDecision(result, mode)}
+              decision={agent ? agentEditDecision(result, currentStatus) : reservationDecision(result, mode)}
               eyebrow={mode === 'edit' ? 'Après l’enregistrement' : 'Après l’envoi'}
             />
             <AvailabilityNotice availability={result.availability} onUseSlot={onUseSlot} />
