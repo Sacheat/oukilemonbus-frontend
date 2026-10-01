@@ -46,15 +46,28 @@ const TEXTS = {
       3: 'Relisez les changements avant de les enregistrer.',
     },
   },
+  // Modification par un agent (espace gestion), pour régler un conflit
+  agentEdit: {
+    eyebrow: 'Modifier la réservation',
+    titles: { 1: 'Trajet et horaires', 2: 'Passagers et motif', 3: 'Vérifiez les changements' },
+    intros: {
+      1: 'Décalez les horaires ou changez les lieux pour lever le conflit.',
+      2: 'Mettez à jour les passagers ou le motif si nécessaire.',
+      3: 'Relisez les changements et leur effet avant de les enregistrer.',
+    },
+  },
 }
 const CARD_TITLES = { 1: 'Où et quand souhaitez-vous partir ?', 2: 'Passagers et motif', 3: 'Récapitulatif' }
+const AGENT_CARD_TITLES = { ...CARD_TITLES, 1: 'Lieux et horaires' }
+// Encart « À savoir » de l'agent (celui du demandeur parle du suivi de sa demande)
+const AGENT_NOTE = 'Tout est revérifié à l’enregistrement : disponibilité du bus et règles de la commune. Un conflit qui subsiste se règle ensuite depuis la file.'
 const IDLE_PREVIEW = { status: 'idle', result: null, error: null }
 
 // Assistant de réservation (maquette 03), en création ou en modification.
 // - create : `draft` = { name, userId } pour le brouillon, `onDone(réservation créée)`
 // - edit : `reservation` d'origine (organisation figée, changements avant → après), `onDone(réservation modifiée)`
-export function ReservationWizard({ mode, initial, organizations, reservation = null, draft = null, onDone, onCancel, onRestart }) {
-  const texts = TEXTS[mode]
+export function ReservationWizard({ mode, initial, organizations, reservation = null, draft = null, onDone, onCancel, onRestart, agent = false }) {
+  const texts = agent ? TEXTS.agentEdit : TEXTS[mode]
   const reservationId = reservation?.id ?? null
   const [values, setValues] = useState(initial.values)
   const [step, setStep] = useState(initial.step ?? 1)
@@ -184,8 +197,9 @@ export function ReservationWizard({ mode, initial, organizations, reservation = 
     organization,
     estimate,
     step,
-    title: mode === 'edit' ? 'Votre réservation' : 'Votre demande',
+    title: agent ? 'La réservation' : mode === 'edit' ? 'Votre réservation' : 'Votre demande',
     changeCount: changes ? changedRowCount(changes) : null,
+    ...(agent && { note: AGENT_NOTE }),
   }
   const canSend =
     preview.status === 'done' &&
@@ -207,7 +221,7 @@ export function ReservationWizard({ mode, initial, organizations, reservation = 
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
         <Card as="section" aria-labelledby="step-title" className="p-5 sm:p-7">
           <h2 id="step-title" ref={headingRef} tabIndex={-1} className="text-[21px] font-bold outline-none">
-            {CARD_TITLES[step]}
+            {(agent ? AGENT_CARD_TITLES : CARD_TITLES)[step]}
           </h2>
           <p className="mt-1 mb-6 text-sm text-muted">{texts.intros[step]}</p>
 
@@ -257,6 +271,8 @@ export function ReservationWizard({ mode, initial, organizations, reservation = 
               onUseSlot={applySlot}
               acknowledged={acknowledged}
               setAcknowledged={setAcknowledged}
+              agent={agent}
+              currentStatus={reservation?.status}
             />
           )}
 

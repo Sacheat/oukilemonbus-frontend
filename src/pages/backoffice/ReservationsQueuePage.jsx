@@ -1,6 +1,6 @@
 import { Inbox, Keyboard, Search } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { getReservationDecision } from '../../api/documents'
 import { getAllDrivers } from '../../api/drivers'
 import { getAllOrganizations } from '../../api/organizations'
@@ -103,7 +103,12 @@ export function ReservationsQueuePage() {
   const [dialog, setDialog] = useState(null) // 'reject' | 'cancel' | 'assign' | 'help'
   const [busy, setBusy] = useState(null)
   const [resolving, setResolving] = useState(null)
-  const [notice, setNotice] = useState(null)
+  // Message transmis par une autre page (retour de la modification), affiché une fois en toast
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [notice, setNotice] = useState(() =>
+    location.state?.notice ? { id: 'retour', message: location.state.notice, reviewId: null } : null,
+  )
   const [actionError, setActionError] = useState(null)
 
   // Texte tapé dans la recherche, reporté dans l'URL (?q=) 300 ms après la dernière frappe
@@ -167,6 +172,13 @@ export function ReservationsQueuePage() {
     const next = new URLSearchParams(searchParams)
     next.set('reservation', String(id))
     return `?${next}`
+  }
+
+  // Page de modification ; on y garde la file et ses filtres pour y revenir après l'enregistrement
+  function editHrefFor(id) {
+    const back = new URLSearchParams(searchParams)
+    back.set('reservation', String(id))
+    return `/gestion/reservations/${id}/modifier?${new URLSearchParams({ retour: `?${back}` })}`
   }
 
   function driverName(id) {
@@ -267,9 +279,15 @@ export function ReservationsQueuePage() {
     assign: () => runAction('assign'),
     confirm: () => runAction('confirm'),
     council: () => runAction('council'),
+    edit: () => reservation && actions.edit && navigate(editHrefFor(reservation.id)),
     help: () => setDialog('help'),
     close: () => selectedId && select(null),
   })
+
+  // Le message ne doit s'afficher qu'une fois : on le retire de l'historique (sinon il revient au rechargement)
+  useEffect(() => {
+    if (location.state?.notice) navigate(`${location.pathname}${location.search}`, { replace: true, state: null })
+  }, [location, navigate])
 
   // La ligne ouverte reste visible quand on navigue au clavier
   useEffect(() => {
@@ -305,6 +323,8 @@ export function ReservationsQueuePage() {
     driverName,
     onResolve: handleResolve,
     resolving,
+    onOpen: select,
+    editHref: editHrefFor(reservation.id),
   }
 
   return (

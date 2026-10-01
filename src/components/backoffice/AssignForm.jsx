@@ -6,7 +6,7 @@ import { useForm } from '../../hooks/useForm'
 import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
 import { ErrorState } from '../ui/ErrorState'
-import { Field, Select } from '../ui/Field'
+import { Field, Input, Select } from '../ui/Field'
 import { Skeleton } from '../ui/Skeleton'
 
 // Affectation manuelle : chauffeur et véhicule libres sur le créneau de la réservation (planning avec
@@ -19,6 +19,7 @@ export function AssignForm({ reservation, onDone, onCancel }) {
   const form = useForm({
     driver_id: reservation.driver_id ? String(reservation.driver_id) : '',
     vehicle_id: reservation.vehicle_id ? String(reservation.vehicle_id) : '',
+    reason: '',
   })
 
   async function handleSubmit(event) {
@@ -97,6 +98,9 @@ export function AssignForm({ reservation, onDone, onCancel }) {
             )}
           </Select>
         )}
+      </Field>
+      <Field label="Remarque" hint="Facultatif. Gardée dans l’historique de la réservation, non envoyée au demandeur." error={form.errors.reason}>
+        {(props) => <Input {...props} maxLength={500} value={form.values.reason} onChange={form.handle('reason')} />}
       </Field>
       <div className="flex flex-wrap justify-end gap-2">
         <Button variant="secondary" onClick={onCancel}>
