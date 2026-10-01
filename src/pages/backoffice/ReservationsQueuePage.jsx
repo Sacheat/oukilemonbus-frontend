@@ -1,5 +1,5 @@
-import { Inbox, Keyboard } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Inbox, Keyboard, Search } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { getReservationDecision } from '../../api/documents'
 import { getAllDrivers } from '../../api/drivers'
@@ -15,8 +15,8 @@ import {
 } from '../../api/reservations'
 import { useAuth } from '../../auth/useAuth'
 import { AssignForm } from '../../components/backoffice/AssignForm'
-import { CouncilDecisionForm } from '../../components/backoffice/CouncilDecisionForm'
 import { QueueRow } from '../../components/backoffice/QueueRow'
+import { DecisionSection } from '../../components/college/DecisionSection'
 import { ReasonModal } from '../../components/backoffice/ReasonModal'
 import { ReservationPanel } from '../../components/backoffice/ReservationPanel'
 import { ShortcutsHelp } from '../../components/backoffice/ShortcutsHelp'
@@ -25,18 +25,33 @@ import { Button } from '../../components/ui/Button'
 import { Drawer } from '../../components/ui/Drawer'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ErrorState } from '../../components/ui/ErrorState'
-import { Select } from '../../components/ui/Field'
+import { Input, Select } from '../../components/ui/Field'
 import { FilterChips } from '../../components/ui/FilterChips'
 import { Modal } from '../../components/ui/Modal'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Skeleton } from '../../components/ui/Skeleton'
+import { Toast } from '../../components/ui/Toast'
 import { useApi } from '../../hooks/useApi'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { useQueue } from '../../hooks/useQueue'
+import { useQueueCount } from '../../backoffice/useQueueCount'
 import { useShortcuts } from '../../hooks/useShortcuts'
 import { cx } from '../../lib/cx'
-import { formatDate } from '../../lib/dates'
+import { decisionEditMode, decisionSavedMessage } from '../../lib/councilDecisions'
 import { getErrorMessage } from '../../lib/errors'
-import { agentActions, DEFAULT_QUEUE, fetchQueue, fetchQueueCounts, nextInQueue, PERIODS, queueOf, QUEUES } from '../../lib/queue'
+import { todayInBrussels } from '../../lib/planning'
+import {
+  agentActions,
+  DEFAULT_QUEUE,
+  fetchQueueCounts,
+  groupByDay,
+  nextInQueue,
+  PERIODS,
+  queueOf,
+  queueRequestKey,
+  QUEUES,
+  urgencyOf,
+} from '../../lib/queue'
 import { keyLabel, loadShortcutSettings, saveShortcutSettings } from '../../lib/shortcuts'
 
 // Messages après une action (réservation mise à jour → texte du bandeau)
@@ -58,8 +73,22 @@ function fetchOrganizations(signal) {
   return getAllOrganizations({ signal })
 }
 
-// Espace gestion : file de traitement des réservations. Liste compacte filtrée (?file, ?periode, ?organisation)
-// et détail à côté (?reservation=id ; panneau glissant sur mobile), actions de l'agent, passage automatique à la
+function isFresh(entry) {
+  return Boolean(entry) && Date.now() - entry.at < PREFETCH_MAX_AGE_MS
+}
+
+// Donnée préchargée encore fraîche, sinon chargement normal
+function cachedOr(cache, key, load) {
+  const entry = cache.get(key)
+  return isFresh(entry) ? Promise.resolve(entry.data) : load()
+}
+
+const SEARCH_DELAY_MS = 300
+// Détail préchargé (réservations voisines dans la file) : réutilisé pendant 30 s, vidé après chaque action
+const PREFETCH_MAX_AGE_MS = 30_000
+
+// Espace gestion : file de traitement des réservations. Liste compacte filtrée (?file, ?periode, ?organisation, ?q),
+// 15 par page avec « Charger plus », et détail à côté (?reservation=id ; panneau glissant sur mobile), actions de l'agent, passage automatique à la
 // suivante et raccourcis clavier configurables (« ? »).
 export function ReservationsQueuePage() {
   const { can } = useAuth()
@@ -67,6 +96,7 @@ export function ReservationsQueuePage() {
   const queue = queueOf(searchParams.get('file') ?? DEFAULT_QUEUE)
   const period = searchParams.get('periode') ?? 'a-venir'
   const organizationId = searchParams.get('organisation') ?? ''
+  const search = searchParams.get('q') ?? ''
   const selectedId = Number(searchParams.get('reservation')) || null
 
   const [settings, setSettings] = useState(loadShortcutSettings)
@@ -76,32 +106,56 @@ export function ReservationsQueuePage() {
   const [notice, setNotice] = useState(null)
   const [actionError, setActionError] = useState(null)
 
-  const filters = useMemo(() => ({ period, organizationId }), [period, organizationId])
-  const fetchList = useCallback((signal) => fetchQueue(queue, filters, { signal }), [queue, filters])
+  // Texte tapé dans la recherche, reporté dans l'URL (?q=) 300 ms après la dernière frappe
+  const [searchInput, setSearchInput] = useState(search)
+  const searchTimer = useRef(null)
+
+  const filters = useMemo(() => ({ period, organizationId, search }), [period, organizationId, search])
   const fetchCounts = useCallback((signal) => fetchQueueCounts(filters, { signal }), [filters])
-  const fetchDetail = useCallback((signal) => (selectedId ? getReservation(selectedId, { signal }) : Promise.resolve(null)), [selectedId])
-  const list = useApi(fetchList)
+  // Détails et décisions déjà chargés à l'avance (J / K instantanés) : { 'r:12' | 'd:12' → { data, at } }
+  const [prefetched] = useState(() => new Map())
+  const { refreshCount: refreshPendingCount } = useQueueCount()
+
+  const fetchDetail = useCallback(
+    (signal) => (selectedId ? cachedOr(prefetched, `r:${selectedId}`, () => getReservation(selectedId, { signal })) : Promise.resolve(null)),
+    [selectedId, prefetched],
+  )
+  const list = useQueue(queueRequestKey(queue, filters))
   const counts = useApi(fetchCounts)
   const detail = useApi(fetchDetail)
-  const fetchDecision = useCallback((signal) => (selectedId ? getReservationDecision(selectedId, { signal }) : Promise.resolve(null)), [selectedId])
+  const items = useMemo(() => list.data?.items ?? [], [list.data])
+  // Détail chargé, sinon la ligne de la liste le temps du chargement
+  const reservation = detail.data?.id === selectedId ? detail.data : items.find((item) => item.id === selectedId) ?? null
+
+  // Décision du Collège : seulement pour une validation manuelle (CPAS, ASBL, externes) ; écoles et personnel
+  // communal n'en ont jamais, inutile de la demander
+  const selectedManual = reservation?.approval_type === 'manuel'
+  const fetchDecision = useCallback(
+    (signal) =>
+      selectedId && selectedManual
+        ? cachedOr(prefetched, `d:${selectedId}`, () => getReservationDecision(selectedId, { signal }))
+        : Promise.resolve(null),
+    [selectedId, selectedManual, prefetched],
+  )
   const decision = useApi(fetchDecision)
   const drivers = useApi(fetchDrivers)
   const organizations = useApi(fetchOrganizations)
   const wide = useMediaQuery('(min-width: 1024px)')
-
-  const items = list.data?.items ?? []
-  // Détail chargé, sinon la ligne de la liste le temps du chargement
-  const reservation = detail.data?.id === selectedId ? detail.data : items.find((item) => item.id === selectedId) ?? null
   // Décision du Collège de la réservation ouverte (undefined tant qu'elle n'est pas chargée)
   const currentDecision = decision.loading || decision.error ? undefined : decision.data
-  const actions = reservation ? agentActions(reservation, can, currentDecision) : {}
-  // Motif proposé à l'ouverture de « Refuser » (après une décision défavorable du Collège)
-  const [rejectReason, setRejectReason] = useState('')
+  const today = todayInBrussels()
+  const actions = reservation ? agentActions(reservation, can, currentDecision, today) : {}
 
+  // Forme fonctionnelle : un appel différé (recherche) part de l'URL du moment, pas de celle de sa création
   function update(changes) {
-    const next = new URLSearchParams(searchParams)
-    Object.entries(changes).forEach(([name, value]) => (value ? next.set(name, value) : next.delete(name)))
-    setSearchParams(next, { replace: true })
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        Object.entries(changes).forEach(([name, value]) => (value ? next.set(name, value) : next.delete(name)))
+        return next
+      },
+      { replace: true },
+    )
   }
 
   function select(id) {
@@ -129,18 +183,29 @@ export function ReservationsQueuePage() {
   function handleDone(name, updated) {
     setDialog(null)
     setActionError(null)
-    setNotice(DONE_MESSAGES[name](updated))
+    showNotice(DONE_MESSAGES[name](updated), settings.autoNext ? updated.id : null)
     if (settings.autoNext) select(nextInQueue(items, updated.id))
+    refreshAll()
+  }
+
+  // Les données ont changé côté backend : préchargements oubliés, tout est relu (badge du menu compris)
+  function refreshAll() {
+    prefetched.clear()
     list.reload()
     counts.reload()
     detail.reload()
     decision.reload()
+    refreshPendingCount()
+  }
+
+  // Message de succès temporaire ; `reviewId` : réservation qu'on vient de quitter (lien « Revoir »)
+  function showNotice(message, reviewId = null) {
+    setNotice({ id: crypto.randomUUID(), message, reviewId })
   }
 
   async function runAction(name) {
     if (!reservation || !actions[name] || busy) return
     if (name === 'assign' || name === 'reject' || name === 'cancel' || name === 'council') {
-      if (name === 'reject') setRejectReason('')
       setDialog(name)
       return
     }
@@ -155,30 +220,31 @@ export function ReservationsQueuePage() {
     }
   }
 
-  // Décision du Collège enregistrée : défavorable, on propose aussitôt le refus avec un motif prérempli
+  // Décision du Collège enregistrée. Un refus refuse aussi la réservation (côté backend) : file et compteurs rechargés.
   function handleDecisionSaved(saved) {
     setDialog(null)
-    decision.reload()
-    detail.reload()
-    const label = { approuve: 'favorable', refuse: 'défavorable', en_attente: 'en attente' }[saved.decision_status]
-    setNotice(`Décision du Collège enregistrée (${label}) pour « ${reservation.trip_purpose} ».`)
-    if (saved.decision_status === 'refuse' && actions.reject) {
-      const date = saved.decision_date ? ` du ${formatDate(saved.decision_date, { day: 'numeric', month: 'long', year: 'numeric' })}` : ''
-      const reference = saved.decision_reference ? ` (réf. ${saved.decision_reference})` : ''
-      setRejectReason(`Décision défavorable du Collège${date}${reference}.`)
-      setDialog('reject')
-    }
+    setActionError(null)
+    showNotice(decisionSavedMessage(saved))
+    refreshAll()
   }
+
+  // Recherche : l'URL suit la saisie 300 ms après la dernière frappe (pas une requête par lettre).
+  // La réservation ouverte reste ouverte (son détail est chargé par son numéro) : une ouverture au clavier
+  // pendant le délai n'est pas annulée par la mise à jour différée.
+  function changeSearch(value) {
+    setSearchInput(value)
+    clearTimeout(searchTimer.current)
+    searchTimer.current = setTimeout(() => update({ q: value.trim() }), SEARCH_DELAY_MS)
+  }
+  useEffect(() => () => clearTimeout(searchTimer.current), [])
 
   async function handleResolve(conflict) {
     setResolving(conflict.id)
     setActionError(null)
     try {
       await resolveReservationConflict(reservation.id, conflict.id)
-      setNotice(`Conflit « ${conflict.type_label} » marqué comme résolu.`)
-      detail.reload()
-      list.reload()
-      counts.reload()
+      showNotice(`Conflit « ${conflict.type_label} » marqué comme résolu.`)
+      refreshAll()
     } catch (error) {
       setActionError(getErrorMessage(error))
     } finally {
@@ -209,6 +275,24 @@ export function ReservationsQueuePage() {
   useEffect(() => {
     document.querySelector('[data-queue] [aria-current="true"]')?.scrollIntoView({ block: 'nearest' })
   }, [selectedId])
+
+  // Préchargement des voisines de la réservation ouverte (suivante et précédente) : J / K s'ouvrent sans attendre.
+  // Une erreur est ignorée : la réservation sera simplement chargée à l'ouverture.
+  useEffect(() => {
+    if (!selectedId) return
+    const index = items.findIndex((item) => item.id === selectedId)
+    if (index === -1) return
+    for (const neighbour of [items[index + 1], items[index - 1]].filter(Boolean)) {
+      const loads = [[`r:${neighbour.id}`, () => getReservation(neighbour.id)]]
+      if (neighbour.approval_type === 'manuel') loads.push([`d:${neighbour.id}`, () => getReservationDecision(neighbour.id)])
+      for (const [key, load] of loads) {
+        if (isFresh(prefetched.get(key))) continue
+        load()
+          .then((data) => prefetched.set(key, { data, at: Date.now() }))
+          .catch(() => {})
+      }
+    }
+  }, [selectedId, items, prefetched])
 
   const chips = QUEUES.map((item) => ({ value: item.value, label: item.label, dot: item.dot, count: counts.data?.[item.value] ?? null }))
   const panelProps = reservation && {
@@ -272,14 +356,20 @@ export function ReservationsQueuePage() {
               </option>
             ))}
           </Select>
+          <div className="relative w-full sm:w-72">
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+            <Input
+              type="search"
+              aria-label="Rechercher une réservation"
+              placeholder="Motif, organisation, demandeur, n°"
+              value={searchInput}
+              onChange={(event) => changeSearch(event.target.value)}
+              className="py-2 pl-9 text-sm"
+            />
+          </div>
         </div>
       </div>
 
-      {notice && (
-        <Alert tone="success" className="mt-4">
-          {notice}
-        </Alert>
-      )}
       {actionError && (
         <Alert tone="danger" className="mt-4">
           {actionError}
@@ -298,35 +388,65 @@ export function ReservationsQueuePage() {
               ))}
             </div>
           ) : items.length === 0 ? (
-            <EmptyState icon={Inbox} title={queue.value === DEFAULT_QUEUE ? 'Rien à traiter' : 'Aucune réservation'}>
-              {queue.value === DEFAULT_QUEUE ? 'Toutes les demandes de cette période sont traitées.' : 'Aucune réservation ne correspond à ces filtres.'}
+            <EmptyState icon={Inbox} title={queue.value === DEFAULT_QUEUE && !search ? 'Rien à traiter' : 'Aucune réservation'}>
+              {queue.value === DEFAULT_QUEUE && !search
+                ? 'Toutes les demandes de cette période sont traitées.'
+                : 'Aucune réservation ne correspond à ces filtres.'}
             </EmptyState>
           ) : (
             <>
               <p className="mb-2 text-sm text-muted">
-                {items.length} réservation{items.length > 1 ? 's' : ''} · {keyLabel(settings.keys.next)} / {keyLabel(settings.keys.previous)} pour
+                {list.data.total} réservation{list.data.total > 1 ? 's' : ''}
+                {items.length < list.data.total && ` (${items.length} affichées)`} · {keyLabel(settings.keys.next)} / {keyLabel(settings.keys.previous)} pour
                 naviguer
               </p>
-              <ul
-                data-queue
-                className={cx('divide-y divide-line overflow-hidden rounded-card border border-line bg-surface', list.loading && 'opacity-60')}
-              >
-                {items.map((item) => (
-                  <QueueRow key={item.id} reservation={item} to={hrefFor(item.id)} selected={item.id === selectedId} />
+              {/* Un groupe par jour, en-tête collé en haut de l'écran pendant le défilement (pas d'overflow-hidden
+                  sur le cadre : il empêcherait l'en-tête de coller) */}
+              <div data-queue className={cx('rounded-card border border-line bg-surface', list.loading && 'opacity-60')}>
+                {groupByDay(items, today).map((group, index) => (
+                  <section key={group.day} aria-labelledby={`jour-${group.day}`} className={cx(index > 0 && 'border-t border-line')}>
+                    <h3
+                      id={`jour-${group.day}`}
+                      className={cx(
+                        'sticky top-0 z-10 flex items-baseline justify-between gap-2 border-b border-line bg-surface-muted/95 px-4 py-1.5 backdrop-blur-sm',
+                        index === 0 && 'rounded-t-card',
+                      )}
+                    >
+                      <span className="text-xs font-extrabold tracking-[.08em] uppercase">{group.label}</span>
+                      <span className="text-xs text-muted">
+                        {group.items.length} réservation{group.items.length > 1 ? 's' : ''}
+                      </span>
+                    </h3>
+                    <ul className="divide-y divide-line">
+                      {group.items.map((item) => (
+                        <QueueRow
+                          key={item.id}
+                          reservation={item}
+                          to={hrefFor(item.id)}
+                          selected={item.id === selectedId}
+                          urgency={urgencyOf(item, today)}
+                        />
+                      ))}
+                    </ul>
+                  </section>
                 ))}
-              </ul>
-              {list.data.capped && (
-                <p className="mt-2 text-xs text-muted">Affichage limité aux 150 premières réservations de chaque statut.</p>
+              </div>
+              {list.canLoadMore && (
+                <div className="mt-3 flex justify-center">
+                  <Button variant="secondary" onClick={list.loadMore} loading={list.loading}>
+                    Charger plus
+                  </Button>
+                </div>
               )}
             </>
           )}
         </section>
 
-        {/* Grand écran : détail à côté de la liste, qui reste visible ; sa hauteur tient dans l'écran sous les
-            filtres pour que les actions soient visibles sans défiler */}
+        {/* Grand écran : détail à côté de la liste, collé en haut de l'écran pendant le défilement, sur toute sa
+            hauteur. Les actions sont en haut du panneau : visibles même quand le bas dépasse de l'écran */}
         <aside
           aria-label="Détail de la réservation"
-          className="sticky top-4 hidden h-[calc(100dvh-22rem)] min-h-[28rem] overflow-hidden rounded-card border border-line bg-surface shadow-soft lg:block"
+          className="sticky top-4 hidden h-[calc(100dvh-2rem)] min-h-[28rem] overflow-hidden rounded-card border border-line bg-surface shadow-soft lg:block"
         >
           {panelProps ? (
             <ReservationPanel {...panelProps} onClose={() => select(null)} />
@@ -355,7 +475,6 @@ export function ReservationsQueuePage() {
             title="Refuser la réservation"
             intro={`« ${reservation.trip_purpose} » : le demandeur recevra ce motif.`}
             label="Motif du refus"
-            initialReason={rejectReason}
             submitLabel="Refuser"
             action={(reason) => rejectReservation(reservation.id, reason)}
             onDone={(updated) => handleDone('reject', updated)}
@@ -372,10 +491,10 @@ export function ReservationsQueuePage() {
           />
           <Modal open={dialog === 'council'} onClose={() => setDialog(null)} title="Décision du Collège">
             {dialog === 'council' && (
-              <CouncilDecisionForm
+              <DecisionSection
                 reservation={reservation}
                 decision={currentDecision ?? null}
-                onCancel={() => setDialog(null)}
+                editMode={decisionEditMode(reservation, currentDecision ?? null, today)}
                 onSaved={handleDecisionSaved}
               />
             )}
@@ -386,6 +505,14 @@ export function ReservationsQueuePage() {
             )}
           </Modal>
         </>
+      )}
+      {notice && (
+        <Toast
+          key={notice.id}
+          message={notice.message}
+          action={notice.reviewId ? { label: 'Revoir', onClick: () => select(notice.reviewId) } : undefined}
+          onClose={() => setNotice(null)}
+        />
       )}
       <ShortcutsHelp open={dialog === 'help'} onClose={() => setDialog(null)} settings={settings} onChange={changeSettings} />
     </>

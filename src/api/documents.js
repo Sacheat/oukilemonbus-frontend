@@ -30,25 +30,3 @@ export async function getReservationDecision(reservationId, { signal } = {}) {
   const page = await getCouncilDecisions({ reservation_id: reservationId }, { signal })
   return page.data.find((decision) => decision.reservation_id === reservationId) ?? null
 }
-
-// Enregistre la décision (approuve ou refuse génère la délibération PDF et prévient le demandeur)
-export async function createCouncilDecision({ reservation_id, decision_status, decision_date, decision_reference, notes }) {
-  const { data } = await api.post('/council-decisions', {
-    reservation_id,
-    decision_status,
-    decision_date: decision_date || null,
-    decision_reference: decision_reference || null,
-    notes: notes || null,
-  })
-  return data.data
-}
-
-export async function updateCouncilDecision(decisionId, { decision_status, decision_date, decision_reference, notes }) {
-  const { data } = await api.patch(`/council-decisions/${decisionId}`, {
-    decision_status,
-    decision_date: decision_date || null,
-    decision_reference: decision_reference || null,
-    notes: notes || null,
-  })
-  return data.data
-}

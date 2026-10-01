@@ -1,18 +1,29 @@
-import { Ban, Check, CheckCheck, Landmark, RefreshCw, Repeat, TriangleAlert, UserRoundCog, X } from 'lucide-react'
+import { ArrowRight, Ban, CalendarDays, Check, CheckCheck, Landmark, RefreshCw, Repeat, TriangleAlert, UserRoundCog, X } from 'lucide-react'
 import { useCallback } from 'react'
+import { Link } from 'react-router'
 import { getUser } from '../../api/users'
+import { useAuth } from '../../auth/useAuth'
 import { useApi } from '../../hooks/useApi'
 import { cx } from '../../lib/cx'
 import { formatDate, formatDateTime, formatTime } from '../../lib/dates'
 import { DECISION_STATUS } from '../../lib/documents'
+import { nextStep, planningHref } from '../../lib/queue'
 import { estimatedArrivals, shortAddress, totalPassengers } from '../../lib/reservations'
 import { keyLabel } from '../../lib/shortcuts'
 import { TripLeg } from '../reservations/TripLeg'
-import { Alert } from '../ui/Alert'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { DetailList } from '../ui/DetailList'
 import { StatusBadge } from '../ui/StatusBadge'
+
+// Couleurs du bandeau « Prochaine étape », selon nextStep
+const STEP_TONES = {
+  success: 'border-success/30 bg-success-soft [&_svg]:text-success',
+  info: 'border-info/30 bg-info-soft [&_svg]:text-info',
+  warning: 'border-warning-line bg-warning-soft [&_svg]:text-warning',
+  conflict: 'border-conflict/40 bg-conflict-soft [&_svg]:text-conflict',
+  neutral: 'border-line bg-surface-muted [&_svg]:text-muted',
+}
 
 // Touche d'un raccourci affichée dans un bouton, en grand écran (décorative : l'aide « ? » les liste)
 function Kbd({ children }) {
@@ -30,6 +41,8 @@ function Kbd({ children }) {
 // `decision` : décision du Collège (validation manuelle), `undefined` pendant le chargement.
 // `onClose` : absent dans le panneau glissant du mobile, qui a son propre bouton de fermeture.
 export function ReservationPanel({ reservation, decision, actions, onAction, busy, keys, driverName, onResolve, resolving, onClose }) {
+  const { can } = useAuth()
+  const step = nextStep(reservation, actions, decision, keys)
   const fetchRequester = useCallback(
     (signal) => (reservation.requested_by_user_id ? getUser(reservation.requested_by_user_id, { signal }) : Promise.resolve(null)),
     [reservation.requested_by_user_id],
@@ -73,6 +86,75 @@ export function ReservationPanel({ reservation, decision, actions, onAction, bus
           </button>
         )}
       </header>
+
+      {/* Prochaine étape et actions en haut, hors de la zone qui défile : toujours visibles, même dans un panneau
+          plus haut que l'écran */}
+      <div className="grid gap-3 border-b border-line bg-surface px-5 py-3 empty:hidden">
+        {step && (
+          <p
+            id="panel-next-step"
+            className={cx('flex items-start gap-2 rounded-card border px-3.5 py-2.5 text-sm font-semibold', STEP_TONES[step.tone])}
+          >
+            <ArrowRight className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <span>
+              <span className="sr-only">Prochaine étape : </span>
+              {step.text}
+            </span>
+          </p>
+        )}
+
+        {actions.tripPassed && !actions.approveExpired && (
+          <p className="text-xs text-muted">Trajet passé : consultation seulement.</p>
+        )}
+        {(actions.approve || actions.approveBlocked || actions.approveExpired || actions.confirm || actions.assign || actions.retryAssign || actions.reject || actions.cancel) && (
+          <div className="grid gap-2">
+            <div className="flex flex-wrap gap-2">
+              {(actions.approve || actions.approveBlocked) && (
+                <Button
+                  onClick={() => onAction('approve')}
+                  loading={busy === 'approve'}
+                  disabled={busy !== null || actions.approveBlocked}
+                  aria-describedby={actions.approveBlocked && step ? 'panel-next-step' : undefined}
+                >
+                  <Check className="size-4" aria-hidden="true" /> Approuver <Kbd>{keyLabel(keys.approve)}</Kbd>
+                </Button>
+              )}
+              {actions.confirm && (
+                <Button onClick={() => onAction('confirm')} loading={busy === 'confirm'} disabled={busy !== null}>
+                  <CheckCheck className="size-4" aria-hidden="true" /> Confirmer <Kbd>{keyLabel(keys.confirm)}</Kbd>
+                </Button>
+              )}
+              {actions.assign && (
+                <Button variant="secondary" onClick={() => onAction('assign')} disabled={busy !== null}>
+                  <UserRoundCog className="size-4" aria-hidden="true" /> Affecter <Kbd>{keyLabel(keys.assign)}</Kbd>
+                </Button>
+              )}
+              {actions.retryAssign && (
+                <Button variant="secondary" onClick={() => onAction('retryAssign')} loading={busy === 'retryAssign'} disabled={busy !== null}>
+                  <RefreshCw className="size-4" aria-hidden="true" /> Affectation auto
+                </Button>
+              )}
+            </div>
+            <div className={cx('flex flex-wrap gap-2', !(actions.reject || actions.cancel) && 'hidden')}>
+              {actions.reject && (
+                <Button variant="secondary" className="text-danger" onClick={() => onAction('reject')} disabled={busy !== null}>
+                  <X className="size-4" aria-hidden="true" /> Refuser <Kbd>{keyLabel(keys.reject)}</Kbd>
+                </Button>
+              )}
+              {actions.cancel && (
+                <Button variant="secondary" className="text-danger" onClick={() => onAction('cancel')} disabled={busy !== null}>
+                  <Ban className="size-4" aria-hidden="true" /> Annuler
+                </Button>
+              )}
+            </div>
+            {actions.approveExpired && (
+              <p className="text-xs text-muted">
+                Trajet passé : la réservation ne peut plus être approuvée. Elle sera clôturée automatiquement cette nuit.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
         {openConflicts.length > 0 && (
@@ -164,6 +246,12 @@ export function ReservationPanel({ reservation, decision, actions, onAction, bus
           ]}
         />
 
+        {can('reservations.view') && (
+          <Link to={planningHref(reservation)} className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-link hover:underline">
+            <CalendarDays className="size-4" aria-hidden="true" /> Voir ce jour dans le Planning
+          </Link>
+        )}
+
         {conflicts.length > openConflicts.length && (
           <p className="text-xs text-muted">
             {conflicts.length - openConflicts.length} conflit{conflicts.length - openConflicts.length > 1 ? 's' : ''} déjà résolu
@@ -171,60 +259,6 @@ export function ReservationPanel({ reservation, decision, actions, onAction, bus
           </p>
         )}
       </div>
-
-      {(actions.approve || actions.approveBlocked || actions.confirm || actions.assign || actions.retryAssign || actions.reject || actions.cancel) && (
-        <footer className="grid gap-2 border-t border-line bg-surface px-5 py-3">
-          <div className="flex flex-wrap gap-2">
-            {(actions.approve || actions.approveBlocked) && (
-              <Button
-                onClick={() => onAction('approve')}
-                loading={busy === 'approve'}
-                disabled={busy !== null || actions.approveBlocked}
-                aria-describedby={actions.approveBlocked ? 'approve-blocked' : undefined}
-              >
-                <Check className="size-4" aria-hidden="true" /> Approuver <Kbd>{keyLabel(keys.approve)}</Kbd>
-              </Button>
-            )}
-            {actions.confirm && (
-              <Button onClick={() => onAction('confirm')} loading={busy === 'confirm'} disabled={busy !== null}>
-                <CheckCheck className="size-4" aria-hidden="true" /> Confirmer <Kbd>{keyLabel(keys.confirm)}</Kbd>
-              </Button>
-            )}
-            {actions.assign && (
-              <Button variant="secondary" onClick={() => onAction('assign')} disabled={busy !== null}>
-                <UserRoundCog className="size-4" aria-hidden="true" /> Affecter <Kbd>{keyLabel(keys.assign)}</Kbd>
-              </Button>
-            )}
-            {actions.retryAssign && (
-              <Button variant="secondary" onClick={() => onAction('retryAssign')} loading={busy === 'retryAssign'} disabled={busy !== null}>
-                <RefreshCw className="size-4" aria-hidden="true" /> Affectation auto
-              </Button>
-            )}
-          </div>
-          <div className={cx('flex flex-wrap gap-2', !(actions.reject || actions.cancel) && 'hidden')}>
-            {actions.reject && (
-              <Button variant="secondary" className="text-danger" onClick={() => onAction('reject')} disabled={busy !== null}>
-                <X className="size-4" aria-hidden="true" /> Refuser <Kbd>{keyLabel(keys.reject)}</Kbd>
-              </Button>
-            )}
-            {actions.cancel && (
-              <Button variant="secondary" className="text-danger" onClick={() => onAction('cancel')} disabled={busy !== null}>
-                <Ban className="size-4" aria-hidden="true" /> Annuler
-              </Button>
-            )}
-          </div>
-          {actions.approveBlocked && (
-            <p id="approve-blocked" className="text-xs text-muted">
-              Approbation possible après une décision favorable du Collège.
-            </p>
-          )}
-          {reservation.status === 'approuve' && !actions.confirm && openConflicts.length === 0 && (
-            <Alert tone="info" className="py-2">
-              Pour confirmer, affectez un chauffeur et un véhicule.
-            </Alert>
-          )}
-        </footer>
-      )}
     </article>
   )
 }

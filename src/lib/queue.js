@@ -1,6 +1,8 @@
-import { fetchAllPages } from '../api/pagination'
 import { getReservations } from '../api/reservations'
-import { todayApiDate, tripKey, yesterdayApiDate } from './reservations'
+import { formatDate } from './dates'
+import { mondayOf, periodLength } from './planning'
+import { keyLabel } from './shortcuts'
+import { todayApiDate, yesterdayApiDate } from './reservations'
 
 // Files de la page « Réservations » de l'espace gestion, dans l'ordre des pastilles.
 // `statuses` : statuts affichés (null : tous) ; la valeur est gardée dans l'URL (?file=…).
@@ -27,12 +29,6 @@ export function periodParams(period) {
   return period === 'passes' ? { date_to: yesterdayApiDate(), sort: 'desc' } : { date_from: todayApiDate(), sort: 'asc' }
 }
 
-// Ordre de traitement : par date et heure de départ (croissant, ou décroissant pour les trajets passés)
-export function sortQueue(reservations, direction = 'asc') {
-  const sorted = [...reservations].sort((a, b) => tripKey(a).localeCompare(tripKey(b)) || a.id - b.id)
-  return direction === 'desc' ? sorted.reverse() : sorted
-}
-
 // Réservation à ouvrir après une action sur `currentId` : la suivante dans la file (ou la précédente
 // si c'était la dernière). `list` : la file telle qu'affichée avant l'action. null si la file se vide.
 export function nextInQueue(list, currentId) {
@@ -45,55 +41,188 @@ export function nextInQueue(list, currentId) {
 // Actions possibles d'un agent sur une réservation, selon son statut (le backend reste l'autorité).
 // Validation manuelle (ASBL, CPAS, externes) : l'approbation exige une décision favorable du Collège
 // (`decision` : décision de la réservation, ou null) ; `approveBlocked` signale ce cas pour l'expliquer.
-export function agentActions(reservation, can, decision = null) {
+// Trajet passé (`today` : aujourd'hui à Bruxelles, le jour même n'est pas passé) : consultation seulement. Le backend
+// ne bloque que l'approbation, mais un trajet passé n'a plus à être affecté, confirmé, refusé ni annulé (la clôture de
+// nuit s'occupe des non confirmés). Restent les notes d'une décision du Collège existante et « Résolu » sur un conflit.
+export function agentActions(reservation, can, decision = null, today) {
   const { status } = reservation
+  const tripPassed = reservation.trip_date.slice(0, 10) < today
   const terminal = status === 'refuse' || status === 'annule'
+  const open = !terminal && !tripPassed
   const assigned = Boolean(reservation.driver_id && reservation.vehicle_id)
   const openConflicts = (reservation.conflicts ?? []).some((conflict) => !conflict.is_resolved)
   const needsCouncil = reservation.approval_type === 'manuel'
   const councilOk = decision?.decision_status === 'approuve'
-  const approvable = can('reservations.approve') && ['en_attente', 'en_conflit'].includes(status)
+  const approvable = can('reservations.approve') && ['en_attente', 'en_conflit'].includes(status) && !tripPassed
   return {
+    tripPassed,
     approve: approvable && (!needsCouncil || councilOk),
     approveBlocked: approvable && needsCouncil && !councilOk,
-    council: can('council-decisions.create') && needsCouncil && !terminal,
-    reject: can('reservations.reject') && ['en_attente', 'en_conflit', 'approuve'].includes(status),
-    assign: can('reservations.assign') && !terminal,
-    retryAssign: can('reservations.assign') && !terminal && !assigned,
-    confirm: can('reservations.confirm') && status === 'approuve' && assigned && !openConflicts,
-    cancel: can('reservations.cancel') && ['en_attente', 'en_conflit', 'approuve', 'confirme'].includes(status),
+    // Trajet passé encore à traiter : plus d'approbation possible, la clôture automatique l'annulera cette nuit
+    approveExpired: can('reservations.approve') && ['en_attente', 'en_conflit'].includes(status) && tripPassed,
+    council: can('council-decisions.create') && needsCouncil && !terminal && (!tripPassed || Boolean(decision)),
+    reject: can('reservations.reject') && ['en_attente', 'en_conflit', 'approuve'].includes(status) && !tripPassed,
+    assign: can('reservations.assign') && open,
+    retryAssign: can('reservations.assign') && open && !assigned,
+    confirm: can('reservations.confirm') && status === 'approuve' && assigned && !openConflicts && !tripPassed,
+    cancel: can('reservations.cancel') && ['en_attente', 'en_conflit', 'approuve', 'confirme'].includes(status) && !tripPassed,
     resolveConflicts: can('reservations.manage-conflicts') && !terminal,
   }
 }
 
-// Réservations d'une file, triées dans l'ordre de traitement. Une file de plusieurs statuts réunit les pages
-// de chaque statut (au plus 10 pages, soit 150 réservations par statut) : `capped` signale qu'on a atteint
-// cette limite. `filters` : { period, organizationId }.
-export async function fetchQueue(queue, { period, organizationId }, { signal } = {}) {
-  const base = { ...periodParams(period), ...(organizationId ? { organization_id: organizationId } : {}) }
-  let capped = false
-  const lists = await Promise.all(
-    queue.statuses.map((status) =>
-      fetchAllPages(
-        async (page, options) => {
-          const result = await getReservations({ ...base, status, page }, options)
-          if (page === 10 && result.meta.last_page > 10) capped = true
-          return result
-        },
-        { signal },
-      ),
-    ),
-  )
-  return { items: sortQueue(lists.flat(), base.sort), capped }
+// Paramètres de GET /reservations pour une file et des filtres (sans la page) : un seul appel avec statuses[],
+// trié par le backend (date puis heure de départ). `filters` : { period, organizationId, search }.
+function queueParams(statuses, { period, organizationId, search }) {
+  return {
+    ...periodParams(period),
+    statuses,
+    ...(organizationId && { organization_id: organizationId }),
+    ...(search && { q: search }),
+  }
 }
 
-// Nombre de réservations de chaque file pour les filtres courants (une requête par statut, lue dans meta.total)
-export async function fetchQueueCounts({ period, organizationId }, { signal } = {}) {
-  const base = { ...periodParams(period), ...(organizationId ? { organization_id: organizationId } : {}), page: 1 }
-  const statuses = [...new Set(QUEUES.flatMap((queue) => queue.statuses))]
-  const totals = await Promise.all(statuses.map((status) => getReservations({ ...base, status }, { signal })))
-  const byStatus = Object.fromEntries(statuses.map((status, index) => [status, totals[index].meta.total]))
-  return Object.fromEntries(
-    QUEUES.map((queue) => [queue.value, queue.statuses.reduce((sum, status) => sum + byStatus[status], 0)]),
+// Ce qui détermine la file chargée (file, période, organisation, recherche), sous forme de texte :
+// le hook useQueue ne recharge que si l'une de ces valeurs change.
+export function queueRequestKey(queue, filters) {
+  return JSON.stringify({ queue: queue.value, ...filters })
+}
+
+// Les `pageCount` premières pages d'une file (15 réservations par page), mises bout à bout :
+// { items, total, lastPage }. « Charger plus » relit toutes les pages pour rester juste après une action
+// (une réservation traitée quitte la file et décale les suivantes).
+export async function fetchQueuePages(requestKey, pageCount, { signal } = {}) {
+  const { queue, ...filters } = JSON.parse(requestKey)
+  const params = queueParams(queueOf(queue).statuses, filters)
+  const pages = await Promise.all(
+    Array.from({ length: pageCount }, (_, index) => getReservations({ ...params, page: index + 1 }, { signal })),
   )
+  const { meta } = pages[0]
+  return { items: pages.flatMap((page) => page.data), total: meta.total, lastPage: meta.last_page }
+}
+
+// Nombre de réservations de chaque file pour les filtres courants (une requête par file, lue dans meta.total)
+export async function fetchQueueCounts(filters, { signal } = {}) {
+  const totals = await Promise.all(
+    QUEUES.map((queue) => getReservations({ ...queueParams(queue.statuses, filters), page: 1 }, { signal })),
+  )
+  return Object.fromEntries(QUEUES.map((queue, index) => [queue.value, totals[index].meta.total]))
+}
+
+// Nombre de demandes « à traiter » (en attente ou en conflit, trajet à venir) : même chiffre que la pastille
+// « À traiter » de la page, pour le badge du menu. Une seule réservation demandée suffit, on lit meta.total.
+export async function fetchPendingCount({ signal } = {}) {
+  const queue = queueOf(DEFAULT_QUEUE)
+  const page = await getReservations({ ...queueParams(queue.statuses, { period: 'a-venir' }), page: 1 }, { signal })
+  return page.meta.total
+}
+
+// ----- Affichage de la file -----
+
+// Écart en jours entre aujourd'hui et le jour du trajet (0 : aujourd'hui, 1 : demain, négatif : passé)
+function daysUntil(day, today) {
+  return periodLength(today, day.slice(0, 10)) - 1
+}
+
+// Libellé d'un jour de la file : « Aujourd'hui », « Demain », « Hier », sinon « jeudi 8 octobre »
+// (avec l'année si ce n'est pas l'année en cours)
+export function dayLabel(day, today) {
+  const days = daysUntil(day, today)
+  if (days === 0) return 'Aujourd’hui'
+  if (days === 1) return 'Demain'
+  if (days === -1) return 'Hier'
+  const sameYear = day.slice(0, 4) === today.slice(0, 4)
+  return formatDate(day, { weekday: 'long', day: 'numeric', month: 'long', ...(sameYear ? {} : { year: 'numeric' }) })
+}
+
+// Réservations rangées par jour de trajet, dans l'ordre de la file : [{ day, label, items }]
+export function groupByDay(reservations, today) {
+  const groups = []
+  for (const reservation of reservations) {
+    const day = reservation.trip_date.slice(0, 10)
+    if (groups.at(-1)?.day !== day) groups.push({ day, label: dayLabel(day, today), items: [] })
+    groups.at(-1).items.push(reservation)
+  }
+  return groups
+}
+
+// Il reste quelque chose à faire avant le trajet : décider (en attente, en conflit) ou affecter (approuvée)
+function needsWork(reservation) {
+  if (['en_attente', 'en_conflit'].includes(reservation.status)) return true
+  return reservation.status === 'approuve' && !(reservation.driver_id && reservation.vehicle_id)
+}
+
+// Urgence d'une demande encore à traiter dont le trajet approche :
+//   aujourd'hui ou demain → 'danger' ; dans 2 ou 3 jours → 'warning' ; sinon (ou rien à faire, ou passé) → null
+export function urgencyOf(reservation, today) {
+  if (!needsWork(reservation)) return null
+  const days = daysUntil(reservation.trip_date, today)
+  if (days < 0 || days > 3) return null
+  return days <= 1 ? 'danger' : 'warning'
+}
+
+// Repères d'une ligne : ce qui attend avant de pouvoir avancer. [{ label, tone }]
+//   validation manuelle en attente ou en conflit → état du Collège (`council_decision_status` du backend ;
+//     absent : repère neutre « Collège »)
+//   approuvée sans chauffeur et / ou sans véhicule → ce qui manque
+export function rowHints(reservation) {
+  const hints = []
+  const undecided = ['en_attente', 'en_conflit'].includes(reservation.status)
+  if (undecided && reservation.approval_type === 'manuel') {
+    const council = reservation.council_decision_status
+    if (council === undefined) hints.push({ label: 'Collège', tone: 'neutral' })
+    else if (council === 'approuve') hints.push({ label: 'Collège favorable', tone: 'success' })
+    else hints.push({ label: 'Collège à décider', tone: 'info' })
+  }
+  if (reservation.status === 'approuve') {
+    const missing = [!reservation.driver_id && 'chauffeur', !reservation.vehicle_id && 'véhicule'].filter(Boolean)
+    if (missing.length > 0) hints.push({ label: `Sans ${missing.join(' ni ')}`, tone: 'warning' })
+  }
+  return hints
+}
+
+// Prochaine étape d'une réservation, en une phrase pour le haut du panneau : { tone, text } ou null.
+// `actions` : agentActions ; `decision` : décision du Collège (undefined pendant le chargement) ;
+// `keys` : touches des raccourcis, rappelées entre parenthèses.
+export function nextStep(reservation, actions, decision, keys) {
+  const { status } = reservation
+  const key = (id) => (keys[id] ? ` (${keyLabel(keys[id])})` : '')
+  const openConflicts = (reservation.conflicts ?? []).filter((conflict) => !conflict.is_resolved).length
+  if (actions.tripPassed || ['refuse', 'annule'].includes(status)) return null
+
+  if (['en_attente', 'en_conflit'].includes(status)) {
+    if (reservation.approval_type === 'manuel' && decision === undefined) return null
+    if (actions.approveBlocked) {
+      return { tone: 'info', text: `En attente de la décision du Collège : encodez-la${key('council')} dès qu’elle est connue.` }
+    }
+    const conflictNote = openConflicts > 0 ? ` Vérifiez d’abord ${openConflicts > 1 ? 'les conflits' : 'le conflit'} ci-dessous.` : ''
+    return { tone: openConflicts > 0 ? 'conflict' : 'success', text: `Prête à être approuvée${key('approve')}.${conflictNote}` }
+  }
+  if (status === 'approuve') {
+    const missing = [!reservation.driver_id && 'un chauffeur', !reservation.vehicle_id && 'un véhicule'].filter(Boolean)
+    if (missing.length > 0) {
+      return { tone: 'warning', text: `Il manque ${missing.join(' et ')} : affectez${key('assign')} ou relancez l’affectation automatique.` }
+    }
+    if (openConflicts > 0) return { tone: 'conflict', text: 'Réglez le conflit ci-dessous avant de confirmer.' }
+    return { tone: 'success', text: `Chauffeur et véhicule affectés : prête à être confirmée${key('confirm')}.` }
+  }
+  if (status === 'confirme') return { tone: 'neutral', text: 'Confirmée : rien à faire, le trajet est prêt.' }
+  return null
+}
+
+// Lien vers ce trajet dans le Planning : semaine du trajet (du lundi au vendredi), ou vue liste sur ce seul jour
+// pour un trajet le week-end ; tous les statuts pour qu'un trajet refusé ou annulé y apparaisse aussi.
+export function planningHref(reservation) {
+  const day = reservation.trip_date.slice(0, 10)
+  const params = new URLSearchParams()
+  const monday = mondayOf(day)
+  if (periodLength(monday, day) > 5) {
+    params.set('vue', 'liste')
+    params.set('du', day)
+    params.set('au', day)
+  } else {
+    params.set('semaine', monday)
+  }
+  if (['refuse', 'annule'].includes(reservation.status)) params.set('statuts', 'tous')
+  params.set('trajet', String(reservation.id))
+  return `/gestion/planning?${params}`
 }

@@ -8,8 +8,7 @@ import { Modal } from '../ui/Modal'
 // Action d'un agent avec motif obligatoire (refuser, annuler). `action(reason, idempotencyKey)` renvoie la
 // réservation mise à jour, passée à `onDone`. La clé d'idempotence est créée à l'ouverture : un double clic
 // ou une relance n'applique l'action qu'une fois.
-// `initialReason` : motif proposé (modifiable), ex. après une décision défavorable du Collège.
-export function ReasonModal({ open, onClose, title, intro, label, submitLabel, action, onDone, initialReason = '' }) {
+export function ReasonModal({ open, onClose, title, intro, label, submitLabel, action, onDone }) {
   return (
     <Modal open={open} onClose={onClose} title={title}>
       {open && (
@@ -20,16 +19,15 @@ export function ReasonModal({ open, onClose, title, intro, label, submitLabel, a
           action={action}
           onClose={onClose}
           onDone={onDone}
-          initialReason={initialReason}
         />
       )}
     </Modal>
   )
 }
 
-function ReasonForm({ intro, label, submitLabel, action, onClose, onDone, initialReason }) {
+function ReasonForm({ intro, label, submitLabel, action, onClose, onDone }) {
   const [idempotencyKey] = useState(() => crypto.randomUUID())
-  const form = useForm({ reason: initialReason })
+  const form = useForm({ reason: '' })
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -43,7 +41,14 @@ function ReasonForm({ intro, label, submitLabel, action, onClose, onDone, initia
       {form.error && <Alert tone="danger">{form.error}</Alert>}
       <Field label={label} required error={form.errors.reason}>
         {(props) => (
-          <Textarea {...props} autoFocus maxLength={1000} value={form.values.reason} onChange={form.handle('reason')} />
+          <Textarea
+            {...props}
+            // Attribut HTML autofocus (React ne l'écrit pas) : <dialog>.showModal() donne le focus à ce champ
+            ref={(node) => node?.setAttribute('autofocus', '')}
+            maxLength={1000}
+            value={form.values.reason}
+            onChange={form.handle('reason')}
+          />
         )}
       </Field>
       <div className="flex flex-wrap justify-end gap-2">
