@@ -96,3 +96,48 @@ export async function checkTrip(trip, { signal } = {}) {
   }
   return previewReservation({ ...trip, ...TRIP_CHECK_PLACEHOLDERS }, { signal })
 }
+
+// ----- Actions des agents (espace gestion) -----
+
+// Approuver : lance l'affectation automatique (passe en « confirme » si un chauffeur et un véhicule sont libres)
+export async function approveReservation(id) {
+  const { data } = await api.patch(`/reservations/${id}/approve`)
+  return data.data
+}
+
+export async function rejectReservation(id, reason) {
+  const { data } = await api.patch(`/reservations/${id}/reject`, { reason })
+  return data.data
+}
+
+// Affectation manuelle d'un chauffeur et/ou d'un véhicule (le backend vérifie disponibilités et capacité)
+export async function assignReservation(id, { driver_id, vehicle_id, reason }, idempotencyKey) {
+  const { data } = await api.patch(
+    `/reservations/${id}/assign`,
+    { driver_id: driver_id || undefined, vehicle_id: vehicle_id || undefined, reason: reason || undefined },
+    { headers: { 'Idempotency-Key': idempotencyKey } },
+  )
+  return data.data
+}
+
+// Confirmer : statut « approuve », chauffeur et véhicule affectés, aucun conflit ouvert
+export async function confirmReservation(id) {
+  const { data } = await api.patch(`/reservations/${id}/confirm`)
+  return data.data
+}
+
+// Relancer l'affectation automatique (ex. après la levée d'une indisponibilité)
+export async function retryAssignReservation(id) {
+  const { data } = await api.patch(`/reservations/${id}/retry-assign`)
+  return data.data
+}
+
+export async function getReservationConflicts(id, { signal } = {}) {
+  const { data } = await api.get(`/reservations/${id}/conflicts`, { signal })
+  return data.data
+}
+
+export async function resolveReservationConflict(reservationId, conflictId) {
+  const { data } = await api.patch(`/reservations/${reservationId}/conflicts/${conflictId}/resolve`)
+  return data.data
+}

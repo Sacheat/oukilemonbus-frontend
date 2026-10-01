@@ -36,6 +36,8 @@ import { DriverRouteSheetsPage } from './pages/driver/DriverRouteSheetsPage'
 import { DriverUnavailabilitiesPage } from './pages/driver/DriverUnavailabilitiesPage'
 import { DriversPage } from './pages/backoffice/DriversPage'
 import { PlanningPage } from './pages/backoffice/PlanningPage'
+import { ReservationEditPage } from './pages/backoffice/ReservationEditPage'
+import { ReservationsQueuePage } from './pages/backoffice/ReservationsQueuePage'
 import { UnavailabilitiesPage } from './pages/backoffice/UnavailabilitiesPage'
 import { VehiclesPage } from './pages/backoffice/VehiclesPage'
 
@@ -214,7 +216,22 @@ export const router = createBrowserRouter([
                 element: <SidebarLayout sections={BACKOFFICE_NAV} />,
                 children: [
                   { index: true, element: <SpaceHomePage eyebrow="Gestion" /> },
-                  soon('reservations', 'Gestion', 'Réservations', 'reservations.approve'),
+                  {
+                    path: 'reservations',
+                    element: (
+                      <RequirePermission permission="reservations.approve">
+                        <ReservationsQueuePage />
+                      </RequirePermission>
+                    ),
+                  },
+                  {
+                    path: 'reservations/:id/modifier',
+                    element: (
+                      <RequirePermission permission="reservations.update">
+                        <ReservationEditPage />
+                      </RequirePermission>
+                    ),
+                  },
                   {
                     path: 'planning',
                     element: (

@@ -16,3 +16,9 @@ export async function updateProfile(userId, { first_name, last_name, email, phon
 export async function updatePassword(userId, { current_password, password, password_confirmation }) {
   await api.patch(`/users/${userId}/password`, { current_password, password, password_confirmation })
 }
+
+// Un compte (rôles internes ; chacun peut voir le sien)
+export async function getUser(userId, { signal } = {}) {
+  const { data } = await api.get(`/users/${userId}`, { signal })
+  return data.data
+}
