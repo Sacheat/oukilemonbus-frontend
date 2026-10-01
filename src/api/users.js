@@ -1,15 +1,11 @@
 import { api } from './client'
-import { fetchAllPages } from './pagination'
 
-// Liste des comptes (rôles internes uniquement), avec leurs `roles`
+// Liste des comptes (rôles internes uniquement), avec leurs `roles`, paginée par 15.
+// `search` : chaque mot doit apparaître dans le prénom, le nom ou l'email (sans tenir compte
+// des majuscules ni des accents) ; les liens de pagination conservent le paramètre.
 export async function getUsers(params = {}, { signal } = {}) {
   const { data } = await api.get('/users', { params, signal })
   return data
-}
-
-// Tous les comptes, toutes pages confondues (le backend ne propose pas de recherche)
-export function getAllUsers({ signal } = {}) {
-  return fetchAllPages((page, options) => getUsers({ page }, options), { signal })
 }
 
 export async function updateProfile(userId, { first_name, last_name, email, phone }) {
