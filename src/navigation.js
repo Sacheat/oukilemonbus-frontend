@@ -41,7 +41,7 @@ export const USER_NAV = [
 
 export const DRIVER_NAV = [
   { to: '/chauffeur', end: true, label: 'Mes missions', icon: Bus },
-  { to: '/chauffeur/documents', label: 'Feuilles de route', icon: FileText, permission: 'documents.view' },
+  { to: '/chauffeur/feuilles-de-route', label: 'Feuilles de route', icon: FileText, permission: 'documents.view' },
   { to: '/chauffeur/indisponibilites', label: 'Indisponibilités', icon: CalendarOff, permission: 'unavailabilities.view' },
 ]
 
