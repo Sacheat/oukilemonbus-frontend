@@ -7,6 +7,12 @@ export async function getDocuments({ signal } = {}) {
   return data.data
 }
 
+// Un document (nom de fichier, type, taille…), sans son contenu
+export async function getDocument(documentId) {
+  const { data } = await api.get(`/documents/${documentId}`)
+  return data.data
+}
+
 // Fichier (PDF ou image) en Blob, avec la session
 export async function downloadDocument(documentId) {
   const { data } = await api.get(`/documents/${documentId}/download`, { responseType: 'blob' })
