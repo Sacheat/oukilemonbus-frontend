@@ -30,6 +30,8 @@ import { TripDetailPage } from './pages/user/TripDetailPage'
 import { TripsPage } from './pages/user/TripsPage'
 import { UserHomePage } from './pages/user/UserHomePage'
 import { CollegePage } from './pages/backoffice/CollegePage'
+import { DriverMissionPage } from './pages/driver/DriverMissionPage'
+import { DriverMissionsPage } from './pages/driver/DriverMissionsPage'
 import { DriversPage } from './pages/backoffice/DriversPage'
 import { PlanningPage } from './pages/backoffice/PlanningPage'
 import { UnavailabilitiesPage } from './pages/backoffice/UnavailabilitiesPage'
@@ -178,7 +180,8 @@ export const router = createBrowserRouter([
               {
                 element: <TopNavLayout nav={DRIVER_NAV} />,
                 children: [
-                  { index: true, element: <SpaceHomePage eyebrow="Espace chauffeur" /> },
+                  { index: true, element: <DriverMissionsPage /> },
+                  { path: 'missions/:missionId', element: <DriverMissionPage /> },
                   soon('documents', 'Espace chauffeur', 'Feuilles de route', 'documents.view'),
                   soon('indisponibilites', 'Espace chauffeur', 'Mes indisponibilités', 'unavailabilities.view'),
                 ],
