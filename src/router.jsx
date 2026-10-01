@@ -29,6 +29,7 @@ import { RecurrencesPage } from './pages/user/RecurrencesPage'
 import { TripDetailPage } from './pages/user/TripDetailPage'
 import { TripsPage } from './pages/user/TripsPage'
 import { UserHomePage } from './pages/user/UserHomePage'
+import { CollegePage } from './pages/backoffice/CollegePage'
 import { DriversPage } from './pages/backoffice/DriversPage'
 import { PlanningPage } from './pages/backoffice/PlanningPage'
 import { UnavailabilitiesPage } from './pages/backoffice/UnavailabilitiesPage'
@@ -203,7 +204,14 @@ export const router = createBrowserRouter([
                       </RequirePermission>
                     ),
                   },
-                  soon('college', 'Gestion', 'Décisions du Collège', 'council-decisions.create'),
+                  {
+                    path: 'college',
+                    element: (
+                      <RequirePermission permission="council-decisions.create">
+                        <CollegePage />
+                      </RequirePermission>
+                    ),
+                  },
                   soon('demandes', 'Gestion', 'Demandes', 'org-registration-requests.review'),
                   soon('organisations', 'Gestion', 'Organisations', 'organizations.update'),
                   soon('documents', 'Gestion', 'Documents', 'documents.generate'),
