@@ -1,20 +1,48 @@
-import { Search, UserRound, X } from 'lucide-react'
-import { useId, useState } from 'react'
+import axios from 'axios'
+import { LoaderCircle, Search, UserRound, X } from 'lucide-react'
+import { useEffect, useId, useState } from 'react'
 import { cx } from '../../lib/cx'
-import { ACCOUNT_SEARCH_MIN_LENGTH, searchAccounts } from '../../lib/drivers'
+import { ACCOUNT_SEARCH_MIN_LENGTH, searchEligibleAccounts } from '../../lib/drivers'
+import { getErrorMessage } from '../../lib/errors'
 
-// Choix d'un compte par recherche (nom, prénom ou email), sur le modèle de LocationPicker.
-// Les propositions apparaissent à partir de 2 lettres et s'affinent à chaque lettre (15 au maximum).
+const DEBOUNCE_MS = 300
+
+// Choix d'un compte par recherche côté backend (nom, prénom ou email), sur le modèle de LocationPicker.
+// La recherche part 300 ms après la dernière frappe, à partir de 2 lettres ; la requête précédente est annulée.
+// `driverList` : chauffeurs existants, pour écarter les comptes qui ont déjà un profil.
 // `value` : compte choisi ou null ; `inputProps` : props d'accessibilité fournies par <Field>.
-export function AccountPicker({ accounts, value, onChange, inputProps }) {
+export function AccountPicker({ driverList, value, onChange, inputProps }) {
   const listboxId = useId()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
+  // Résultats rattachés à la recherche qui les a produits (évite d'afficher une réponse périmée)
+  const [results, setResults] = useState({ query: null, accounts: [], hasMore: false, error: null })
 
-  const searchable = query.trim().length >= ACCOUNT_SEARCH_MIN_LENGTH
-  const { results, total } = searchAccounts(accounts, query)
-  const hiddenCount = total - results.length // comptes trouvés mais au-delà des 15 affichés
+  const trimmed = query.trim()
+  const searchable = trimmed.length >= ACCOUNT_SEARCH_MIN_LENGTH
+
+  useEffect(() => {
+    if (!searchable) return undefined
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      searchEligibleAccounts(trimmed, driverList, { signal: controller.signal })
+        .then(({ accounts, hasMore }) => setResults({ query: trimmed, accounts, hasMore, error: null }))
+        .catch((error) => {
+          if (axios.isCancel(error)) return
+          setResults({ query: trimmed, accounts: [], hasMore: false, error })
+        })
+    }, DEBOUNCE_MS)
+    // Nouvelle frappe : on annule le délai en cours et la requête déjà partie
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [trimmed, searchable, driverList])
+
+  const loading = searchable && results.query !== trimmed
+  const current = searchable && results.query === trimmed ? results : { accounts: [], hasMore: false, error: null }
+  const accounts = current.accounts
   const showList = open && searchable
 
   function select(account) {
@@ -28,13 +56,13 @@ export function AccountPicker({ accounts, value, onChange, inputProps }) {
     if (event.key === 'ArrowDown') {
       event.preventDefault()
       setOpen(true)
-      setActiveIndex((index) => Math.min(index + 1, results.length - 1))
+      setActiveIndex((index) => Math.min(index + 1, accounts.length - 1))
     } else if (event.key === 'ArrowUp') {
       event.preventDefault()
       setActiveIndex((index) => Math.max(index - 1, 0))
-    } else if (event.key === 'Enter' && showList && results[activeIndex]) {
+    } else if (event.key === 'Enter' && showList && accounts[activeIndex]) {
       event.preventDefault()
-      select(results[activeIndex])
+      select(accounts[activeIndex])
     } else if (event.key === 'Escape') {
       setOpen(false)
       setActiveIndex(-1)
@@ -88,10 +116,11 @@ export function AccountPicker({ accounts, value, onChange, inputProps }) {
         onBlur={() => setOpen(false)}
         onKeyDown={handleKeyDown}
         className={cx(
-          'block min-h-11.5 w-full rounded-lg border border-line-strong bg-surface py-2.5 pr-3 pl-10',
+          'block min-h-11.5 w-full rounded-lg border border-line-strong bg-surface py-2.5 pr-10 pl-10',
           'font-normal text-ink placeholder:text-muted aria-invalid:border-danger',
         )}
       />
+      {loading && <LoaderCircle className="absolute top-3.5 right-3 size-4.5 animate-spin text-muted" aria-hidden="true" />}
       {!searchable && open && query && (
         <p className="mt-1.5 text-xs font-normal text-muted">Saisissez au moins {ACCOUNT_SEARCH_MIN_LENGTH} caractères.</p>
       )}
@@ -105,8 +134,12 @@ export function AccountPicker({ accounts, value, onChange, inputProps }) {
           onMouseDown={(event) => event.preventDefault()}
           className="absolute z-20 mt-1 max-h-80 w-full overflow-y-auto rounded-lg border border-line bg-surface py-1 font-normal shadow-lg"
         >
-          {results.length === 0 && <li className="px-3 py-2 text-sm text-muted">Aucun compte ne correspond.</li>}
-          {results.map((account, index) => (
+          {loading && accounts.length === 0 && <li className="px-3 py-2 text-sm text-muted">Recherche…</li>}
+          {!loading && current.error && <li className="px-3 py-2 text-sm text-danger">{getErrorMessage(current.error)}</li>}
+          {!loading && !current.error && accounts.length === 0 && (
+            <li className="px-3 py-2 text-sm text-muted">Aucun compte disponible ne correspond.</li>
+          )}
+          {accounts.map((account, index) => (
             <li
               key={account.id}
               id={`${listboxId}-${index}`}
@@ -123,9 +156,9 @@ export function AccountPicker({ accounts, value, onChange, inputProps }) {
               </span>
             </li>
           ))}
-          {hiddenCount > 0 && (
+          {!loading && current.hasMore && (
             <li role="presentation" className="px-3 py-2 text-xs text-muted">
-              {hiddenCount > 1 ? `${hiddenCount} autres comptes` : '1 autre compte'} : affinez la recherche.
+              D'autres comptes correspondent : affinez la recherche.
             </li>
           )}
         </ul>

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { createDriver, updateDriver } from '../../api/drivers'
 import { useForm } from '../../hooks/useForm'
 import { changedLicenceFields, driverFormValues, tomorrowApiDate } from '../../lib/drivers'
@@ -6,16 +7,18 @@ import { Button } from '../ui/Button'
 import { Field, Input } from '../ui/Field'
 import { AccountPicker } from './AccountPicker'
 
-// Formulaire d'ajout (avec `accounts` : comptes à rechercher) ou de modification du permis (avec `driver`).
+// Formulaire d'ajout (avec `driverList` : chauffeurs existants, pour la recherche de compte)
+// ou de modification du permis (avec `driver`).
 // Les erreurs 422 (numéro déjà utilisé, date passée…) s'affichent sous le champ concerné.
-export function DriverForm({ driver, accounts, onSaved }) {
+export function DriverForm({ driver, driverList, onSaved }) {
   const form = useForm(driverFormValues(driver))
   const isEditing = Boolean(driver)
-
-  // Le formulaire garde l'id du compte ; le composant de recherche a besoin du compte entier
-  const selectedAccount = accounts?.find((account) => String(account.id) === form.values.user_id) ?? null
+  // Compte choisi (objet entier, pour l'afficher) ; le formulaire n'envoie que son id.
+  // Gardé à part : les résultats de recherche changent à chaque frappe.
+  const [selectedAccount, setSelectedAccount] = useState(null)
 
   function chooseAccount(account) {
+    setSelectedAccount(account)
     form.setValues((values) => ({ ...values, user_id: account ? String(account.id) : '' }))
   }
 
@@ -44,7 +47,7 @@ export function DriverForm({ driver, accounts, onSaved }) {
           required
         >
           {(props) => (
-            <AccountPicker accounts={accounts} value={selectedAccount} onChange={chooseAccount} inputProps={props} />
+            <AccountPicker driverList={driverList} value={selectedAccount} onChange={chooseAccount} inputProps={props} />
           )}
         </Field>
       )}
