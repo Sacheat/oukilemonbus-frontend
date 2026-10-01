@@ -1,3 +1,4 @@
+import { getUsers } from '../api/users'
 import { toApiDate } from './dates'
 
 // Valeur de ?chauffeur= pour ouvrir le formulaire d'ajout
@@ -38,9 +39,11 @@ export function getLicenceStatus(driver, today = new Date()) {
   return 'valid'
 }
 
-// Nombre de lettres à taper avant de proposer des comptes, et nombre maximum de comptes proposés
+// Nombre de lettres à taper avant de chercher, nombre maximum de comptes proposés,
+// et nombre maximum de pages lues pour remplir la liste
 export const ACCOUNT_SEARCH_MIN_LENGTH = 2
 export const ACCOUNT_SEARCH_LIMIT = 15
+const ACCOUNT_SEARCH_MAX_PAGES = 3
 
 // Comptes qui peuvent devenir chauffeurs : tout compte actif sans profil chauffeur, quel que soit son rôle
 // (un agent peut aussi conduire une camionnette qu'il loue). Triés par nom de famille puis prénom.
@@ -54,24 +57,27 @@ export function getEligibleAccounts(userList, driverList) {
     )
 }
 
-// « Stéphane » → « stephane » : minuscules et sans accents, pour comparer une recherche
-function normalizeText(text) {
-  return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-}
+// Recherche des comptes proposables, côté backend (GET /users?search=, 15 comptes par page).
+// Le backend renvoie aussi des comptes inactifs ou déjà chauffeurs : on les retire (getEligibleAccounts).
+// Une page peut donc donner moins de 15 propositions ; on lit la suivante :
+//   tant qu'on a moins de 15 propositions ET qu'il reste des pages ET qu'on en a lu moins de 3 → page suivante
+// `hasMore` : d'autres comptes pourraient correspondre (plus de 15 trouvés, ou pages non lues).
+export async function searchEligibleAccounts(query, driverList, { signal } = {}) {
+  const foundAccounts = []
+  let page = 1
+  let lastPage
+  do {
+    const result = await getUsers({ search: query, page }, { signal })
+    foundAccounts.push(...getEligibleAccounts(result.data, driverList))
+    lastPage = result.meta.last_page
+    page += 1
+  } while (foundAccounts.length < ACCOUNT_SEARCH_LIMIT && page <= lastPage && page <= ACCOUNT_SEARCH_MAX_PAGES)
 
-// Recherche dans les comptes (le backend ne sait pas chercher dans /users) :
-//   si moins de 2 lettres → aucun résultat
-//   sinon → comptes dont le prénom, le nom ou l'email contient chaque mot tapé ; les 15 premiers
-// Chaque mot est cherché séparément : « ponzo steph » trouve « Stéphane Ponzo ».
-export function searchAccounts(accountList, query) {
-  if (query.trim().length < ACCOUNT_SEARCH_MIN_LENGTH) return { results: [], total: 0 }
-  const words = normalizeText(query.trim()).split(/\s+/)
-
-  const matches = accountList.filter((account) => {
-    const searchable = normalizeText(`${account.first_name} ${account.last_name} ${account.email}`)
-    return words.every((word) => searchable.includes(word))
-  })
-  return { results: matches.slice(0, ACCOUNT_SEARCH_LIMIT), total: matches.length }
+  const sortedAccounts = getEligibleAccounts(foundAccounts, driverList) // tri par nom sur l'ensemble des pages
+  return {
+    accounts: sortedAccounts.slice(0, ACCOUNT_SEARCH_LIMIT),
+    hasMore: sortedAccounts.length > ACCOUNT_SEARCH_LIMIT || page <= lastPage,
+  }
 }
 
 // Valeurs de départ du formulaire : vides pour un ajout, celles du chauffeur pour une modification
