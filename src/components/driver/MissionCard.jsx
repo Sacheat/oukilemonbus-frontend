@@ -5,12 +5,13 @@ import { formatTime } from '../../lib/dates'
 import { isCancelledMission } from '../../lib/driverMissions'
 import { estimatedArrivals, shortAddress, totalPassengers } from '../../lib/reservations'
 import { StatusBadge } from '../ui/StatusBadge'
+import { TripReportBadge } from './TripReportBadge'
 
 // Une mission du chauffeur, cliquable en entier vers son détail. Lisible d'un coup d'œil sur téléphone :
 // horaires en grand, puis départ → destination, passagers et véhicule. Une mission annulée reste visible,
 // estompée, avec son motif, pour que le chauffeur ne se déplace pas pour rien.
-// `large` : mise en avant (missions du jour).
-export function MissionCard({ mission, large = false }) {
+// `large` : mise en avant (missions du jour) ; `report` : compte rendu éventuel (badge Réalisé / À confirmer…).
+export function MissionCard({ mission, large = false, report = null }) {
   const cancelled = isCancelledMission(mission)
   const arrivals = estimatedArrivals(mission)
   const passengerCount = totalPassengers(mission)
@@ -28,7 +29,10 @@ export function MissionCard({ mission, large = false }) {
         <span className={cx('font-bold tabular-nums', large ? 'text-2xl' : 'text-lg', cancelled && 'line-through')}>
           {formatTime(mission.departure_time)} → {formatTime(mission.return_time)}
         </span>
-        <StatusBadge status={mission.status} label={mission.status_label} />
+        <span className="flex flex-wrap gap-1.5">
+          <TripReportBadge report={report} mission={mission} />
+          <StatusBadge status={mission.status} label={mission.status_label} />
+        </span>
       </span>
 
       <span className="font-semibold break-words">{mission.organization?.name}</span>

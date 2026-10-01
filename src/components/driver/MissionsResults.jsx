@@ -11,7 +11,8 @@ import { MissionDays } from './MissionDays'
 //   « À venir », première page     → « Aujourd'hui » mis en avant (colonne de gauche sur grand écran),
 //                                     puis les prochains jours (colonne de droite)
 //   autre page ou « Passées »      → missions groupées par jour
-export function MissionsResults({ missions, period, page, today, onPageChange }) {
+// `reports` : comptes rendus indexés par mission (badges)
+export function MissionsResults({ missions, reports = {}, period, page, today, onPageChange }) {
   if (missions.error) return <ErrorState error={missions.error} onRetry={missions.reload} />
   const missionList = missions.data?.data
   if (!missionList) return <Loader />
@@ -22,7 +23,7 @@ export function MissionsResults({ missions, period, page, today, onPageChange })
     if (missionList.length === 0) return <EmptyState icon={Route} title="Aucune mission passée" />
     return (
       <div className="grid gap-6">
-        <MissionDays missions={missionList} columns />
+        <MissionDays missions={missionList} columns reports={reports} />
         {pagination}
       </div>
     )
@@ -39,7 +40,7 @@ export function MissionsResults({ missions, period, page, today, onPageChange })
           {todayMissions.length === 0 ? (
             <EmptyState icon={CalendarCheck} title="Aucune mission aujourd'hui" />
           ) : (
-            todayMissions.map((mission) => <MissionCard key={mission.id} mission={mission} large />)
+            todayMissions.map((mission) => <MissionCard key={mission.id} mission={mission} large report={reports[mission.id]} />)
           )}
         </section>
 
@@ -48,7 +49,7 @@ export function MissionsResults({ missions, period, page, today, onPageChange })
           {laterMissions.length === 0 ? (
             <EmptyState icon={Route} title="Aucune autre mission prévue" />
           ) : (
-            <MissionDays missions={laterMissions} />
+            <MissionDays missions={laterMissions} reports={reports} />
           )}
         </section>
       </div>

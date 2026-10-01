@@ -1,8 +1,10 @@
 import { useSearchParams } from 'react-router'
 import { useAuth } from '../../auth/useAuth'
 import { MissionsResults } from '../../components/driver/MissionsResults'
+import { PendingReports } from '../../components/driver/PendingReports'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { useDriverMissions } from '../../hooks/useDriverMissions'
+import { useTripReports } from '../../hooks/useTripReports'
 import { cx } from '../../lib/cx'
 import { formatDate } from '../../lib/dates'
 import { DEFAULT_MISSION_PERIOD, MISSION_PERIODS, readMissionSearch } from '../../lib/driverMissions'
@@ -16,6 +18,9 @@ export function DriverMissionsPage() {
   const { period, page } = readMissionSearch(searchParams)
   const today = todayInBrussels()
   const missions = useDriverMissions(period, page, today)
+  // Comptes rendus des missions affichées (badges « À confirmer », « Réalisé »…), 15 au plus
+  const missionIds = (missions.data?.data ?? []).map((mission) => mission.id).join(',')
+  const reports = useTripReports(missionIds)
 
   function updateSearch(changes) {
     const next = new URLSearchParams(searchParams)
@@ -33,6 +38,8 @@ export function DriverMissionsPage() {
         title={`Bonjour ${user.first_name}`}
         description={<span className="first-letter:uppercase">{formatDate(today)}</span>}
       />
+
+      <PendingReports />
 
       <div role="group" aria-label="Période" className="flex w-fit rounded-control border border-line-strong bg-surface p-1">
         {MISSION_PERIODS.map((option) => (
@@ -53,6 +60,7 @@ export function DriverMissionsPage() {
 
       <MissionsResults
         missions={missions}
+        reports={reports.data ?? {}}
         period={period}
         page={page}
         today={today}
