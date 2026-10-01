@@ -19,7 +19,7 @@ export function TripReportSummary({ report }) {
           realised && ['Horaires réels', `${report.actual_departure_time} → ${report.actual_return_time}`],
           realised && [
             'Passagers réels',
-            `${passengerCount} (${report.actual_nb_children} enfants, ${report.actual_nb_adults} adultes)`,
+            `${passengerCount} (${report.actual_nb_children} enfant${report.actual_nb_children > 1 ? 's' : ''}, ${report.actual_nb_adults} adulte${report.actual_nb_adults > 1 ? 's' : ''})`,
           ],
           report.remarks && [realised ? 'Remarque' : 'Motif', report.remarks],
         ]}

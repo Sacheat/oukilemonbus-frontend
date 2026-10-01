@@ -1,11 +1,12 @@
 import { formatDate } from '../../lib/dates'
 import { cx } from '../../lib/cx'
 import { workingDaysOf } from '../../lib/planning'
+import { reportOf } from '../../lib/tripReports'
 import { PlanningTripCard } from './PlanningTripCard'
 
 // Vue semaine : une colonne par jour, du lundi au vendredi (les uns sous les autres sur petit écran).
 // `tripsGroupedByDay` : { "AAAA-MM-JJ": [trajets] } ; `today` met en évidence le jour en cours.
-export function PlanningWeek({ weekStart, tripsGroupedByDay, today, onOpenTrip, reports = {} }) {
+export function PlanningWeek({ weekStart, tripsGroupedByDay, today, onOpenTrip, reports }) {
   return (
     <div className="grid gap-3 lg:grid-cols-5">
       {workingDaysOf(weekStart).map((day) => {
@@ -28,7 +29,7 @@ export function PlanningWeek({ weekStart, tripsGroupedByDay, today, onOpenTrip, 
               <p className="px-1 pb-1 text-sm text-muted">Aucun trajet</p>
             ) : (
               dayTrips.map((trip) => (
-                <PlanningTripCard key={trip.reservation_id} trip={trip} onOpen={onOpenTrip} compact report={reports[trip.reservation_id]} />
+                <PlanningTripCard key={trip.reservation_id} trip={trip} onOpen={onOpenTrip} compact report={reportOf(reports, trip.reservation_id)} />
               ))
             )}
           </section>

@@ -60,7 +60,7 @@ export function DriverMissionsPage() {
 
       <MissionsResults
         missions={missions}
-        reports={reports.data ?? {}}
+        reports={reports.data}
         period={period}
         page={page}
         today={today}

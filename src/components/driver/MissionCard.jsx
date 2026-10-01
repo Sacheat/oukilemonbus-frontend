@@ -10,8 +10,9 @@ import { TripReportBadge } from './TripReportBadge'
 // Une mission du chauffeur, cliquable en entier vers son détail. Lisible d'un coup d'œil sur téléphone :
 // horaires en grand, puis départ → destination, passagers et véhicule. Une mission annulée reste visible,
 // estompée, avec son motif, pour que le chauffeur ne se déplace pas pour rien.
-// `large` : mise en avant (missions du jour) ; `report` : compte rendu éventuel (badge Réalisé / À confirmer…).
-export function MissionCard({ mission, large = false, report = null }) {
+// `large` : mise en avant (missions du jour) ; `report` : compte rendu (badge Réalisé / À confirmer…), null s'il n'y en
+// a pas, undefined s'il n'est pas connu (pas de badge).
+export function MissionCard({ mission, large = false, report }) {
   const cancelled = isCancelledMission(mission)
   const arrivals = estimatedArrivals(mission)
   const passengerCount = totalPassengers(mission)
