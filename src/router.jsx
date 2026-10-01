@@ -30,6 +30,7 @@ import { TripDetailPage } from './pages/user/TripDetailPage'
 import { TripsPage } from './pages/user/TripsPage'
 import { UserHomePage } from './pages/user/UserHomePage'
 import { DriversPage } from './pages/backoffice/DriversPage'
+import { PlanningPage } from './pages/backoffice/PlanningPage'
 import { UnavailabilitiesPage } from './pages/backoffice/UnavailabilitiesPage'
 import { VehiclesPage } from './pages/backoffice/VehiclesPage'
 
@@ -194,7 +195,14 @@ export const router = createBrowserRouter([
                 children: [
                   { index: true, element: <SpaceHomePage eyebrow="Gestion" /> },
                   soon('reservations', 'Gestion', 'Réservations', 'reservations.approve'),
-                  soon('planning', 'Gestion', 'Planning', 'reservations.view'),
+                  {
+                    path: 'planning',
+                    element: (
+                      <RequirePermission permission="reservations.view">
+                        <PlanningPage />
+                      </RequirePermission>
+                    ),
+                  },
                   soon('college', 'Gestion', 'Décisions du Collège', 'council-decisions.create'),
                   soon('demandes', 'Gestion', 'Demandes', 'org-registration-requests.review'),
                   soon('organisations', 'Gestion', 'Organisations', 'organizations.update'),
