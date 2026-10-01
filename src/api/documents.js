@@ -24,3 +24,9 @@ export async function getCouncilDecisions(params = {}, { signal } = {}) {
   const { data } = await api.get('/council-decisions', { params, signal })
   return data
 }
+
+// Décision du Collège d'une réservation (une seule par réservation), ou null
+export async function getReservationDecision(reservationId, { signal } = {}) {
+  const page = await getCouncilDecisions({ reservation_id: reservationId }, { signal })
+  return page.data.find((decision) => decision.reservation_id === reservationId) ?? null
+}
