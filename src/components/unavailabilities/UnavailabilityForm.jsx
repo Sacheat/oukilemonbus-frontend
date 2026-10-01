@@ -13,7 +13,7 @@ const REASON_TYPES = [
 ]
 
 // Déclaration (sans `unavailability`) ou modification (avec) d'une indisponibilité.
-// Début et fin sont saisis en heure de Bruxelles ; l'API les convertit en UTC.
+// Début et fin sont saisis en heure de Bruxelles et envoyés tels quels, sans conversion de fuseau.
 export function UnavailabilityForm({ unavailability, driverList, vehicleList, onSaved }) {
   const form = useForm(unavailabilityFormValues(unavailability))
   const isEditing = Boolean(unavailability)

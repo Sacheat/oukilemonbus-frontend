@@ -1,4 +1,4 @@
-import { brusselsInputToUtc } from '../lib/dates'
+import { toLocalApiDateTime } from '../lib/dates'
 import { api } from './client'
 import { fetchAllPages } from './pagination'
 
@@ -19,16 +19,16 @@ export function getAllUnavailabilities({ signal } = {}) {
 }
 
 // Corps commun à la création et à la modification.
-// Début et fin sont saisis en heure de Bruxelles et envoyés en UTC ;
-// selon le type, seul driver_id ou vehicle_id est rempli (jamais les deux).
+// Début et fin : heure de Bruxelles envoyée telle quelle, sans fuseau ("2026-07-10T08:00:00"), comme le backend
+// les stocke et les compare aux réservations. Selon le type, seul driver_id ou vehicle_id est rempli (jamais les deux).
 function unavailabilityBody(values) {
   return {
     reason_type: values.reason_type || null,
     driver_id: values.reason_type === 'driver' && values.driver_id ? Number(values.driver_id) : null,
     vehicle_id: values.reason_type === 'vehicle' && values.vehicle_id ? Number(values.vehicle_id) : null,
     reason: values.reason.trim() || null,
-    start_datetime: brusselsInputToUtc(values.start_datetime) || null,
-    end_datetime: brusselsInputToUtc(values.end_datetime) || null,
+    start_datetime: toLocalApiDateTime(values.start_datetime) || null,
+    end_datetime: toLocalApiDateTime(values.end_datetime) || null,
   }
 }
 
