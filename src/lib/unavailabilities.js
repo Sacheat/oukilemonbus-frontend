@@ -1,4 +1,4 @@
-import { toBrusselsInputValue } from './dates'
+import { brusselsNow, toLocalMinute } from './dates'
 
 // Valeur de ?indisponibilite= pour ouvrir le formulaire de déclaration
 export const NEW_UNAVAILABILITY = 'nouvelle'
@@ -18,10 +18,9 @@ export function isActiveUnavailability(unavailability) {
   return unavailability.is_active !== false
 }
 
-// Les horodatages UTC "…Z" se comparent comme des instants
-function timestamp(value) {
-  return new Date(value).getTime()
-}
+// Les dates des indisponibilités sont des heures de Bruxelles sans fuseau ("2026-06-10T08:00:00"),
+// comme les réservations : aucune conversion. Pour comparer, tout est ramené à "AAAA-MM-JJTHH:mm"
+// (toLocalMinute pour l'API, brusselsNow pour maintenant) ; ce format se compare comme du texte.
 
 // Range une indisponibilité dans un onglet :
 //   si annulée                      → 'annulees'
@@ -29,23 +28,25 @@ function timestamp(value) {
 //   sinon                           → 'a-venir' (en cours ou à venir)
 export function getUnavailabilityPeriod(unavailability, now = new Date()) {
   if (!isActiveUnavailability(unavailability)) return 'annulees'
-  if (timestamp(unavailability.end_datetime) <= now.getTime()) return 'passees'
+  if (toLocalMinute(unavailability.end_datetime) <= brusselsNow(now)) return 'passees'
   return 'a-venir'
 }
 
 // En cours : commencée mais pas encore terminée
 export function isOngoing(unavailability, now = new Date()) {
+  const currentMinute = brusselsNow(now)
   return (
     isActiveUnavailability(unavailability) &&
-    timestamp(unavailability.start_datetime) <= now.getTime() &&
-    now.getTime() < timestamp(unavailability.end_datetime)
+    toLocalMinute(unavailability.start_datetime) <= currentMinute &&
+    currentMinute < toLocalMinute(unavailability.end_datetime)
   )
 }
 
 // Indisponibilités d'un onglet, triées : la plus proche d'abord pour « à venir »,
 // la plus récente d'abord pour « passées » et « annulées »
 export function unavailabilitiesForPeriod(unavailabilityList, period, now = new Date()) {
-  const byStart = (first, second) => timestamp(first.start_datetime) - timestamp(second.start_datetime)
+  const byStart = (first, second) =>
+    toLocalMinute(first.start_datetime).localeCompare(toLocalMinute(second.start_datetime))
   const inPeriod = unavailabilityList.filter((unavailability) => getUnavailabilityPeriod(unavailability, now) === period)
   return period === 'a-venir' ? inPeriod.sort(byStart) : inPeriod.sort((first, second) => byStart(second, first))
 }
@@ -87,15 +88,15 @@ export function vehicleOptions(vehicleList, selectedVehicleId) {
     .sort((first, second) => first.licence_plate.localeCompare(second.licence_plate, 'fr'))
 }
 
-// Valeurs de départ du formulaire. Début et fin au format de <input type="datetime-local">,
-// en heure de Bruxelles ; les noms des champs sont ceux du backend pour y ranger les erreurs 422.
+// Valeurs de départ du formulaire. Début et fin au format de <input type="datetime-local"> ("AAAA-MM-JJTHH:mm"),
+// repris tels quels de l'API (heure locale) ; les noms des champs sont ceux du backend pour y ranger les erreurs 422.
 export function unavailabilityFormValues(unavailability) {
   return {
     reason_type: unavailability?.reason_type ?? '',
     driver_id: unavailability?.driver_id ? String(unavailability.driver_id) : '',
     vehicle_id: unavailability?.vehicle_id ? String(unavailability.vehicle_id) : '',
-    start_datetime: toBrusselsInputValue(unavailability?.start_datetime),
-    end_datetime: toBrusselsInputValue(unavailability?.end_datetime),
+    start_datetime: toLocalMinute(unavailability?.start_datetime),
+    end_datetime: toLocalMinute(unavailability?.end_datetime),
     reason: unavailability?.reason ?? '',
     change_reason: '',
   }

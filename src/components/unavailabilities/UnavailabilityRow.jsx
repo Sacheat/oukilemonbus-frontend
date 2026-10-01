@@ -1,5 +1,5 @@
 import { Bus, UserRound } from 'lucide-react'
-import { formatUtcRange } from '../../lib/dates'
+import { formatLocalPeriod } from '../../lib/dates'
 import { isActiveUnavailability, isOngoing, REASON_TYPE_LABELS } from '../../lib/unavailabilities'
 import { Badge } from '../ui/Badge'
 import { Card } from '../ui/Card'
@@ -27,7 +27,7 @@ export function UnavailabilityRow({ unavailability, subject, onOpen }) {
           {isOngoing(unavailability) && <Badge tone="warning">En cours</Badge>}
         </span>
         <span className="mt-1 block text-sm first-letter:uppercase">
-          {formatUtcRange(unavailability.start_datetime, unavailability.end_datetime)}
+          {formatLocalPeriod(unavailability.start_datetime, unavailability.end_datetime)}
         </span>
         {unavailability.reason && <span className="mt-1 block text-sm break-words text-muted">{unavailability.reason}</span>}
       </span>
