@@ -3,6 +3,7 @@ import { useCallback } from 'react'
 import { useParams } from 'react-router'
 import { getReservation } from '../../api/reservations'
 import { RouteButtons } from '../../components/driver/RouteButtons'
+import { TripReportSection } from '../../components/driver/TripReportSection'
 import { TripMap } from '../../components/reservations/TripMap'
 import { Alert } from '../../components/ui/Alert'
 import { Button } from '../../components/ui/Button'
@@ -17,7 +18,8 @@ import { isCancelledMission } from '../../lib/driverMissions'
 import { estimatedArrivals, totalPassengers } from '../../lib/reservations'
 
 // Détail d'une mission du chauffeur (/chauffeur/missions/:id), page à part pour le téléphone :
-// horaires et adresses complètes, itinéraires, carte, passagers, véhicule. Lecture seule.
+// horaires et adresses complètes, itinéraires, carte, passagers, véhicule, et compte rendu du trajet
+// (seule saisie du chauffeur, cahier des charges §3).
 // Le backend n'autorise que le chauffeur affecté (403 sinon).
 export function DriverMissionPage() {
   const { missionId } = useParams()
@@ -59,6 +61,8 @@ export function DriverMissionPage() {
           {trip.cancellation_reason ?? trip.rejection_reason ?? 'Elle a été annulée.'}
         </Alert>
       )}
+
+      <TripReportSection mission={trip} />
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="grid gap-6">

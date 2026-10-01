@@ -3,10 +3,12 @@ import { needsAssignment, openConflicts } from '../../lib/planning'
 import { cx } from '../../lib/cx'
 import { Badge } from '../ui/Badge'
 import { StatusBadge } from '../ui/StatusBadge'
+import { TripReportBadge } from '../driver/TripReportBadge'
 
 // Un trajet du planning, cliquable pour ouvrir le détail.
 // Heures = occupation réelle du bus (display.time_label du backend), puis organisation, trajet, affectation.
-export function PlanningTripCard({ trip, onOpen, compact = false }) {
+// `report` : compte rendu du chauffeur (badge Réalisé, Non réalisé ou À confirmer pour un trajet commencé).
+export function PlanningTripCard({ trip, onOpen, compact = false, report = null }) {
   const conflictCount = openConflicts(trip).length
   const missingAssignment = needsAssignment(trip)
 
@@ -36,6 +38,7 @@ export function PlanningTripCard({ trip, onOpen, compact = false }) {
         {trip.vehicle && <span className="text-muted">{trip.vehicle.licence_plate}</span>}
         {trip.driver?.user && <span className="text-muted">· {trip.driver.user.full_name}</span>}
         {missingAssignment && <Badge tone="warning">Non affecté</Badge>}
+        <TripReportBadge report={report} mission={trip} />
         {conflictCount > 0 && (
           <Badge tone="conflict">
             {conflictCount} conflit{conflictCount > 1 ? 's' : ''}

@@ -4,10 +4,14 @@ import { shortAddress } from '../../lib/reservations'
 import { Alert } from '../ui/Alert'
 import { DetailList } from '../ui/DetailList'
 import { StatusBadge } from '../ui/StatusBadge'
+import { hasTripStarted } from '../../lib/tripReports'
+import { PlanningTripReport } from './PlanningTripReport'
 
 // Détail d'un trajet dans le panneau latéral (lecture seule) : horaires, trajet, affectation, conflits,
 // puis chauffeurs et véhicules libres ou non pour ce créneau (include_availability), avec la raison.
-export function PlanningTripDetails({ trip }) {
+// `report` : compte rendu du chauffeur, affiché pour un trajet commencé ; `canManageReports` : l'agent peut le
+// saisir ou le corriger (`onReportSaved` après l'enregistrement).
+export function PlanningTripDetails({ trip, report = null, canManageReports = false, onReportSaved }) {
   const conflicts = openConflicts(trip)
   const availability = trip.availability
 
@@ -32,6 +36,13 @@ export function PlanningTripDetails({ trip }) {
           ['Réservation', `n° ${trip.reservation_id}`],
         ]}
       />
+
+      {trip.status === 'confirme' && hasTripStarted(trip) && (
+        <section className="grid gap-2 border-t border-line pt-5">
+          <h3 className="font-bold">Compte rendu du chauffeur</h3>
+          <PlanningTripReport trip={trip} report={report} canManage={canManageReports} onSaved={onReportSaved} />
+        </section>
+      )}
 
       {conflicts.length > 0 && (
         <section className="grid gap-2">

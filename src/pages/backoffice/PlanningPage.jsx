@@ -1,7 +1,9 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { getAllDrivers } from '../../api/drivers'
 import { getAllVehicles } from '../../api/vehicles'
+import { useAuth } from '../../auth/useAuth'
 import { PlanningExportButton } from '../../components/planning/PlanningExportButton'
 import { PlanningResults } from '../../components/planning/PlanningResults'
 import { PlanningTripDetails } from '../../components/planning/PlanningTripDetails'
@@ -13,6 +15,7 @@ import { Loader } from '../../components/ui/Loader'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { useApi } from '../../hooks/useApi'
 import { usePlanning } from '../../hooks/usePlanning'
+import { useTripReports } from '../../hooks/useTripReports'
 import { cx } from '../../lib/cx'
 import { formatDate } from '../../lib/dates'
 import {
@@ -39,7 +42,9 @@ async function fetchFleet(signal) {
 // (31 jours au plus), filtrés par statut, véhicule et chauffeur ; détail d'un trajet dans un panneau ; export Excel.
 // Tout l'état est dans l'URL : ?vue=liste, ?semaine=, ?du=&au=, ?statuts=tous, ?vehicule=, ?chauffeur=, ?trajet=
 export function PlanningPage() {
+  const { can } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
+  const [notice, setNotice] = useState(null)
   const planningSearch = readPlanningSearch(searchParams)
   const today = todayInBrussels()
   const period = requestedPeriod(planningSearch)
@@ -51,6 +56,9 @@ export function PlanningPage() {
   const fleet = useApi(fetchFleet)
 
   const tripList = planning.data?.data
+  // Comptes rendus des trajets affichés (badges Réalisé, Non réalisé, À confirmer)
+  const reports = useTripReports((tripList ?? []).map((trip) => trip.reservation_id).join(','))
+  const reportMap = reports.data ?? {}
   const groupedTrips = tripList ? tripsByDay(tripList) : {}
   const openedTrip = tripList?.find((trip) => String(trip.reservation_id) === planningSearch.openedTripId)
 
@@ -64,6 +72,13 @@ export function PlanningPage() {
     setSearchParams(next)
   }
 
+  // Compte rendu saisi ou corrigé par l'agent : panneau fermé, badges rechargés, message en haut de la page
+  function handleReportSaved(savedReport) {
+    setNotice(`Compte rendu du trajet n° ${savedReport.reservation_id} enregistré.`)
+    updateSearch({ trajet: null })
+    reports.reload()
+  }
+
   function showWeek(monday) {
     updateSearch({ semaine: monday === mondayOf(today) ? null : monday })
   }
@@ -75,6 +90,8 @@ export function PlanningPage() {
         title="Planning"
         actions={<PlanningExportButton exportParams={planningApiParams(requestKey)} disabled={Boolean(problem)} />}
       />
+
+      {notice && <Alert tone="success">{notice}</Alert>}
 
       <div className="flex flex-wrap items-end gap-3">
         <div role="group" aria-label="Affichage" className="flex rounded-control border border-line-strong bg-surface p-1">
@@ -174,6 +191,7 @@ export function PlanningPage() {
         tripsGroupedByDay={groupedTrips}
         today={today}
         onOpenTrip={(trip) => updateSearch({ trajet: String(trip.reservation_id) })}
+        reports={reportMap}
       />
 
       <Drawer
@@ -183,7 +201,13 @@ export function PlanningPage() {
       >
         <div className="p-5">
           {openedTrip ? (
-            <PlanningTripDetails trip={openedTrip} />
+            <PlanningTripDetails
+              key={openedTrip.reservation_id}
+              trip={openedTrip}
+              report={reportMap[openedTrip.reservation_id]}
+              canManageReports={can('trip-reports.manage')}
+              onReportSaved={handleReportSaved}
+            />
           ) : tripList ? (
             <Alert tone="warning">Ce trajet ne fait pas partie de la période ou des filtres affichés.</Alert>
           ) : (
