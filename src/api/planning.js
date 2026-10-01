@@ -20,3 +20,15 @@ export async function getPlanningExport(exportId) {
   const { data } = await api.get(`/planning/exports/${exportId}`)
   return data.data
 }
+
+// Chauffeurs et véhicules libres ou non pour une réservation (rôles internes) :
+// { drivers: { available, unavailable }, vehicles: { available, unavailable } }, chaque entrée avec
+// is_available et unavailable_reason. null si la réservation n'apparaît pas dans le planning du jour.
+export async function getReservationAvailability(reservation, { signal } = {}) {
+  const { data } = await getPlanning(
+    // Le planning n'inclut pas tous les statuts par défaut (ex. « en_attente ») : on demande celui de la réservation
+    { start_date: reservation.trip_date, end_date: reservation.trip_date, include_availability: 1, statuses: [reservation.status] },
+    { signal },
+  )
+  return data.find((item) => item.reservation_id === reservation.id)?.availability ?? null
+}
