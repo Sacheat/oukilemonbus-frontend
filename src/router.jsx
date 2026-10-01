@@ -32,6 +32,7 @@ import { UserHomePage } from './pages/user/UserHomePage'
 import { CollegePage } from './pages/backoffice/CollegePage'
 import { DriverMissionPage } from './pages/driver/DriverMissionPage'
 import { DriverMissionsPage } from './pages/driver/DriverMissionsPage'
+import { DriverRouteSheetsPage } from './pages/driver/DriverRouteSheetsPage'
 import { DriverUnavailabilitiesPage } from './pages/driver/DriverUnavailabilitiesPage'
 import { DriversPage } from './pages/backoffice/DriversPage'
 import { PlanningPage } from './pages/backoffice/PlanningPage'
@@ -185,7 +186,14 @@ export const router = createBrowserRouter([
                 children: [
                   { index: true, element: <DriverMissionsPage /> },
                   { path: 'missions/:missionId', element: <DriverMissionPage /> },
-                  soon('documents', 'Espace chauffeur', 'Feuilles de route', 'documents.view'),
+                  {
+                    path: 'feuilles-de-route',
+                    element: (
+                      <RequirePermission permission="documents.view">
+                        <DriverRouteSheetsPage />
+                      </RequirePermission>
+                    ),
+                  },
                   {
                     path: 'indisponibilites',
                     element: (
