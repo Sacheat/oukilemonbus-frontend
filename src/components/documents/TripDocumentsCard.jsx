@@ -10,7 +10,8 @@ import { DocumentRow } from './DocumentRow'
 
 // Carte « Décision et documents » du détail d'un déplacement : décision du Collège (ASBL, CPAS,
 // externes) et documents de la réservation. Rien n'est affiché s'il n'y a ni l'un ni l'autre.
-export function TripDocumentsCard({ reservationId }) {
+// `withDecision={false}` : documents seulement (« Documents »), quand la décision est déjà affichée ailleurs.
+export function TripDocumentsCard({ reservationId, withDecision = true }) {
   const fetchData = useCallback(
     async (signal) => {
       const [decisions, documents] = await Promise.all([
@@ -27,12 +28,13 @@ export function TripDocumentsCard({ reservationId }) {
   const { data } = useApi(fetchData)
 
   // Complément du détail : en cas d'erreur ou pendant le chargement, la carte ne s'affiche pas
-  if (!data || (!data.decision && data.documents.length === 0)) return null
-  const { decision, documents } = data
+  const decision = withDecision ? data?.decision : null
+  if (!data || (!decision && data.documents.length === 0)) return null
+  const { documents } = data
   const status = decision && DECISION_STATUS[decision.decision_status]
 
   return (
-    <Panel title="Décision et documents">
+    <Panel title={decision ? 'Décision et documents' : 'Documents'}>
       {decision && (
         <div className="px-5 pb-3">
           <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
