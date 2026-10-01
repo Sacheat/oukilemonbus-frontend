@@ -20,7 +20,7 @@ export function PendingReports() {
       </p>
       <div className="grid gap-3 md:grid-cols-2">
         {pending.data.map((mission) => (
-          <MissionCard key={mission.id} mission={mission} />
+          <MissionCard key={mission.id} mission={mission} report={null} />
         ))}
       </div>
     </section>

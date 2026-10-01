@@ -1,6 +1,6 @@
 import { saveTripReport } from '../../api/tripReports'
 import { useForm } from '../../hooks/useForm'
-import { OUTCOME_OPTIONS, tripReportFormValues } from '../../lib/tripReports'
+import { OUTCOME_OPTIONS, remarksForOutcome, tripReportFormValues } from '../../lib/tripReports'
 import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
 import { ChoicePills } from '../ui/ChoicePills'
@@ -20,6 +20,11 @@ export function TripReportForm({ mission, report, onSaved, onCancel }) {
     form.setValues((values) => ({ ...values, [name]: value }))
   }
 
+  // Changer de résultat vide le motif / la remarque (revenir au résultat enregistré rend son texte)
+  function setOutcome(outcome) {
+    form.setValues((values) => ({ ...values, outcome, remarks: remarksForOutcome(report, outcome) }))
+  }
+
   async function handleSubmit(event) {
     event.preventDefault()
     const result = await form.submit((values) => saveTripReport(mission.id, values))
@@ -34,7 +39,7 @@ export function TripReportForm({ mission, report, onSaved, onCancel }) {
         legend="Le trajet a-t-il eu lieu ?"
         options={OUTCOME_OPTIONS}
         value={form.values.outcome}
-        onChange={(value) => setValue('outcome', value)}
+        onChange={setOutcome}
         error={form.errors.outcome}
         required
       />

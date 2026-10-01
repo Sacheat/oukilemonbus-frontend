@@ -58,7 +58,6 @@ export function PlanningPage() {
   const tripList = planning.data?.data
   // Comptes rendus des trajets affichés (badges Réalisé, Non réalisé, À confirmer)
   const reports = useTripReports((tripList ?? []).map((trip) => trip.reservation_id).join(','))
-  const reportMap = reports.data ?? {}
   const groupedTrips = tripList ? tripsByDay(tripList) : {}
   const openedTrip = tripList?.find((trip) => String(trip.reservation_id) === planningSearch.openedTripId)
 
@@ -191,7 +190,7 @@ export function PlanningPage() {
         tripsGroupedByDay={groupedTrips}
         today={today}
         onOpenTrip={(trip) => updateSearch({ trajet: String(trip.reservation_id) })}
-        reports={reportMap}
+        reports={reports.data}
       />
 
       <Drawer
@@ -204,7 +203,7 @@ export function PlanningPage() {
             <PlanningTripDetails
               key={openedTrip.reservation_id}
               trip={openedTrip}
-              report={reportMap[openedTrip.reservation_id]}
+              report={reports.data?.[openedTrip.reservation_id] ?? null}
               canManageReports={can('trip-reports.manage')}
               onReportSaved={handleReportSaved}
             />

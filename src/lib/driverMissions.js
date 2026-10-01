@@ -17,13 +17,18 @@ export function readMissionSearch(searchParams) {
   return { period, page }
 }
 
-// Paramètres de GET /reservations : le backend ne renvoie au chauffeur que ses missions.
+// Missions listées au chauffeur : celles qui lui sont affectées et ont lieu (approuvées, en attente de confirmation par
+// l'agent, ou confirmées). Les annulées et refusées n'encombrent pas la liste : le chauffeur est prévenu par une
+// notification, dont le lien mène au détail (« Cette mission n'a plus lieu »).
+export const MISSION_STATUSES = ['approuve', 'confirme']
+
+// Paramètres de GET /reservations : le backend ne renvoie au chauffeur que ses missions, filtrées par statut.
 //   à venir → à partir d'aujourd'hui, la plus proche d'abord
 //   passées → jusqu'à hier, la plus récente d'abord
 // `today` : jour à Bruxelles (AAAA-MM-JJ)
 export function missionListParams(period, page, today) {
-  if (period === 'passees') return { date_to: addDays(today, -1), sort: 'desc', page }
-  return { date_from: today, sort: 'asc', page }
+  if (period === 'passees') return { date_to: addDays(today, -1), statuses: MISSION_STATUSES, sort: 'desc', page }
+  return { date_from: today, statuses: MISSION_STATUSES, sort: 'asc', page }
 }
 
 // Missions rangées par jour, dans l'ordre reçu : [{ day, missions }]

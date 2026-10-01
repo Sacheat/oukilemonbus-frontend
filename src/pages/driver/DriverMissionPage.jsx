@@ -86,7 +86,7 @@ export function DriverMissionPage() {
             <h2 id="mission-groupe" className="text-lg font-bold">Groupe et véhicule</h2>
             <DetailList
               items={[
-                ['Passagers', `${totalPassengers(trip)} (${trip.nb_children} enfants, ${trip.nb_adults} adultes)`],
+                ['Passagers', `${totalPassengers(trip)} (${trip.nb_children} enfant${trip.nb_children > 1 ? 's' : ''}, ${trip.nb_adults} adulte${trip.nb_adults > 1 ? 's' : ''})`],
                 trip.passengers_confirmed_at && ['Nombre définitif', `confirmé le ${formatDateTime(trip.passengers_confirmed_at)}`],
                 ['Activité', trip.activity_type_label],
                 ['Motif', trip.trip_purpose],

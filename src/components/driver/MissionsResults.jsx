@@ -1,4 +1,5 @@
 import { CalendarCheck, Route } from 'lucide-react'
+import { reportOf } from '../../lib/tripReports'
 import { EmptyState } from '../ui/EmptyState'
 import { ErrorState } from '../ui/ErrorState'
 import { Loader } from '../ui/Loader'
@@ -11,8 +12,8 @@ import { MissionDays } from './MissionDays'
 //   « À venir », première page     → « Aujourd'hui » mis en avant (colonne de gauche sur grand écran),
 //                                     puis les prochains jours (colonne de droite)
 //   autre page ou « Passées »      → missions groupées par jour
-// `reports` : comptes rendus indexés par mission (badges)
-export function MissionsResults({ missions, reports = {}, period, page, today, onPageChange }) {
+// `reports` : comptes rendus indexés par mission (badges), absent tant qu'ils ne sont pas chargés
+export function MissionsResults({ missions, reports, period, page, today, onPageChange }) {
   if (missions.error) return <ErrorState error={missions.error} onRetry={missions.reload} />
   const missionList = missions.data?.data
   if (!missionList) return <Loader />
@@ -20,7 +21,9 @@ export function MissionsResults({ missions, reports = {}, period, page, today, o
   const pagination = <Pagination meta={missions.data.meta} onPageChange={onPageChange} />
 
   if (period === 'passees' || page > 1) {
-    if (missionList.length === 0) return <EmptyState icon={Route} title="Aucune mission passée" />
+    if (missionList.length === 0) {
+      return <EmptyState icon={Route} title={period === 'passees' ? 'Aucune mission passée' : 'Aucune autre mission à venir'} />
+    }
     return (
       <div className="grid gap-6">
         <MissionDays missions={missionList} columns reports={reports} />
@@ -40,7 +43,7 @@ export function MissionsResults({ missions, reports = {}, period, page, today, o
           {todayMissions.length === 0 ? (
             <EmptyState icon={CalendarCheck} title="Aucune mission aujourd'hui" />
           ) : (
-            todayMissions.map((mission) => <MissionCard key={mission.id} mission={mission} large report={reports[mission.id]} />)
+            todayMissions.map((mission) => <MissionCard key={mission.id} mission={mission} large report={reportOf(reports, mission.id)} />)
           )}
         </section>
 

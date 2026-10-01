@@ -33,23 +33,42 @@ export function hasTripStarted(mission, now = new Date()) {
   return `${mission.trip_date.slice(0, 10)}T${formatTime(mission.departure_time)}` <= brusselsNow(now)
 }
 
-// Badge d'un trajet dans une liste :
-//   compte rendu « réalisé »                    → Réalisé (vert)
-//   compte rendu « non réalisé »                → Non réalisé (rouge)
-//   confirmé, commencé, sans compte rendu       → À confirmer (orange)
-//   sinon                                       → rien
-export function tripReportBadge(report, mission, now = new Date()) {
+// Délai du chauffeur dépassé ? (le lendemain à 12:00, même règle que le backend : TripReportService::DRIVER_GRACE_UNTIL)
+function isDriverDeadlinePassed(mission, now) {
+  return brusselsNow(now) > `${nextDay(mission.trip_date.slice(0, 10))}T12:00`
+}
+
+// Compte rendu d'une réservation dans un index chargé par useTripReports :
+//   index pas encore connu → undefined (aucun badge) ; chargé, pas de compte rendu → null
+export function reportOf(reports, reservationId) {
+  return reports ? (reports[reservationId] ?? null) : undefined
+}
+
+// Badge d'un trajet dans une liste (`audience` : 'chauffeur' ou 'agent') :
+//   compte rendu inconnu (undefined)                         → rien
+//   compte rendu « réalisé » / « non réalisé »               → Réalisé (vert) / Non réalisé (rouge)
+//   confirmé, commencé, sans compte rendu, délai en cours    → À confirmer (orange)
+//   idem, délai du chauffeur dépassé                         → agent : Sans compte rendu (orange, il peut le saisir) ;
+//                                                              chauffeur : rien (il ne peut plus le faire)
+export function tripReportBadge(report, mission, audience = 'chauffeur', now = new Date()) {
+  if (report === undefined) return null
   if (report?.outcome === 'realise') return { label: 'Réalisé', tone: 'success' }
   if (report?.outcome === 'non_realise') return { label: 'Non réalisé', tone: 'danger' }
-  if (mission.status === 'confirme' && hasTripStarted(mission, now)) return { label: 'À confirmer', tone: 'warning' }
-  return null
+  if (mission.status !== 'confirme' || !hasTripStarted(mission, now)) return null
+  if (!isDriverDeadlinePassed(mission, now)) return { label: 'À confirmer', tone: 'warning' }
+  return audience === 'agent' ? { label: 'Sans compte rendu', tone: 'warning' } : null
 }
 
 // Compte rendu en attente pour le chauffeur : trajet confirmé, commencé, sans compte rendu, et délai pas encore dépassé
-// (le lendemain à 12:00, même règle que le backend : TripReportService::DRIVER_GRACE_UNTIL)
 export function isReportPending(mission, report, now = new Date()) {
   if (report || mission.status !== 'confirme' || !hasTripStarted(mission, now)) return false
-  return brusselsNow(now) <= `${nextDay(mission.trip_date.slice(0, 10))}T12:00`
+  return !isDriverDeadlinePassed(mission, now)
+}
+
+// Texte du motif / de la remarque quand on choisit un résultat : vide, sauf en revenant au résultat enregistré
+// (un motif de « non réalisé » n'a pas de sens comme remarque d'un trajet réalisé, et inversement)
+export function remarksForOutcome(report, outcome) {
+  return report && report.outcome === outcome ? (report.remarks ?? '') : ''
 }
 
 function nextDay(day) {

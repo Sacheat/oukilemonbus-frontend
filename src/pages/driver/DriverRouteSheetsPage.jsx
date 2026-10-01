@@ -11,6 +11,7 @@ import { PageHeader } from '../../components/ui/PageHeader'
 import { Pagination } from '../../components/ui/Pagination'
 import { Panel } from '../../components/ui/Panel'
 import { useOfficialSheets } from '../../hooks/useOfficialSheets'
+import { useTripReports } from '../../hooks/useTripReports'
 import { useWeekMissions } from '../../hooks/useWeekMissions'
 import { formatDate } from '../../lib/dates'
 import { addDays, mondayOf, todayInBrussels } from '../../lib/planning'
@@ -25,6 +26,8 @@ export function DriverRouteSheetsPage() {
   const { weekStart, page } = readRouteSheetsSearch(searchParams)
   const currentMonday = mondayOf(todayInBrussels())
   const missions = useWeekMissions(weekStart)
+  // Comptes rendus des missions de la semaine (badges Réalisé, À confirmer…), comme sur « Mes missions »
+  const reports = useTripReports((missions.data ?? []).map((mission) => mission.id).join(','))
   const sheets = useOfficialSheets(weekStart, page)
   const sheetList = sheets.data?.data
 
@@ -53,7 +56,7 @@ export function DriverRouteSheetsPage() {
         La feuille imprimée contiendra seulement les jours, du lundi au vendredi.
       </EmptyState>
     )
-  } else missionsContent = <MissionDays missions={missions.data} columns />
+  } else missionsContent = <MissionDays missions={missions.data} columns reports={reports.data} />
 
   let sheetsContent
   if (sheets.error) sheetsContent = <ErrorState error={sheets.error} onRetry={sheets.reload} />
