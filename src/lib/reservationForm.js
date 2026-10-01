@@ -159,6 +159,34 @@ export function changedRowCount(changes) {
 
 // Ce que deviendra la demande à l'envoi, d'après le preview (le backend crée la réservation avec son
 // `status`) : bloquée, en conflit, approuvée automatiquement ou examinée par la commune (en attente)
+// Effet d'une modification faite par un agent (espace gestion), d'après le preview et le statut actuel.
+// Le backend garde le statut, passe en conflit s'il en détecte un, et sort une réservation en conflit corrigée
+// vers « en attente » (ou approuvée et affectée pour une école ou le personnel communal).
+export function agentEditDecision(result, currentStatus) {
+  if (!result.is_allowed) {
+    return {
+      tone: 'danger',
+      title: 'Ces changements ne peuvent pas être enregistrés',
+      text: 'Modifiez le trajet ou les horaires : la vérification sera relancée.',
+    }
+  }
+  if (result.conflicts?.length > 0) {
+    return {
+      tone: 'warning',
+      title: 'Toujours en conflit après l’enregistrement',
+      text: 'Les points ci-dessous resteront à régler depuis la file des réservations.',
+    }
+  }
+  if (currentStatus === 'en_conflit') {
+    return {
+      tone: 'success',
+      title: 'Conflit levé',
+      text: 'Plus aucun conflit : la réservation repassera en attente (approuvée et affectée automatiquement pour une école ou le personnel communal).',
+    }
+  }
+  return { tone: 'info', title: 'Aucun conflit', text: 'Le statut de la réservation ne change pas.' }
+}
+
 export function reservationDecision(result, mode = 'create') {
   const send = mode === 'edit' ? 'l’enregistrement' : 'l’envoi'
   if (!result.is_allowed) {

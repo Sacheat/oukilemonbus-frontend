@@ -13,6 +13,7 @@ export const SHORTCUT_ACTIONS = [
   { id: 'assign', label: 'Affecter un chauffeur ou un véhicule', key: 'e' },
   { id: 'confirm', label: 'Confirmer', key: 'c' },
   { id: 'council', label: 'Décision du Collège', key: 'd' },
+  { id: 'edit', label: 'Modifier la réservation', key: 'm' },
   { id: 'help', label: 'Afficher les raccourcis', key: '?' },
   // Touche fixe (non modifiable) : pas de `key`, seulement `extra`
   { id: 'close', label: 'Fermer le détail', key: null, extra: 'Escape' },

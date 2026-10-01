@@ -5,11 +5,13 @@ import { keyLabel } from './shortcuts'
 import { todayApiDate, yesterdayApiDate } from './reservations'
 
 // Files de la page « Réservations » de l'espace gestion, dans l'ordre des pastilles.
-// `statuses` : statuts affichés (null : tous) ; la valeur est gardée dans l'URL (?file=…).
+// `statuses` : statuts affichés ; `council` : seulement celles qui attendent le Collège (council=a_decider : type
+// soumis au Collège, sans décision ou décision en attente, trajet pas encore passé). La valeur est gardée dans l'URL.
 export const QUEUES = [
   { value: 'a-traiter', label: 'À traiter', statuses: ['en_attente', 'en_conflit'] },
   { value: 'en-attente', label: 'En attente', statuses: ['en_attente'], dot: 'bg-warning' },
   { value: 'en-conflit', label: 'En conflit', statuses: ['en_conflit'], dot: 'bg-conflict' },
+  { value: 'college', label: 'Collège à décider', statuses: ['en_attente', 'en_conflit'], council: true, dot: 'bg-accent' },
   { value: 'a-affecter', label: 'À affecter', statuses: ['approuve'], dot: 'bg-info' },
   { value: 'confirmees', label: 'Confirmées', statuses: ['confirme'], dot: 'bg-success' },
 ]
@@ -67,15 +69,18 @@ export function agentActions(reservation, can, decision = null, today) {
     confirm: can('reservations.confirm') && status === 'approuve' && assigned && !openConflicts && !tripPassed,
     cancel: can('reservations.cancel') && ['en_attente', 'en_conflit', 'approuve', 'confirme'].includes(status) && !tripPassed,
     resolveConflicts: can('reservations.manage-conflicts') && !terminal,
+    // Modifier (horaires, lieux, passagers) pour régler un conflit : statut non terminal, trajet pas encore passé
+    edit: can('reservations.update') && open,
   }
 }
 
 // Paramètres de GET /reservations pour une file et des filtres (sans la page) : un seul appel avec statuses[],
 // trié par le backend (date puis heure de départ). `filters` : { period, organizationId, search }.
-function queueParams(statuses, { period, organizationId, search }) {
+function queueParams(queue, { period, organizationId, search }) {
   return {
     ...periodParams(period),
-    statuses,
+    statuses: queue.statuses,
+    ...(queue.council && { council: 'a_decider' }),
     ...(organizationId && { organization_id: organizationId }),
     ...(search && { q: search }),
   }
@@ -92,7 +97,7 @@ export function queueRequestKey(queue, filters) {
 // (une réservation traitée quitte la file et décale les suivantes).
 export async function fetchQueuePages(requestKey, pageCount, { signal } = {}) {
   const { queue, ...filters } = JSON.parse(requestKey)
-  const params = queueParams(queueOf(queue).statuses, filters)
+  const params = queueParams(queueOf(queue), filters)
   const pages = await Promise.all(
     Array.from({ length: pageCount }, (_, index) => getReservations({ ...params, page: index + 1 }, { signal })),
   )
@@ -103,7 +108,7 @@ export async function fetchQueuePages(requestKey, pageCount, { signal } = {}) {
 // Nombre de réservations de chaque file pour les filtres courants (une requête par file, lue dans meta.total)
 export async function fetchQueueCounts(filters, { signal } = {}) {
   const totals = await Promise.all(
-    QUEUES.map((queue) => getReservations({ ...queueParams(queue.statuses, filters), page: 1 }, { signal })),
+    QUEUES.map((queue) => getReservations({ ...queueParams(queue, filters), page: 1 }, { signal })),
   )
   return Object.fromEntries(QUEUES.map((queue, index) => [queue.value, totals[index].meta.total]))
 }
@@ -111,8 +116,7 @@ export async function fetchQueueCounts(filters, { signal } = {}) {
 // Nombre de demandes « à traiter » (en attente ou en conflit, trajet à venir) : même chiffre que la pastille
 // « À traiter » de la page, pour le badge du menu. Une seule réservation demandée suffit, on lit meta.total.
 export async function fetchPendingCount({ signal } = {}) {
-  const queue = queueOf(DEFAULT_QUEUE)
-  const page = await getReservations({ ...queueParams(queue.statuses, { period: 'a-venir' }), page: 1 }, { signal })
+  const page = await getReservations({ ...queueParams(queueOf(DEFAULT_QUEUE), { period: 'a-venir' }), page: 1 }, { signal })
   return page.meta.total
 }
 
@@ -191,11 +195,22 @@ export function nextStep(reservation, actions, decision, keys) {
 
   if (['en_attente', 'en_conflit'].includes(status)) {
     if (reservation.approval_type === 'manuel' && decision === undefined) return null
+    if (actions.approveBlocked && openConflicts > 0) {
+      return {
+        tone: 'conflict',
+        text: `${openConflicts > 1 ? `${openConflicts} conflits à régler` : 'Un conflit à régler'} (voir ci-dessous), et la décision du Collège à encoder${key('council')} dès qu’elle est connue.`,
+      }
+    }
     if (actions.approveBlocked) {
       return { tone: 'info', text: `En attente de la décision du Collège : encodez-la${key('council')} dès qu’elle est connue.` }
     }
-    const conflictNote = openConflicts > 0 ? ` Vérifiez d’abord ${openConflicts > 1 ? 'les conflits' : 'le conflit'} ci-dessous.` : ''
-    return { tone: openConflicts > 0 ? 'conflict' : 'success', text: `Prête à être approuvée${key('approve')}.${conflictNote}` }
+    if (openConflicts > 0) {
+      return {
+        tone: 'conflict',
+        text: `${openConflicts > 1 ? `${openConflicts} conflits à régler` : 'Un conflit à régler'} : voyez ci-dessous ce qui le règle. Vous pouvez aussi approuver${key('approve')} malgré le conflit.`,
+      }
+    }
+    return { tone: 'success', text: `Prête à être approuvée${key('approve')}.` }
   }
   if (status === 'approuve') {
     const missing = [!reservation.driver_id && 'un chauffeur', !reservation.vehicle_id && 'un véhicule'].filter(Boolean)

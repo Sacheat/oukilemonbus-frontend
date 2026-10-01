@@ -1,20 +1,25 @@
-import { ArrowRight, Ban, CalendarDays, Check, CheckCheck, Landmark, RefreshCw, Repeat, TriangleAlert, UserRoundCog, X } from 'lucide-react'
-import { useCallback } from 'react'
+import { ArrowRight, Ban, CalendarDays, Check, CheckCheck, Landmark, Pencil, RefreshCw, Repeat, UserRoundCog, X } from 'lucide-react'
+import { useCallback, useState } from 'react'
 import { Link } from 'react-router'
 import { getUser } from '../../api/users'
 import { useAuth } from '../../auth/useAuth'
 import { useApi } from '../../hooks/useApi'
 import { cx } from '../../lib/cx'
 import { formatDate, formatDateTime, formatTime } from '../../lib/dates'
+import { openConflictsOf, resolvedConflictsOf } from '../../lib/conflicts'
 import { DECISION_STATUS } from '../../lib/documents'
 import { nextStep, planningHref } from '../../lib/queue'
 import { estimatedArrivals, shortAddress, totalPassengers } from '../../lib/reservations'
 import { keyLabel } from '../../lib/shortcuts'
+import { RegenerateDeliberation } from '../college/RegenerateDeliberation'
+import { TripDocumentsCard } from '../documents/TripDocumentsCard'
 import { TripLeg } from '../reservations/TripLeg'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { DetailList } from '../ui/DetailList'
 import { StatusBadge } from '../ui/StatusBadge'
+import { ConflictCard } from './ConflictCard'
+import { ResolvedConflicts } from './ResolvedConflicts'
 
 // Couleurs du bandeau « Prochaine étape », selon nextStep
 const STEP_TONES = {
@@ -40,8 +45,10 @@ function Kbd({ children }) {
 // `driverName(id)` : nom d'un chauffeur ; `onResolve(conflit)` : marquer un conflit comme résolu.
 // `decision` : décision du Collège (validation manuelle), `undefined` pendant le chargement.
 // `onClose` : absent dans le panneau glissant du mobile, qui a son propre bouton de fermeture.
-export function ReservationPanel({ reservation, decision, actions, onAction, busy, keys, driverName, onResolve, resolving, onClose }) {
+export function ReservationPanel({ reservation, decision, actions, onAction, busy, keys, driverName, onResolve, resolving, onClose, onOpen, editHref }) {
   const { can } = useAuth()
+  // Relit les documents après une régénération de la délibération
+  const [documentsVersion, setDocumentsVersion] = useState(0)
   const step = nextStep(reservation, actions, decision, keys)
   const fetchRequester = useCallback(
     (signal) => (reservation.requested_by_user_id ? getUser(reservation.requested_by_user_id, { signal }) : Promise.resolve(null)),
@@ -52,8 +59,7 @@ export function ReservationPanel({ reservation, decision, actions, onAction, bus
   // Le panneau est étroit : les villes sur le trajet, les adresses complètes dans les informations
   const from = reservation.pickup_location?.city || shortAddress(reservation.pickup_location)
   const to = reservation.destination_location?.city || shortAddress(reservation.destination_location)
-  const conflicts = reservation.conflicts ?? []
-  const openConflicts = conflicts.filter((conflict) => !conflict.is_resolved)
+  const openConflicts = openConflictsOf(reservation)
 
   return (
     <article aria-labelledby="panel-title" className="flex h-full flex-col">
@@ -106,7 +112,7 @@ export function ReservationPanel({ reservation, decision, actions, onAction, bus
         {actions.tripPassed && !actions.approveExpired && (
           <p className="text-xs text-muted">Trajet passé : consultation seulement.</p>
         )}
-        {(actions.approve || actions.approveBlocked || actions.approveExpired || actions.confirm || actions.assign || actions.retryAssign || actions.reject || actions.cancel) && (
+        {(actions.approve || actions.approveBlocked || actions.approveExpired || actions.confirm || actions.assign || actions.retryAssign || actions.edit || actions.reject || actions.cancel) && (
           <div className="grid gap-2">
             <div className="flex flex-wrap gap-2">
               {(actions.approve || actions.approveBlocked) && (
@@ -134,6 +140,14 @@ export function ReservationPanel({ reservation, decision, actions, onAction, bus
                   <RefreshCw className="size-4" aria-hidden="true" /> Affectation auto
                 </Button>
               )}
+              {actions.edit && (
+                <Link
+                  to={editHref}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-control border border-line-strong bg-surface px-4 text-sm font-semibold hover:bg-surface-muted"
+                >
+                  <Pencil className="size-4" aria-hidden="true" /> Modifier <Kbd>{keyLabel(keys.edit)}</Kbd>
+                </Link>
+              )}
             </div>
             <div className={cx('flex flex-wrap gap-2', !(actions.reject || actions.cancel) && 'hidden')}>
               {actions.reject && (
@@ -158,30 +172,24 @@ export function ReservationPanel({ reservation, decision, actions, onAction, bus
 
       <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
         {openConflicts.length > 0 && (
-          <section aria-labelledby="panel-conflicts" className="rounded-card border border-conflict/40 bg-conflict-soft p-3.5">
-            <h3 id="panel-conflicts" className="flex items-center gap-2 text-sm font-bold text-conflict">
-              <TriangleAlert className="size-4" aria-hidden="true" />
+          <section aria-labelledby="panel-conflicts" className="grid gap-2">
+            <h3 id="panel-conflicts" className="text-sm font-bold text-conflict">
               {openConflicts.length} conflit{openConflicts.length > 1 ? 's' : ''} à régler
             </h3>
-            <ul className="mt-2 grid gap-2">
+            <ul className="grid gap-2">
               {openConflicts.map((conflict) => (
-                <li key={conflict.id} className="flex flex-wrap items-start justify-between gap-2 text-sm">
-                  <span className="min-w-0 flex-1">
-                    <strong className="block">{conflict.type_label}</strong>
-                    <span className="text-muted">{conflict.message}</span>
-                  </span>
-                  {actions.resolveConflicts && (
-                    <Button
-                      variant="secondary"
-                      className="text-sm"
-                      onClick={() => onResolve(conflict)}
-                      loading={resolving === conflict.id}
-                      disabled={resolving !== null}
-                    >
-                      <Check className="size-4" aria-hidden="true" /> Résolu
-                    </Button>
-                  )}
-                </li>
+                <ConflictCard
+                  key={conflict.id}
+                  conflict={conflict}
+                  reservation={reservation}
+                  actions={actions}
+                  onAction={onAction}
+                  onResolve={onResolve}
+                  resolving={resolving}
+                  busy={busy}
+                  editHref={editHref}
+                  onOpen={onOpen}
+                />
               ))}
             </ul>
           </section>
@@ -215,6 +223,11 @@ export function ReservationPanel({ reservation, decision, actions, onAction, bus
                 {decision ? 'Modifier' : 'Enregistrer la décision'} <Kbd>{keyLabel(keys.council)}</Kbd>
               </Button>
             )}
+            {decision && decision.decision_status !== 'en_attente' && can('documents.generate') && (
+              <div className="w-full border-t border-line pt-3">
+                <RegenerateDeliberation decisionId={decision.id} onDone={() => setDocumentsVersion((version) => version + 1)} />
+              </div>
+            )}
           </section>
         )}
 
@@ -246,18 +259,15 @@ export function ReservationPanel({ reservation, decision, actions, onAction, bus
           ]}
         />
 
+        <TripDocumentsCard key={`${reservation.id}-${documentsVersion}`} reservationId={reservation.id} withDecision={false} />
+
         {can('reservations.view') && (
           <Link to={planningHref(reservation)} className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-link hover:underline">
             <CalendarDays className="size-4" aria-hidden="true" /> Voir ce jour dans le Planning
           </Link>
         )}
 
-        {conflicts.length > openConflicts.length && (
-          <p className="text-xs text-muted">
-            {conflicts.length - openConflicts.length} conflit{conflicts.length - openConflicts.length > 1 ? 's' : ''} déjà résolu
-            {conflicts.length - openConflicts.length > 1 ? 's' : ''}.
-          </p>
-        )}
+        <ResolvedConflicts conflicts={resolvedConflictsOf(reservation)} />
       </div>
     </article>
   )
