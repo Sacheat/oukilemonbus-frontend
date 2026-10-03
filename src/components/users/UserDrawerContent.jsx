@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { NEW_USER } from '../../lib/users'
 import { Alert } from '../ui/Alert'
 import { ErrorState } from '../ui/ErrorState'
@@ -13,6 +14,7 @@ import { UserStatusControl } from './UserStatusControl'
 // `opened` : { user, loading, error, reload } — le compte vient de la liste, sinon de GET /users/{id}.
 // `notice` : message à afficher en tête (ex. après la création). `self` : compte de l'admin connecté.
 // `canSendResetLink` : permission users.send-password-reset (section « Mot de passe »).
+// `canUseTools` : permission tooling.access (lien vers le diagnostic du compte dans Outils).
 export function UserDrawerContent({
   userParam,
   opened,
@@ -20,6 +22,7 @@ export function UserDrawerContent({
   notice,
   canSeeDrivers,
   canSendResetLink,
+  canUseTools,
   onCreated,
   onSaved,
   onStatusChanged,
@@ -49,6 +52,15 @@ export function UserDrawerContent({
       {canSendResetLink && <UserPasswordControl key={`password-${user.id}`} user={user} self={self} />}
 
       <UserStatusControl user={user} self={self} onChanged={onStatusChanged} />
+
+      {canUseTools && (
+        <p className="border-t border-line pt-5 text-sm">
+          <Link to={`/gestion/outils?onglet=comptes&utilisateur=${user.id}`} className="font-semibold text-link hover:underline">
+            Diagnostic du compte
+          </Link>
+          <span className="text-muted"> : permissions effectives et dernières actions.</span>
+        </p>
+      )}
     </>
   )
 }

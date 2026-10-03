@@ -31,6 +31,7 @@ import { UserHomePage } from './pages/user/UserHomePage'
 import { CollegePage } from './pages/backoffice/CollegePage'
 import { DashboardPage } from './pages/backoffice/DashboardPage'
 import { MunicipalitiesPage } from './pages/backoffice/MunicipalitiesPage'
+import { ToolsPage } from './pages/backoffice/ToolsPage'
 import { UsersPage } from './pages/backoffice/UsersPage'
 import { DriverMissionPage } from './pages/driver/DriverMissionPage'
 import { DriverMissionsPage } from './pages/driver/DriverMissionsPage'
@@ -292,7 +293,14 @@ export const router = createBrowserRouter([
                       </RequirePermission>
                     ),
                   },
-                  soon('outils', 'Administration', 'Outils', 'tooling.access'),
+                  {
+                    path: 'outils',
+                    element: (
+                      <RequirePermission permission="tooling.access">
+                        <ToolsPage />
+                      </RequirePermission>
+                    ),
+                  },
                   {
                     path: 'communes',
                     element: (
