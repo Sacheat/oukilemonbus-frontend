@@ -50,7 +50,7 @@ export const BACKOFFICE_NAV = [
   {
     title: 'Gestion',
     items: [
-      { to: '/gestion', end: true, label: 'Tableau de bord', icon: LayoutDashboard },
+      { to: '/gestion', end: true, label: 'Tableau de bord', icon: LayoutDashboard, permission: 'dashboard.view' },
       { to: '/gestion/reservations', label: 'Réservations', icon: ListChecks, permission: 'reservations.approve', badge: 'queue' },
       { to: '/gestion/planning', label: 'Planning', icon: CalendarDays, permission: 'reservations.view' },
       { to: '/gestion/college', label: 'Décisions du Collège', icon: Gavel, permission: 'council-decisions.create' },

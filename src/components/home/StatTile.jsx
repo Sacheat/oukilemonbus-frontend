@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router'
 import { useCountUp } from '../../hooks/useCountUp'
 import { cx } from '../../lib/cx'
@@ -12,17 +13,35 @@ const TONES = {
 }
 
 // Tuile « En un coup d'œil » : icône, chiffre animé et libellé, cliquable vers la liste filtrée.
-// `value` null : chargement ; `tone` passe en neutre quand il n'y a rien à signaler.
+// `value` null : chargement ; `tone` passe en neutre quand il n'y a rien à signaler. Sans `to` : chiffre seul.
+// Un bref halo signale un chiffre qui change après le premier chargement (rafraîchissement automatique).
 export function StatTile({ to, icon: Icon, value, label, tone = 'primary' }) {
   const shown = useCountUp(value)
+  const [previousValue, setPreviousValue] = useState(value)
+  const [flashCount, setFlashCount] = useState(0)
+  if (value !== previousValue) {
+    setPreviousValue(value)
+    if (previousValue != null && value != null) setFlashCount((count) => count + 1)
+  }
   const effectiveTone = value === 0 ? 'neutral' : tone
+  const Tag = to ? Link : 'div'
   return (
-    <Link
-      to={to}
-      onPointerMove={trackSpotlight}
-      className="spotlight card-hover flex items-center gap-3.5 rounded-card border border-line bg-surface p-4 shadow-soft"
+    <Tag
+      {...(to && { to, onPointerMove: trackSpotlight })}
+      className={cx(
+        'relative flex items-center gap-3.5 rounded-card border border-line bg-surface p-4 shadow-soft',
+        to && 'spotlight card-hover',
+      )}
+      role={to ? undefined : 'group'}
       aria-label={value == null ? label : `${value} ${label}`}
     >
+      {flashCount > 0 && (
+        <span
+          key={flashCount}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 animate-tile-flash rounded-card ring-2 ring-primary opacity-0 motion-reduce:hidden"
+        />
+      )}
       <span className={cx('grid size-11 shrink-0 place-items-center rounded-xl', TONES[effectiveTone])}>
         <Icon className="size-5" aria-hidden="true" />
       </span>
@@ -34,6 +53,6 @@ export function StatTile({ to, icon: Icon, value, label, tone = 'primary' }) {
           {label}
         </span>
       </span>
-    </Link>
+    </Tag>
   )
 }
