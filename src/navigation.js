@@ -3,13 +3,13 @@ import {
   Bus,
   CalendarDays,
   CalendarOff,
-  ClipboardList,
   FileText,
   Gavel,
   House,
   Inbox,
   LayoutDashboard,
   ListChecks,
+  MapPinned,
   Plus,
   Repeat,
   Route,
@@ -72,7 +72,7 @@ export const BACKOFFICE_NAV = [
     items: [
       { to: '/gestion/utilisateurs', label: 'Utilisateurs', icon: UserCog, permission: 'users.manage-roles' },
       { to: '/gestion/outils', label: 'Outils', icon: Wrench, permission: 'tooling.access' },
-      { to: '/gestion/communes', label: 'Communes', icon: ClipboardList, permission: 'municipalities.manage' },
+      { to: '/gestion/communes', label: 'Communes', icon: MapPinned, permission: 'municipalities.manage' },
     ],
   },
 ]
