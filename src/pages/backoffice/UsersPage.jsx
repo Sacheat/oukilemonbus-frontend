@@ -205,6 +205,7 @@ export function UsersPage() {
             notice={createdNotice && openedUser && createdNotice.id === openedUser.id ? createdNotice.message : null}
             canSeeDrivers={can('drivers.update')}
             canSendResetLink={can('users.send-password-reset')}
+            canUseTools={can('tooling.access')}
             onCreated={handleCreated}
             onSaved={handleSaved}
             onStatusChanged={handleStatusChanged}
