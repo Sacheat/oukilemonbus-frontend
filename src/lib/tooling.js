@@ -24,6 +24,7 @@ export const HEALTH_CHECKS = [
   { key: 'queue', label: 'File d’attente' },
   { key: 'storage', label: 'Stockage des fichiers' },
   { key: 'notifications', label: 'Notifications' },
+  { key: 'mail', label: 'Envoi d’emails (SMTP)' },
   { key: 'ors_geocoding', label: 'Recherche d’adresses (ORS)' },
   { key: 'ors_routing', label: 'Itinéraires (ORS)' },
   { key: 'geonames', label: 'Localités (GeoNames)' },
