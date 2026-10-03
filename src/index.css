@@ -160,6 +160,18 @@
     }
   }
 
+  /* Halo bref sur une tuile du tableau de bord dont le chiffre vient de changer */
+  --animate-tile-flash: tile-flash 1.6s ease-out;
+
+  @keyframes tile-flash {
+    from {
+      opacity: 0.9;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
   /* Petit bus qui avance d'arrêt en arrêt sur la ligne de la bannière d'accueil */
   --animate-bus-ride: bus-ride 10s ease-in-out infinite;
 

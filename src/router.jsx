@@ -15,7 +15,6 @@ import { VerifyEmailPage } from './pages/auth/VerifyEmailPage'
 import { NotFoundPage } from './pages/errors/NotFoundPage'
 import { RouteErrorPage } from './pages/errors/RouteErrorPage'
 import { NotificationsPage } from './pages/NotificationsPage'
-import { SpaceHomePage } from './pages/SpaceHomePage'
 import { CreateOrganizationRequestPage } from './pages/user/CreateOrganizationRequestPage'
 import { DocumentsPage } from './pages/user/DocumentsPage'
 import { EditReservationPage } from './pages/user/EditReservationPage'
@@ -30,6 +29,7 @@ import { TripDetailPage } from './pages/user/TripDetailPage'
 import { TripsPage } from './pages/user/TripsPage'
 import { UserHomePage } from './pages/user/UserHomePage'
 import { CollegePage } from './pages/backoffice/CollegePage'
+import { DashboardPage } from './pages/backoffice/DashboardPage'
 import { DriverMissionPage } from './pages/driver/DriverMissionPage'
 import { DriverMissionsPage } from './pages/driver/DriverMissionsPage'
 import { DriverRouteSheetsPage } from './pages/driver/DriverRouteSheetsPage'
@@ -215,7 +215,14 @@ export const router = createBrowserRouter([
               {
                 element: <SidebarLayout sections={BACKOFFICE_NAV} />,
                 children: [
-                  { index: true, element: <SpaceHomePage eyebrow="Gestion" /> },
+                  {
+                    index: true,
+                    element: (
+                      <RequirePermission permission="dashboard.view">
+                        <DashboardPage />
+                      </RequirePermission>
+                    ),
+                  },
                   {
                     path: 'reservations',
                     element: (
