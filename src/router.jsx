@@ -30,6 +30,7 @@ import { TripsPage } from './pages/user/TripsPage'
 import { UserHomePage } from './pages/user/UserHomePage'
 import { CollegePage } from './pages/backoffice/CollegePage'
 import { DashboardPage } from './pages/backoffice/DashboardPage'
+import { MunicipalitiesPage } from './pages/backoffice/MunicipalitiesPage'
 import { UsersPage } from './pages/backoffice/UsersPage'
 import { DriverMissionPage } from './pages/driver/DriverMissionPage'
 import { DriverMissionsPage } from './pages/driver/DriverMissionsPage'
@@ -292,7 +293,14 @@ export const router = createBrowserRouter([
                     ),
                   },
                   soon('outils', 'Administration', 'Outils', 'tooling.access'),
-                  soon('communes', 'Administration', 'Communes', 'municipalities.manage'),
+                  {
+                    path: 'communes',
+                    element: (
+                      <RequirePermission permission="municipalities.manage">
+                        <MunicipalitiesPage />
+                      </RequirePermission>
+                    ),
+                  },
                 ],
               },
             ],
