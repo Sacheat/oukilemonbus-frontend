@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { resetPassword } from '../../api/auth'
+import { getHomePath } from '../../auth/permissions'
 import { useAuth } from '../../auth/useAuth'
 import { Alert } from '../../components/ui/Alert'
 import { Button } from '../../components/ui/Button'
@@ -7,23 +9,30 @@ import { Field, Input, PasswordInput } from '../../components/ui/Field'
 import { useForm } from '../../hooks/useForm'
 import { AuthCard } from './AuthCard'
 
-// Ouverte depuis le lien de l'email : {FRONTEND_URL}/reset-password?token=…&email=…
+// Ouverte depuis le lien de l'email : {FRONTEND_URL}/reset-password?token=…&email=…, connecté ou non.
+// Une session ouverte sur un autre compte (ex. un admin qui teste le lien qu'il a envoyé) est annoncée et reste
+// ouverte ; si c'est le compte du lien, le backend ferme ses sessions : retour à la connexion.
 export function ResetPasswordPage() {
   const [searchParams] = useSearchParams()
-  const { clearSession } = useAuth()
+  const { user, clearSession } = useAuth()
   const navigate = useNavigate()
   const token = searchParams.get('token')
   const email = searchParams.get('email')
   const form = useForm({ email: email ?? '', password: '', password_confirmation: '' })
+  const [doneMessage, setDoneMessage] = useState(null)
+  const otherAccount = Boolean(user && email && user.email.toLowerCase() !== email.toLowerCase())
 
   async function handleSubmit(event) {
     event.preventDefault()
     const result = await form.submit((values) => resetPassword({ ...values, token }))
-    if (result.ok) {
-      // Le backend ferme toutes les sessions de l'utilisateur
-      await clearSession({ tone: 'success', message: result.data })
-      navigate('/connexion', { replace: true })
+    if (!result.ok) return
+    if (otherAccount) {
+      setDoneMessage(result.data)
+      return
     }
+    // Le backend ferme toutes les sessions du compte
+    await clearSession({ tone: 'success', message: result.data })
+    navigate('/connexion', { replace: true })
   }
 
   const footer = (
@@ -46,14 +55,36 @@ export function ResetPasswordPage() {
     )
   }
 
+  if (doneMessage) {
+    return (
+      <AuthCard eyebrow="Mot de passe oublié" title="Mot de passe changé">
+        <Alert tone="success">{doneMessage}</Alert>
+        <Button to={getHomePath(user)} className="mt-4 w-full">
+          Retour à mon espace
+        </Button>
+      </AuthCard>
+    )
+  }
+
   return (
     <AuthCard
       eyebrow="Mot de passe oublié"
       title="Choisir un nouveau mot de passe"
-      description="Vous serez déconnecté de tous vos appareils après le changement."
+      description={
+        otherAccount
+          ? 'Ce compte sera déconnecté de tous ses appareils après le changement.'
+          : 'Vous serez déconnecté de tous vos appareils après le changement.'
+      }
       footer={footer}
     >
       <form onSubmit={handleSubmit} noValidate className="grid gap-4">
+        {user && (
+          <Alert tone="info">
+            {otherAccount
+              ? `Vous êtes connecté en tant que ${user.email}. Ce lien change le mot de passe de ${email} ; votre session reste ouverte.`
+              : 'Vous êtes connecté avec ce compte : après le changement, il faudra vous reconnecter.'}
+          </Alert>
+        )}
         {form.error && <Alert tone="danger">{form.error}</Alert>}
 
         <Field label="Adresse e-mail" error={form.errors.email}>
