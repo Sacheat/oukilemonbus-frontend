@@ -82,9 +82,17 @@ export function requestSummary(kind, request) {
   }
 }
 
-// Ton de la pastille selon le niveau calculé par le backend (`confidence_level`, nouvelles organisations seulement
-// pour l'instant) ; sans niveau : neutre (les seuils ne sont pas recodés dans le front)
+// Ton de la pastille selon le niveau calculé par le backend (`confidence_level`, adhésions et nouvelles
+// organisations) ; sans niveau : neutre (les seuils ne sont pas recodés dans le front)
 export const CONFIDENCE_LEVEL_TONES = { faible: 'danger', moyen: 'warning', eleve: 'success' }
+
+// Avertissement « Rôle déjà tenu » d'une adhésion (l'organisation a déjà un responsable ou directeur : approuver en
+// ajouterait un second), reconnu au début de son texte faute de code dans l'API ; null s'il n'y en a pas
+const ROLE_ALREADY_HELD = /^rôle déjà tenu/i
+
+export function roleAlreadyHeldWarning(warnings) {
+  return warnings?.find((warning) => ROLE_ALREADY_HELD.test(warning)) ?? null
+}
 
 // Tons des statuts (comme les badges de l'espace usager)
 export const REQUEST_STATUS_TONES = { en_attente: 'warning', approuve: 'success', refuse: 'danger' }
