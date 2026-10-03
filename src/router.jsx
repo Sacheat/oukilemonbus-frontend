@@ -30,6 +30,7 @@ import { TripsPage } from './pages/user/TripsPage'
 import { UserHomePage } from './pages/user/UserHomePage'
 import { CollegePage } from './pages/backoffice/CollegePage'
 import { DashboardPage } from './pages/backoffice/DashboardPage'
+import { UsersPage } from './pages/backoffice/UsersPage'
 import { DriverMissionPage } from './pages/driver/DriverMissionPage'
 import { DriverMissionsPage } from './pages/driver/DriverMissionsPage'
 import { DriverRouteSheetsPage } from './pages/driver/DriverRouteSheetsPage'
@@ -282,7 +283,14 @@ export const router = createBrowserRouter([
                       </RequirePermission>
                     ),
                   },
-                  soon('utilisateurs', 'Administration', 'Utilisateurs', 'users.manage-roles'),
+                  {
+                    path: 'utilisateurs',
+                    element: (
+                      <RequirePermission permission="users.manage-roles">
+                        <UsersPage />
+                      </RequirePermission>
+                    ),
+                  },
                   soon('outils', 'Administration', 'Outils', 'tooling.access'),
                   soon('communes', 'Administration', 'Communes', 'municipalities.manage'),
                 ],
