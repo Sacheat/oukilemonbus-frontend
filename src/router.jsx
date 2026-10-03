@@ -31,6 +31,7 @@ import { UserHomePage } from './pages/user/UserHomePage'
 import { CollegePage } from './pages/backoffice/CollegePage'
 import { DashboardPage } from './pages/backoffice/DashboardPage'
 import { MunicipalitiesPage } from './pages/backoffice/MunicipalitiesPage'
+import { RequestsPage } from './pages/backoffice/RequestsPage'
 import { ToolsPage } from './pages/backoffice/ToolsPage'
 import { UsersPage } from './pages/backoffice/UsersPage'
 import { DriverMissionPage } from './pages/driver/DriverMissionPage'
@@ -258,7 +259,14 @@ export const router = createBrowserRouter([
                       </RequirePermission>
                     ),
                   },
-                  soon('demandes', 'Gestion', 'Demandes', 'org-registration-requests.review'),
+                  {
+                    path: 'demandes',
+                    element: (
+                      <RequirePermission permission="org-registration-requests.review">
+                        <RequestsPage />
+                      </RequirePermission>
+                    ),
+                  },
                   soon('organisations', 'Gestion', 'Organisations', 'organizations.update'),
                   soon('documents', 'Gestion', 'Documents', 'documents.generate'),
                   {

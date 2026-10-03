@@ -8,8 +8,8 @@ export async function getDocuments({ signal } = {}) {
 }
 
 // Un document (nom de fichier, type, taille…), sans son contenu
-export async function getDocument(documentId) {
-  const { data } = await api.get(`/documents/${documentId}`)
+export async function getDocument(documentId, { signal } = {}) {
+  const { data } = await api.get(`/documents/${documentId}`, { signal })
   return data.data
 }
 
