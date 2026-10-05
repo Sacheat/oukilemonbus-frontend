@@ -3,13 +3,13 @@ import {
   Bus,
   CalendarDays,
   CalendarOff,
-  ClipboardList,
   FileText,
   Gavel,
   House,
   Inbox,
   LayoutDashboard,
   ListChecks,
+  MapPinned,
   Plus,
   Repeat,
   Route,
@@ -50,7 +50,7 @@ export const BACKOFFICE_NAV = [
   {
     title: 'Gestion',
     items: [
-      { to: '/gestion', end: true, label: 'Tableau de bord', icon: LayoutDashboard },
+      { to: '/gestion', end: true, label: 'Tableau de bord', icon: LayoutDashboard, permission: 'dashboard.view' },
       { to: '/gestion/reservations', label: 'Réservations', icon: ListChecks, permission: 'reservations.approve', badge: 'queue' },
       { to: '/gestion/planning', label: 'Planning', icon: CalendarDays, permission: 'reservations.view' },
       { to: '/gestion/college', label: 'Décisions du Collège', icon: Gavel, permission: 'council-decisions.create' },
@@ -72,7 +72,7 @@ export const BACKOFFICE_NAV = [
     items: [
       { to: '/gestion/utilisateurs', label: 'Utilisateurs', icon: UserCog, permission: 'users.manage-roles' },
       { to: '/gestion/outils', label: 'Outils', icon: Wrench, permission: 'tooling.access' },
-      { to: '/gestion/communes', label: 'Communes', icon: ClipboardList, permission: 'municipalities.manage' },
+      { to: '/gestion/communes', label: 'Communes', icon: MapPinned, permission: 'municipalities.manage' },
     ],
   },
 ]

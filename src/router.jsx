@@ -15,7 +15,6 @@ import { VerifyEmailPage } from './pages/auth/VerifyEmailPage'
 import { NotFoundPage } from './pages/errors/NotFoundPage'
 import { RouteErrorPage } from './pages/errors/RouteErrorPage'
 import { NotificationsPage } from './pages/NotificationsPage'
-import { SpaceHomePage } from './pages/SpaceHomePage'
 import { CreateOrganizationRequestPage } from './pages/user/CreateOrganizationRequestPage'
 import { DocumentsPage } from './pages/user/DocumentsPage'
 import { EditReservationPage } from './pages/user/EditReservationPage'
@@ -30,6 +29,11 @@ import { TripDetailPage } from './pages/user/TripDetailPage'
 import { TripsPage } from './pages/user/TripsPage'
 import { UserHomePage } from './pages/user/UserHomePage'
 import { CollegePage } from './pages/backoffice/CollegePage'
+import { DashboardPage } from './pages/backoffice/DashboardPage'
+import { MunicipalitiesPage } from './pages/backoffice/MunicipalitiesPage'
+import { RequestsPage } from './pages/backoffice/RequestsPage'
+import { ToolsPage } from './pages/backoffice/ToolsPage'
+import { UsersPage } from './pages/backoffice/UsersPage'
 import { DriverMissionPage } from './pages/driver/DriverMissionPage'
 import { DriverMissionsPage } from './pages/driver/DriverMissionsPage'
 import { DriverRouteSheetsPage } from './pages/driver/DriverRouteSheetsPage'
@@ -215,7 +219,14 @@ export const router = createBrowserRouter([
               {
                 element: <SidebarLayout sections={BACKOFFICE_NAV} />,
                 children: [
-                  { index: true, element: <SpaceHomePage eyebrow="Gestion" /> },
+                  {
+                    index: true,
+                    element: (
+                      <RequirePermission permission="dashboard.view">
+                        <DashboardPage />
+                      </RequirePermission>
+                    ),
+                  },
                   {
                     path: 'reservations',
                     element: (
@@ -248,7 +259,14 @@ export const router = createBrowserRouter([
                       </RequirePermission>
                     ),
                   },
-                  soon('demandes', 'Gestion', 'Demandes', 'org-registration-requests.review'),
+                  {
+                    path: 'demandes',
+                    element: (
+                      <RequirePermission permission="org-registration-requests.review">
+                        <RequestsPage />
+                      </RequirePermission>
+                    ),
+                  },
                   soon('organisations', 'Gestion', 'Organisations', 'organizations.update'),
                   soon('documents', 'Gestion', 'Documents', 'documents.generate'),
                   {
@@ -275,9 +293,30 @@ export const router = createBrowserRouter([
                       </RequirePermission>
                     ),
                   },
-                  soon('utilisateurs', 'Administration', 'Utilisateurs', 'users.manage-roles'),
-                  soon('outils', 'Administration', 'Outils', 'tooling.access'),
-                  soon('communes', 'Administration', 'Communes', 'municipalities.manage'),
+                  {
+                    path: 'utilisateurs',
+                    element: (
+                      <RequirePermission permission="users.manage-roles">
+                        <UsersPage />
+                      </RequirePermission>
+                    ),
+                  },
+                  {
+                    path: 'outils',
+                    element: (
+                      <RequirePermission permission="tooling.access">
+                        <ToolsPage />
+                      </RequirePermission>
+                    ),
+                  },
+                  {
+                    path: 'communes',
+                    element: (
+                      <RequirePermission permission="municipalities.manage">
+                        <MunicipalitiesPage />
+                      </RequirePermission>
+                    ),
+                  },
                 ],
               },
             ],
