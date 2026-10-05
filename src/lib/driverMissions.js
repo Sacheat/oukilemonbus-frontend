@@ -59,3 +59,9 @@ export function mapsDirectionsUrl(destination, origin = null) {
   if (origin) params.set('origin', mapsLocation(origin))
   return `https://www.google.com/maps/dir/?${params}`
 }
+
+// Kilomètres d'une mission : aller-retour. distance_km (backend) ne mesure que l'aller, départ → destination ;
+// le bus revient ensuite au lieu de départ (même règle que les feuilles de route : round_trip_km).
+export function roundTripKmText(mission) {
+  return `${(Number(mission.distance_km) * 2).toLocaleString('fr-BE', { maximumFractionDigits: 1 })} km`
+}
