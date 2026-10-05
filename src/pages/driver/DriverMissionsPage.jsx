@@ -1,8 +1,8 @@
 import { useSearchParams } from 'react-router'
 import { useAuth } from '../../auth/useAuth'
 import { MissionsResults } from '../../components/driver/MissionsResults'
+import { DriverHero } from '../../components/driver/DriverHero'
 import { PendingReports } from '../../components/driver/PendingReports'
-import { PageHeader } from '../../components/ui/PageHeader'
 import { useDriverMissions } from '../../hooks/useDriverMissions'
 import { useTripReports } from '../../hooks/useTripReports'
 import { cx } from '../../lib/cx'
@@ -10,7 +10,8 @@ import { formatDate } from '../../lib/dates'
 import { DEFAULT_MISSION_PERIOD, MISSION_PERIODS, readMissionSearch } from '../../lib/driverMissions'
 import { todayInBrussels } from '../../lib/planning'
 
-// Accueil de l'espace chauffeur : ses missions (le backend ne renvoie que les siennes).
+// Accueil de l'espace chauffeur : bannière avec le bouton jaune « Ma journée », puis ses missions (le backend ne
+// renvoie que les siennes).
 // Onglets ?periode= (à venir par défaut, passées) et ?page=. Pensé pour le téléphone, adapté au grand écran.
 export function DriverMissionsPage() {
   const { user } = useAuth()
@@ -21,6 +22,11 @@ export function DriverMissionsPage() {
   // Comptes rendus des missions affichées (badges « À confirmer », « Réalisé »…), 15 au plus
   const missionIds = (missions.data?.data ?? []).map((mission) => mission.id).join(',')
   const reports = useTripReports(missionIds)
+  // Missions du jour, connues sur la première page de « À venir » (triée du plus proche au plus lointain)
+  const todayCount =
+    period === 'a-venir' && page === 1 && missions.data
+      ? missions.data.data.filter((mission) => mission.trip_date.slice(0, 10) === today).length
+      : undefined
 
   function updateSearch(changes) {
     const next = new URLSearchParams(searchParams)
@@ -33,11 +39,7 @@ export function DriverMissionsPage() {
 
   return (
     <div className="grid gap-6">
-      <PageHeader
-        eyebrow="Mes missions"
-        title={`Bonjour ${user.first_name}`}
-        description={<span className="first-letter:uppercase">{formatDate(today)}</span>}
-      />
+      <DriverHero firstName={user.first_name} todayLabel={formatDate(today)} todayCount={todayCount} />
 
       <PendingReports />
 

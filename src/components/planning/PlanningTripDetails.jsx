@@ -6,12 +6,13 @@ import { DetailList } from '../ui/DetailList'
 import { StatusBadge } from '../ui/StatusBadge'
 import { hasTripStarted } from '../../lib/tripReports'
 import { PlanningTripReport } from './PlanningTripReport'
+import { PlanningTripSteps } from './PlanningTripSteps'
 
 // Détail d'un trajet dans le panneau latéral (lecture seule) : horaires, trajet, affectation, conflits,
 // puis chauffeurs et véhicules libres ou non pour ce créneau (include_availability), avec la raison.
 // `report` : compte rendu du chauffeur, affiché pour un trajet commencé ; `canManageReports` : l'agent peut le
 // saisir ou le corriger (`onReportSaved` après l'enregistrement).
-export function PlanningTripDetails({ trip, report = null, canManageReports = false, onReportSaved }) {
+export function PlanningTripDetails({ trip, report = null, progress = null, canManageReports = false, onReportSaved }) {
   const conflicts = openConflicts(trip)
   const availability = trip.availability
 
@@ -36,6 +37,8 @@ export function PlanningTripDetails({ trip, report = null, canManageReports = fa
           ['Réservation', `n° ${trip.reservation_id}`],
         ]}
       />
+
+      <PlanningTripSteps progress={progress} />
 
       {trip.status === 'confirme' && hasTripStarted(trip) && (
         <section className="grid gap-2 border-t border-line pt-5">

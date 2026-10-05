@@ -34,6 +34,7 @@ import { MunicipalitiesPage } from './pages/backoffice/MunicipalitiesPage'
 import { RequestsPage } from './pages/backoffice/RequestsPage'
 import { ToolsPage } from './pages/backoffice/ToolsPage'
 import { UsersPage } from './pages/backoffice/UsersPage'
+import { DriverJourneyPage } from './pages/driver/DriverJourneyPage'
 import { DriverMissionPage } from './pages/driver/DriverMissionPage'
 import { DriverMissionsPage } from './pages/driver/DriverMissionsPage'
 import { DriverRouteSheetsPage } from './pages/driver/DriverRouteSheetsPage'
@@ -42,6 +43,8 @@ import { DriversPage } from './pages/backoffice/DriversPage'
 import { PlanningPage } from './pages/backoffice/PlanningPage'
 import { ReservationEditPage } from './pages/backoffice/ReservationEditPage'
 import { ReservationsQueuePage } from './pages/backoffice/ReservationsQueuePage'
+import { AlertDetailPage } from './pages/backoffice/AlertDetailPage'
+import { AlertsPage } from './pages/backoffice/AlertsPage'
 import { UnavailabilitiesPage } from './pages/backoffice/UnavailabilitiesPage'
 import { VehiclesPage } from './pages/backoffice/VehiclesPage'
 
@@ -191,6 +194,14 @@ export const router = createBrowserRouter([
                   { index: true, element: <DriverMissionsPage /> },
                   { path: 'missions/:missionId', element: <DriverMissionPage /> },
                   {
+                    path: 'journee',
+                    element: (
+                      <RequirePermission permission="trip-progress.record">
+                        <DriverJourneyPage />
+                      </RequirePermission>
+                    ),
+                  },
+                  {
                     path: 'feuilles-de-route',
                     element: (
                       <RequirePermission permission="documents.view">
@@ -290,6 +301,22 @@ export const router = createBrowserRouter([
                     element: (
                       <RequirePermission permission="unavailabilities.create">
                         <UnavailabilitiesPage />
+                      </RequirePermission>
+                    ),
+                  },
+                  {
+                    path: 'alertes',
+                    element: (
+                      <RequirePermission permission="driver-alerts.manage">
+                        <AlertsPage />
+                      </RequirePermission>
+                    ),
+                  },
+                  {
+                    path: 'alertes/:alertId',
+                    element: (
+                      <RequirePermission permission="driver-alerts.manage">
+                        <AlertDetailPage />
                       </RequirePermission>
                     ),
                   },

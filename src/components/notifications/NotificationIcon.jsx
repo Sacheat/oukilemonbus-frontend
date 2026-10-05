@@ -1,4 +1,4 @@
-import { Ban, Building2, Bus, CalendarClock, CircleCheck, CircleX, FileText, TriangleAlert, Users } from 'lucide-react'
+import { Ban, Building2, Bus, CalendarClock, CircleCheck, CircleX, FileText, LifeBuoy, TriangleAlert, Users } from 'lucide-react'
 import { cx } from '../../lib/cx'
 import { notificationKind } from '../../lib/notifications'
 
@@ -13,6 +13,7 @@ const KINDS = {
   organization: { icon: Building2, colors: 'bg-soft text-link' },
   planning: { icon: CalendarClock, colors: 'bg-soft text-link' },
   reservation: { icon: Bus, colors: 'bg-soft text-link' },
+  alert: { icon: LifeBuoy, colors: 'bg-danger-soft text-danger' },
 }
 
 // Pastille d'icône d'une notification (décorative : le titre dit de quoi il s'agit) ;

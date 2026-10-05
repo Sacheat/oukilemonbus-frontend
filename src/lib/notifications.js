@@ -14,10 +14,15 @@ export function categoryLabel(category, user) {
   return NOTIFICATION_CATEGORY_LABELS[category] ?? category
 }
 
-// Où mène une notification : page d'une réservation (espace usager pour l'instant)
-// ou document via son lien signé. null si rien à ouvrir.
+// Où mène une notification : demande d'aide (liste des agents, ou « Ma journée » du chauffeur), page d'une
+// réservation (espace usager pour l'instant) ou document via son lien signé. null si rien à ouvrir.
 export function notificationTarget(notification, user) {
-  const { reservation_id: reservationId, action_url: actionUrl } = notification.data
+  const { reservation_id: reservationId, action_url: actionUrl, event_key: eventKey = '' } = notification.data
+  if (eventKey.startsWith('driver_alert.')) {
+    return isInternal(user)
+      ? { to: '/gestion/alertes', label: 'Voir les demandes d’aide' }
+      : { to: '/chauffeur/journee', label: 'Ma journée' }
+  }
   if (actionUrl) return { href: actionUrl, label: 'Ouvrir le document' }
   if (reservationId && getHomePath(user) === '/espace') {
     return { to: `/espace/deplacements/${reservationId}`, label: 'Voir la réservation' }
@@ -36,6 +41,7 @@ export const HOURS = Array.from({ length: 24 }, (_, hour) => ({ value: String(ho
 // Nature d'une notification pour son icône et sa couleur, d'après sa clé d'événement
 // (« reservation.approved », « user_org_request.rejected »…), sinon d'après sa catégorie
 export function notificationKind({ event_key: eventKey = '', category }) {
+  if (eventKey.startsWith('driver_alert.')) return 'alert'
   if (/(rejected|refused)$/.test(eventKey)) return 'refused'
   if (/cancelled$/.test(eventKey)) return 'cancelled'
   if (/(approved|confirmed|accepted)$/.test(eventKey) && !eventKey.includes('passengers')) return 'approved'
