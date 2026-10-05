@@ -42,6 +42,8 @@ export const HOURS = Array.from({ length: 24 }, (_, hour) => ({ value: String(ho
 // (« reservation.approved », « user_org_request.rejected »…), sinon d'après sa catégorie
 export function notificationKind({ event_key: eventKey = '', category }) {
   if (eventKey.startsWith('driver_alert.')) return 'alert'
+  if (eventKey === 'organization.banned') return 'refused'
+  if (eventKey === 'organization.unbanned') return 'approved'
   if (/(rejected|refused)$/.test(eventKey)) return 'refused'
   if (/cancelled$/.test(eventKey)) return 'cancelled'
   if (/(approved|confirmed|accepted)$/.test(eventKey) && !eventKey.includes('passengers')) return 'approved'

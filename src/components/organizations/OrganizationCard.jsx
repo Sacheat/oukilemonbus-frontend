@@ -37,10 +37,10 @@ export function OrganizationCard({ organization, onMakeDefault, makingDefault, o
             <p className="text-sm text-danger">
               Cette organisation ne peut plus réserver{organization.banned_reason ? ` : ${organization.banned_reason}` : '.'}
             </p>
-          ) : organization.is_priority ? (
+          ) : (organization.quota?.exempt ?? organization.is_priority) ? (
             <p className="text-sm text-muted">Sans quota annuel · réservations approuvées automatiquement.</p>
           ) : (
-            <QuotaGauge used={organization.reservations_used_this_year} quota={organization.annual_quota} />
+            <QuotaGauge used={organization.quota?.used ?? 0} quota={organization.quota?.limit ?? organization.annual_quota} />
           )}
         </div>
 

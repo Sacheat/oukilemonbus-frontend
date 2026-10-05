@@ -5,7 +5,6 @@ import { RoleLayout } from './layouts/RoleLayout'
 import { SidebarLayout } from './layouts/SidebarLayout'
 import { TopNavLayout } from './layouts/TopNavLayout'
 import { BACKOFFICE_NAV, DRIVER_NAV, USER_NAV } from './navigation'
-import { ComingSoonPage } from './pages/ComingSoonPage'
 import { AccountPage } from './pages/account/AccountPage'
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage'
 import { LoginPage } from './pages/auth/LoginPage'
@@ -46,16 +45,12 @@ import { ReservationEditPage } from './pages/backoffice/ReservationEditPage'
 import { ReservationsQueuePage } from './pages/backoffice/ReservationsQueuePage'
 import { AlertDetailPage } from './pages/backoffice/AlertDetailPage'
 import { AlertsPage } from './pages/backoffice/AlertsPage'
+import { OrganizationsManagementPage } from './pages/backoffice/OrganizationsManagementPage'
 import { UnavailabilitiesPage } from './pages/backoffice/UnavailabilitiesPage'
 import { VehiclesPage } from './pages/backoffice/VehiclesPage'
 
 // Chemins en français, sauf /verify-email et /reset-password imposés par les liens
-// des emails du backend. Les pages <ComingSoonPage> sont à remplacer par bloc.
-
-function soon(path, eyebrow, title, permission) {
-  const page = <ComingSoonPage eyebrow={eyebrow} title={title} />
-  return { path, element: permission ? <RequirePermission permission={permission}>{page}</RequirePermission> : page }
-}
+// des emails du backend.
 
 export const router = createBrowserRouter([
   {
@@ -279,7 +274,14 @@ export const router = createBrowserRouter([
                       </RequirePermission>
                     ),
                   },
-                  soon('organisations', 'Gestion', 'Organisations', 'organizations.update'),
+                  {
+                    path: 'organisations',
+                    element: (
+                      <RequirePermission permission="organizations.update">
+                        <OrganizationsManagementPage />
+                      </RequirePermission>
+                    ),
+                  },
                   {
                     path: 'documents',
                     element: (
