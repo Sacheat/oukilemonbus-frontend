@@ -5,7 +5,6 @@ import { RoleLayout } from './layouts/RoleLayout'
 import { SidebarLayout } from './layouts/SidebarLayout'
 import { TopNavLayout } from './layouts/TopNavLayout'
 import { BACKOFFICE_NAV, DRIVER_NAV, USER_NAV } from './navigation'
-import { ComingSoonPage } from './pages/ComingSoonPage'
 import { AccountPage } from './pages/account/AccountPage'
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage'
 import { LoginPage } from './pages/auth/LoginPage'
@@ -16,6 +15,7 @@ import { NotFoundPage } from './pages/errors/NotFoundPage'
 import { RouteErrorPage } from './pages/errors/RouteErrorPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { CreateOrganizationRequestPage } from './pages/user/CreateOrganizationRequestPage'
+import { DocumentsPage as BackofficeDocumentsPage } from './pages/backoffice/DocumentsPage'
 import { DocumentsPage } from './pages/user/DocumentsPage'
 import { EditReservationPage } from './pages/user/EditReservationPage'
 import { JoinOrganizationPage } from './pages/user/JoinOrganizationPage'
@@ -50,12 +50,7 @@ import { UnavailabilitiesPage } from './pages/backoffice/UnavailabilitiesPage'
 import { VehiclesPage } from './pages/backoffice/VehiclesPage'
 
 // Chemins en français, sauf /verify-email et /reset-password imposés par les liens
-// des emails du backend. Les pages <ComingSoonPage> sont à remplacer par bloc.
-
-function soon(path, eyebrow, title, permission) {
-  const page = <ComingSoonPage eyebrow={eyebrow} title={title} />
-  return { path, element: permission ? <RequirePermission permission={permission}>{page}</RequirePermission> : page }
-}
+// des emails du backend.
 
 export const router = createBrowserRouter([
   {
@@ -287,7 +282,14 @@ export const router = createBrowserRouter([
                       </RequirePermission>
                     ),
                   },
-                  soon('documents', 'Gestion', 'Documents', 'documents.generate'),
+                  {
+                    path: 'documents',
+                    element: (
+                      <RequirePermission permission="documents.generate">
+                        <BackofficeDocumentsPage />
+                      </RequirePermission>
+                    ),
+                  },
                   {
                     path: 'vehicules',
                     element: (

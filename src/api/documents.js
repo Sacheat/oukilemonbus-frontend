@@ -7,6 +7,13 @@ export async function getDocuments({ signal } = {}) {
   return data.data
 }
 
+// Page de documents (agent et admin), enveloppe { data, meta } : filtres `document_type[]`, `date_from`, `date_to`,
+// `q`, `reservation_id`, `page`, `per_page` (contrat de la PR backend « documents paginés »)
+export async function getDocumentsPage(params = {}, { signal } = {}) {
+  const { data } = await api.get('/documents', { params, signal })
+  return data
+}
+
 // Un document (nom de fichier, type, taille…), sans son contenu
 export async function getDocument(documentId, { signal } = {}) {
   const { data } = await api.get(`/documents/${documentId}`, { signal })
