@@ -1,8 +1,10 @@
 import { ArrowLeft } from 'lucide-react'
 import { useCallback } from 'react'
 import { useParams } from 'react-router'
+import { getTripRoute } from '../../api/driverJourney'
 import { getReservation } from '../../api/reservations'
 import { RouteButtons } from '../../components/driver/RouteButtons'
+import { RouteSteps } from '../../components/driver/RouteSteps'
 import { TripReportSection } from '../../components/driver/TripReportSection'
 import { TripMap } from '../../components/reservations/TripMap'
 import { Alert } from '../../components/ui/Alert'
@@ -13,18 +15,24 @@ import { Loader } from '../../components/ui/Loader'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useApi } from '../../hooks/useApi'
+import { useNavigationEngine } from '../../hooks/useNavigationEngine'
 import { formatDate, formatDateTime, formatTime } from '../../lib/dates'
 import { isCancelledMission, roundTripKmText } from '../../lib/driverMissions'
 import { estimatedArrivals, totalPassengers } from '../../lib/reservations'
 
 // Détail d'une mission du chauffeur (/chauffeur/missions/:id), page à part pour le téléphone :
-// horaires et adresses complètes, itinéraires, carte, passagers, véhicule, et compte rendu du trajet
-// (seule saisie du chauffeur, cahier des charges §3).
+// horaires et adresses complètes, itinéraires (application de la commune), carte avec la route réelle et ses
+// instructions, passagers, véhicule, et compte rendu du trajet (cahier des charges §3).
+// La route est calculée par le backend à la première ouverture puis gardée ; en cas d'échec, la carte garde la ligne
+// à vol d'oiseau (aucun message : la mission reste lisible).
 // Le backend n'autorise que le chauffeur affecté (403 sinon).
 export function DriverMissionPage() {
   const { missionId } = useParams()
   const fetchMission = useCallback((signal) => getReservation(missionId, { signal }), [missionId])
   const mission = useApi(fetchMission)
+  const fetchRoute = useCallback((signal) => getTripRoute(missionId, { signal }), [missionId])
+  const route = useApi(fetchRoute)
+  const engine = useNavigationEngine()
 
   const backLink = (
     <Button variant="link" to="/chauffeur" className="w-fit">
@@ -80,7 +88,9 @@ export function DriverMissionPage() {
             />
           </section>
 
-          {!cancelled && <RouteButtons pickup={trip.pickup_location} destination={trip.destination_location} />}
+          {!cancelled && (
+            <RouteButtons engine={engine} pickup={trip.pickup_location} destination={trip.destination_location} />
+          )}
 
           <section aria-labelledby="mission-groupe" className="grid gap-2">
             <h2 id="mission-groupe" className="text-lg font-bold">Groupe et véhicule</h2>
@@ -96,7 +106,15 @@ export function DriverMissionPage() {
           </section>
         </div>
 
-        <TripMap pickup={trip.pickup_location} destination={trip.destination_location} height="h-72 lg:h-96" />
+        <div className="grid gap-3">
+          <TripMap
+            pickup={trip.pickup_location}
+            destination={trip.destination_location}
+            route={route.data}
+            height="h-72 lg:h-96"
+          />
+          {!cancelled && <RouteSteps route={route.data} />}
+        </div>
       </div>
     </div>
   )

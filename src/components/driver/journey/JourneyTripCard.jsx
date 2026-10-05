@@ -3,7 +3,8 @@ import { Link } from 'react-router'
 import { cx } from '../../../lib/cx'
 import { formatTime } from '../../../lib/dates'
 import { PROGRESS_BADGES } from '../../../lib/driverJourney'
-import { mapsDirectionsUrl, ROUTE_TAB_NAME } from '../../../lib/driverMissions'
+import { ROUTE_TAB_NAME } from '../../../lib/driverMissions'
+import { navigationLink } from '../../../lib/navigation'
 import { estimatedArrivals, shortAddress, totalPassengers } from '../../../lib/reservations'
 import { Badge } from '../../ui/Badge'
 import { StatusBadge } from '../../ui/StatusBadge'
@@ -11,7 +12,7 @@ import { HelpButton } from './HelpButton'
 import { JourneyStepButtons } from './JourneyStepButtons'
 
 // Où mène « Itinéraire » selon l'avancement : vers le lieu de départ (avant le départ), vers la destination (aller),
-// puis de nouveau vers le lieu de départ (retour). Depuis la position du téléphone. Rien une fois le trajet terminé.
+// puis de nouveau vers le lieu de départ (retour). Depuis la position du téléphone, avec l'application de la commune. Rien une fois le trajet terminé.
 function routeTarget(mission, state) {
   if (state === 'termine') return null
   if (state === 'en_route_aller') return { location: mission.destination_location, label: 'Itinéraire vers la destination' }
@@ -20,13 +21,14 @@ function routeTarget(mission, state) {
 }
 
 // Un trajet de « Ma journée » : horaires, organisation (appel direct), trajet, passagers, bus, itinéraire,
-// les quatre étapes et « Aide ». `current` : trajet en cours, mis en avant. Une mission seulement approuvée
+// les quatre étapes et « Aide ». `engine` : application de navigation de la commune. `current` : trajet en cours, mis en avant. Une mission seulement approuvée
 // (pas encore confirmée par un agent) garde ses boutons éteints.
-export function JourneyTripCard({ mission, progress, current, onRecorded, onAlertSent }) {
+export function JourneyTripCard({ mission, progress, current, engine, onRecorded, onAlertSent }) {
   const state = progress?.state ?? 'a_venir'
   const arrivals = estimatedArrivals(mission)
   const passengerCount = totalPassengers(mission)
   const target = routeTarget(mission, state)
+  const route = target ? navigationLink(engine, target.location) : null
   const confirmed = mission.status === 'confirme'
   const progressBadge = PROGRESS_BADGES[state]
   const phone = mission.organization?.phone_contact
@@ -76,10 +78,10 @@ export function JourneyTripCard({ mission, progress, current, onRecorded, onAler
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {target?.location && (
+        {route && (
           <a
-            href={mapsDirectionsUrl(target.location)}
-            target={ROUTE_TAB_NAME}
+            href={route.href}
+            target={route.external ? undefined : ROUTE_TAB_NAME}
             className="inline-flex min-h-12 items-center gap-2 rounded-control border border-line-strong bg-surface px-4 font-bold hover:bg-surface-muted"
           >
             <Navigation className="size-5" aria-hidden="true" />

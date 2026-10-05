@@ -9,6 +9,7 @@ export const DEFAULT_MISSION_PERIOD = 'a-venir'
 
 // Nom fixe de l'onglet des itinéraires : sur PC, les clics suivants réutilisent le même onglet
 // au lieu d'en ouvrir un nouveau à chaque fois (sur téléphone, le lien ouvre l'application de navigation).
+// Onglet nommé des itinéraires web (sur PC, réutilisé aux clics suivants ; voir lib/navigation.js)
 export const ROUTE_TAB_NAME = 'oukilemonbus-itineraire'
 
 export function readMissionSearch(searchParams) {
@@ -45,19 +46,6 @@ export function missionsByDay(missionList) {
 // Une mission annulée ou refusée n'a plus lieu
 export function isCancelledMission(mission) {
   return ['annule', 'refuse'].includes(mission.status)
-}
-
-// Lieu pour Google Maps : coordonnées si on les a (plus précis), sinon l'adresse complète
-function mapsLocation(location) {
-  if (location?.latitude && location?.longitude) return `${location.latitude},${location.longitude}`
-  return location?.formatted_address ?? ''
-}
-
-// Lien d'itinéraire Google Maps (sans compte ni clé). Sans `origin`, le départ est la position actuelle du téléphone.
-export function mapsDirectionsUrl(destination, origin = null) {
-  const params = new URLSearchParams({ api: '1', destination: mapsLocation(destination), travelmode: 'driving' })
-  if (origin) params.set('origin', mapsLocation(origin))
-  return `https://www.google.com/maps/dir/?${params}`
 }
 
 // Kilomètres d'une mission : aller-retour. distance_km (backend) ne mesure que l'aller, départ → destination ;

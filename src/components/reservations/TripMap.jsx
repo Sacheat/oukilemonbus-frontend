@@ -13,14 +13,16 @@ function marker(L, className) {
   return L.divIcon({ className: '', html: `<span class="${className}"></span>`, iconSize: [18, 18], iconAnchor: [9, 9] })
 }
 
-// Carte OpenStreetMap du trajet : départ et destination reliés par une ligne à vol d'oiseau.
+// Carte OpenStreetMap du trajet : départ et destination reliés par la route réelle si on la reçoit (`route` :
+// GET /reservations/{id}/route, [[lat, lng], …]), sinon par une ligne à vol d'oiseau en pointillés.
 // Leaflet est chargé seulement ici (import dynamique) ; rien n'est affiché sans coordonnées.
 // `height` : hauteur de la carte ; `className` : cadre autour de la carte et de sa légende.
-export function TripMap({ pickup, destination, height = 'h-64', className }) {
+export function TripMap({ pickup, destination, route = null, height = 'h-64', className }) {
   const container = useRef(null)
   const [failed, setFailed] = useState(false)
   const from = point(pickup)
   const to = point(destination)
+  const geometry = route?.geometry?.length > 1 ? route.geometry : null
   const key = from && to ? `${from}|${to}` : null
 
   useEffect(() => {
@@ -39,17 +41,20 @@ export function TripMap({ pickup, destination, height = 'h-64', className }) {
         }).addTo(map)
         // Couleur du token --primary (suit le thème)
         const primary = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim()
-        L.polyline([a, b], { color: primary, weight: 3, dashArray: '6 8', opacity: 0.9 }).addTo(map)
+        const road = geometry
+        if (road) L.polyline(road, { color: primary, weight: 5, opacity: 0.85 }).addTo(map)
+        else L.polyline([a, b], { color: primary, weight: 3, dashArray: '6 8', opacity: 0.9 }).addTo(map)
         L.marker(a, { icon: marker(L, 'trip-map-pin trip-map-pin--from'), keyboard: false }).addTo(map)
         L.marker(b, { icon: marker(L, 'trip-map-pin trip-map-pin--to'), keyboard: false }).addTo(map)
-        map.fitBounds([a, b], { padding: [36, 36] })
+        map.fitBounds(road ?? [a, b], { padding: [36, 36] })
       })
       .catch(() => setFailed(true))
     return () => {
       cancelled = true
       map?.remove()
     }
-  }, [key])
+    // Recréée quand les lieux changent ou quand le tracé arrive (même référence tant qu'il n'est pas rechargé)
+  }, [key, geometry])
 
   if (!key || failed) return null
 
