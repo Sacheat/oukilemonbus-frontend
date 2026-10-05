@@ -351,6 +351,26 @@
   background: var(--accent);
 }
 
+/* Étape enregistrée par le chauffeur (carte du Planning) : pastille numérotée, en rouge si loin du lieu prévu */
+.trip-map-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 2px solid var(--surface);
+  background: var(--info);
+  color: var(--surface);
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+}
+
+.trip-map-step--far {
+  background: var(--danger);
+}
+
 /* La feuille de Leaflet (hors @layer) passe devant les utilitaires Tailwind : on redonne ici le fond
    du token, sinon le gris #ddd de Leaflet se voit entre les tuiles */
 .trip-map.leaflet-container {

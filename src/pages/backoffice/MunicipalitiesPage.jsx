@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { getAllMunicipalities } from '../../api/municipalities'
 import { useAuth } from '../../auth/useAuth'
 import { hasRole } from '../../auth/permissions'
+import { DriverJourneyPanel } from '../../components/municipalities/DriverJourneyPanel'
 import { LocalitiesPanel } from '../../components/municipalities/LocalitiesPanel'
 import { MunicipalitySettings } from '../../components/municipalities/MunicipalitySettings'
 import { OnCallContactPanel } from '../../components/municipalities/OnCallContactPanel'
@@ -21,7 +22,7 @@ function fetchMunicipalities(signal) {
 
 // Communes (agent et admin, municipalities.manage) : règles de la commune active appliquées aux réservations
 // (dépôt, distances, avec la carte de la zone de prise en charge), ses localités, et pour l'admin le contact de garde
-// (demandes d'aide des chauffeurs) et les autres communes (ajout, activation). Après chaque succès : liste rechargée et message en haut de la page.
+// (demandes d'aide des chauffeurs), les réglages de l'espace chauffeur (navigation, délai) et les autres communes (ajout, activation). Après chaque succès : liste rechargée et message en haut de la page.
 export function MunicipalitiesPage() {
   const { user } = useAuth()
   const isAdmin = hasRole(user, 'admin')
@@ -66,6 +67,13 @@ export function MunicipalitiesPage() {
                   key={`garde-${active.id}-${active.updated_at}`}
                   municipality={active}
                   onSaved={(saved) => finish(`Contact de garde de ${saved.name} enregistré.`)}
+                />
+              )}
+              {isAdmin && (
+                <DriverJourneyPanel
+                  key={`chauffeur-${active.id}-${active.updated_at}`}
+                  municipality={active}
+                  onSaved={(saved) => finish(`Réglages de l’espace chauffeur de ${saved.name} enregistrés.`)}
                 />
               )}
             </>

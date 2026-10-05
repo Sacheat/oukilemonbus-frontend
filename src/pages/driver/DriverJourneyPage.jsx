@@ -13,6 +13,7 @@ import { Loader } from '../../components/ui/Loader'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Switch } from '../../components/ui/Switch'
 import { useDriverDay } from '../../hooks/useDriverDay'
+import { useNavigationEngine } from '../../hooks/useNavigationEngine'
 import { useOpenDriverAlert } from '../../hooks/useOpenDriverAlert'
 import { useWakeLock } from '../../hooks/useWakeLock'
 import { formatDate } from '../../lib/dates'
@@ -29,6 +30,7 @@ export function DriverJourneyPage() {
   const today = todayInBrussels()
   const dayData = useDriverDay(day)
   const openAlert = useOpenDriverAlert()
+  const engine = useNavigationEngine()
   const [keepAwake, setKeepAwake] = useState(true)
   const wakeLock = useWakeLock(keepAwake)
   // Avancements reçus après un appui, par réservation (prioritaires sur ceux du chargement)
@@ -87,6 +89,7 @@ export function DriverJourneyPage() {
             mission={mission}
             progress={progressMap[mission.id]}
             current={day === today && mission.id === currentId}
+            engine={engine}
             onRecorded={handleRecorded}
             onAlertSent={handleAlertSent}
           />

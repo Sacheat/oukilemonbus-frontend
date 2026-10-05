@@ -38,7 +38,7 @@ export function PlanningTripDetails({ trip, report = null, progress = null, canM
         ]}
       />
 
-      <PlanningTripSteps progress={progress} />
+      <PlanningTripSteps trip={trip} progress={progress} />
 
       {trip.status === 'confirme' && hasTripStarted(trip) && (
         <section className="grid gap-2 border-t border-line pt-5">

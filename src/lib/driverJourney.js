@@ -1,5 +1,6 @@
 import { MISSION_STATUSES } from './driverMissions'
 import { addDays, isValidDay, todayInBrussels } from './planning'
+import { routeDistanceText } from './navigation'
 
 // « Ma journée » du chauffeur : une page par jour, une carte par trajet, quatre étapes par trajet.
 // L'ordre et les heures sont vérifiés par le backend (TripProgressService) ; le front n'active que l'étape suivante.
@@ -66,4 +67,16 @@ export function positionStateText(state) {
   if (state === 'envoyee') return 'position envoyée'
   if (state === 'refusee') return 'position refusée'
   return 'position indisponible'
+}
+
+// Contrôle des étapes (meta.step_checks de GET /reservations/{id}/trip-progress, agents et admins) indexé par type :
+// { depart_aller: { expected_place, expected_latitude, expected_longitude, distance_m, far_from_expected }, … }
+export function stepChecksByType(stepChecks) {
+  return Object.fromEntries((stepChecks ?? []).map((check) => [check.type, check]))
+}
+
+// « à 1,3 km du lieu de départ prévu », « à 160 m de la destination prévue »
+export function stepDistanceText(check) {
+  if (check?.distance_m == null) return null
+  return `à ${routeDistanceText(check.distance_m)} ${check.expected_place === 'destination' ? 'de la destination prévue' : 'du lieu de départ prévu'}`
 }
