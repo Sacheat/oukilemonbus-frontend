@@ -87,6 +87,7 @@ export const NOTIFICATION_CATEGORY_LABELS = {
   admin_workflow: 'Travail à traiter',
   driver_planning: 'Planning chauffeur',
   last_minute_cancellation: 'Annulation de dernière minute',
+  driver_alert: 'Demandes d’aide des chauffeurs',
 }
 
 // Statut accordé au nombre, pour les décomptes (« 28 confirmés », « 1 annulé », « 2 en conflit »)

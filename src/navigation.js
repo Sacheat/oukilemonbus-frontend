@@ -1,22 +1,4 @@
-import {
-  Building2,
-  Bus,
-  CalendarDays,
-  CalendarOff,
-  FileText,
-  Gavel,
-  House,
-  Inbox,
-  LayoutDashboard,
-  ListChecks,
-  MapPinned,
-  Plus,
-  Repeat,
-  Route,
-  UserCog,
-  Users,
-  Wrench,
-} from 'lucide-react'
+import { Building2, Bus, CalendarDays, CalendarOff, FileText, Gavel, House, Inbox, LayoutDashboard, LifeBuoy, ListChecks, MapPinned, Plus, Repeat, Route, UserCog, Users, Wrench } from 'lucide-react'
 
 import { recurrenceOrganizations } from './lib/recurrences'
 
@@ -41,6 +23,7 @@ export const USER_NAV = [
 
 export const DRIVER_NAV = [
   { to: '/chauffeur', end: true, label: 'Mes missions', icon: Bus },
+  { to: '/chauffeur/journee', label: 'Ma journée', icon: CalendarDays, permission: 'trip-progress.record' },
   { to: '/chauffeur/feuilles-de-route', label: 'Feuilles de route', icon: FileText, permission: 'documents.view' },
   { to: '/chauffeur/indisponibilites', label: 'Indisponibilités', icon: CalendarOff, permission: 'unavailabilities.view' },
 ]
@@ -65,6 +48,7 @@ export const BACKOFFICE_NAV = [
       { to: '/gestion/vehicules', label: 'Véhicules', icon: Bus, permission: 'vehicles.update' },
       { to: '/gestion/chauffeurs', label: 'Chauffeurs', icon: Users, permission: 'drivers.update' },
       { to: '/gestion/indisponibilites', label: 'Indisponibilités', icon: CalendarOff, permission: 'unavailabilities.create' },
+      { to: '/gestion/alertes', label: 'Demandes d’aide', icon: LifeBuoy, permission: 'driver-alerts.manage' },
     ],
   },
   {

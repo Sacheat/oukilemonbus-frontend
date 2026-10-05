@@ -4,12 +4,14 @@ import { cx } from '../../lib/cx'
 import { Badge } from '../ui/Badge'
 import { StatusBadge } from '../ui/StatusBadge'
 import { TripReportBadge } from '../driver/TripReportBadge'
+import { PROGRESS_BADGES } from '../../lib/driverJourney'
 
 // Un trajet du planning, cliquable pour ouvrir le détail.
 // Heures = occupation réelle du bus (display.time_label du backend), puis organisation, trajet, affectation.
 // `report` : compte rendu du chauffeur (badge Réalisé, Non réalisé, À confirmer ou Sans compte rendu pour un trajet
 // commencé), undefined tant qu'il n'est pas connu.
-export function PlanningTripCard({ trip, onOpen, compact = false, report }) {
+export function PlanningTripCard({ trip, onOpen, compact = false, report, progress }) {
+  const progressBadge = progress?.state !== 'termine' ? PROGRESS_BADGES[progress?.state] : null
   const conflictCount = openConflicts(trip).length
   const missingAssignment = needsAssignment(trip)
 
@@ -39,6 +41,7 @@ export function PlanningTripCard({ trip, onOpen, compact = false, report }) {
         {trip.vehicle && <span className="text-muted">{trip.vehicle.licence_plate}</span>}
         {trip.driver?.user && <span className="text-muted">· {trip.driver.user.full_name}</span>}
         {missingAssignment && <Badge tone="warning">Non affecté</Badge>}
+        {progressBadge && <Badge tone={progressBadge.tone}>{progressBadge.label}</Badge>}
         <TripReportBadge report={report} mission={trip} audience="agent" />
         {conflictCount > 0 && (
           <Badge tone="conflict">

@@ -1,3 +1,4 @@
+import { OpenAlertsBanner } from '../../components/alerts/OpenAlertsBanner'
 import { Link } from 'react-router'
 import { getDashboard } from '../../api/dashboard'
 import { useAuth } from '../../auth/useAuth'
@@ -56,6 +57,8 @@ export function DashboardPage() {
         updatedAt={data?.receivedAt}
         actions={QUICK_ACTIONS.filter((action) => can(action.permission))}
       />
+
+      {can('driver-alerts.manage') && <OpenAlertsBanner />}
 
       {/* Erreur au premier chargement seulement : après, on garde les derniers chiffres reçus */}
       {dashboard.error && !data && <ErrorState error={dashboard.error} onRetry={dashboard.reload} />}

@@ -15,6 +15,7 @@ import { Loader } from '../../components/ui/Loader'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { useApi } from '../../hooks/useApi'
 import { usePlanning } from '../../hooks/usePlanning'
+import { useTripProgress } from '../../hooks/useTripProgress'
 import { useTripReports } from '../../hooks/useTripReports'
 import { cx } from '../../lib/cx'
 import { formatDate } from '../../lib/dates'
@@ -57,7 +58,10 @@ export function PlanningPage() {
 
   const tripList = planning.data?.data
   // Comptes rendus des trajets affichés (badges Réalisé, Non réalisé, À confirmer)
-  const reports = useTripReports((tripList ?? []).map((trip) => trip.reservation_id).join(','))
+  const tripIds = (tripList ?? []).map((trip) => trip.reservation_id).join(',')
+  const reports = useTripReports(tripIds)
+  // Avancement des trajets (boutons Départ / Arrivée des chauffeurs), relu toutes les 60 s
+  const progress = useTripProgress(tripIds)
   const groupedTrips = tripList ? tripsByDay(tripList) : {}
   const openedTrip = tripList?.find((trip) => String(trip.reservation_id) === planningSearch.openedTripId)
 
@@ -191,6 +195,7 @@ export function PlanningPage() {
         today={today}
         onOpenTrip={(trip) => updateSearch({ trajet: String(trip.reservation_id) })}
         reports={reports.data}
+        progress={progress.data}
       />
 
       <Drawer
@@ -204,6 +209,7 @@ export function PlanningPage() {
               key={openedTrip.reservation_id}
               trip={openedTrip}
               report={reports.data?.[openedTrip.reservation_id] ?? null}
+              progress={progress.data?.[openedTrip.reservation_id] ?? null}
               canManageReports={can('trip-reports.manage')}
               onReportSaved={handleReportSaved}
             />
