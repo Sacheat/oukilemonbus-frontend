@@ -144,11 +144,11 @@ export function OrganizationDetailPage() {
                 data.phone_contact && ['Téléphone', data.phone_contact],
                 data.name_contact && ['Contact', data.name_contact],
                 data.location && ['Adresse', shortAddress(data.location)],
-                data.is_priority && ['Réservations', 'Approbation automatique, pas de quota annuel'],
+                (data.quota?.exempt ?? data.is_priority) && ['Réservations', 'Pas de quota annuel'],
               ]}
             />
-            {!data.is_priority && (
-              <QuotaGauge used={data.reservations_used_this_year} quota={data.annual_quota} className="mt-4" />
+            {!(data.quota?.exempt ?? data.is_priority) && (
+              <QuotaGauge used={data.quota?.used ?? 0} quota={data.quota?.limit ?? data.annual_quota} className="mt-4" />
             )}
           </div>
         </Panel>

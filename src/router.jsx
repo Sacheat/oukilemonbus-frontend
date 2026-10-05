@@ -45,6 +45,7 @@ import { ReservationEditPage } from './pages/backoffice/ReservationEditPage'
 import { ReservationsQueuePage } from './pages/backoffice/ReservationsQueuePage'
 import { AlertDetailPage } from './pages/backoffice/AlertDetailPage'
 import { AlertsPage } from './pages/backoffice/AlertsPage'
+import { OrganizationsManagementPage } from './pages/backoffice/OrganizationsManagementPage'
 import { UnavailabilitiesPage } from './pages/backoffice/UnavailabilitiesPage'
 import { VehiclesPage } from './pages/backoffice/VehiclesPage'
 
@@ -278,7 +279,14 @@ export const router = createBrowserRouter([
                       </RequirePermission>
                     ),
                   },
-                  soon('organisations', 'Gestion', 'Organisations', 'organizations.update'),
+                  {
+                    path: 'organisations',
+                    element: (
+                      <RequirePermission permission="organizations.update">
+                        <OrganizationsManagementPage />
+                      </RequirePermission>
+                    ),
+                  },
                   soon('documents', 'Gestion', 'Documents', 'documents.generate'),
                   {
                     path: 'vehicules',
