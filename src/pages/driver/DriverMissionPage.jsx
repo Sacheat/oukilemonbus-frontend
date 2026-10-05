@@ -14,7 +14,7 @@ import { PageHeader } from '../../components/ui/PageHeader'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useApi } from '../../hooks/useApi'
 import { formatDate, formatDateTime, formatTime } from '../../lib/dates'
-import { isCancelledMission } from '../../lib/driverMissions'
+import { isCancelledMission, roundTripKmText } from '../../lib/driverMissions'
 import { estimatedArrivals, totalPassengers } from '../../lib/reservations'
 
 // Détail d'une mission du chauffeur (/chauffeur/missions/:id), page à part pour le téléphone :
@@ -75,7 +75,7 @@ export function DriverMissionPage() {
                 arrivals?.outbound && ['Arrivée estimée', `vers ${arrivals.outbound}`],
                 ['Retour', `${formatTime(trip.return_time)} (départ de la destination)`],
                 arrivals?.back && ['Retour estimé au départ', `vers ${arrivals.back}`],
-                trip.distance_km && ['Distance', `${Number(trip.distance_km).toLocaleString('fr-BE')} km`],
+                trip.distance_km && ['Distance aller-retour', roundTripKmText(trip)],
               ]}
             />
           </section>
