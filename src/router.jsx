@@ -16,6 +16,7 @@ import { NotFoundPage } from './pages/errors/NotFoundPage'
 import { RouteErrorPage } from './pages/errors/RouteErrorPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { CreateOrganizationRequestPage } from './pages/user/CreateOrganizationRequestPage'
+import { DocumentsPage as BackofficeDocumentsPage } from './pages/backoffice/DocumentsPage'
 import { DocumentsPage } from './pages/user/DocumentsPage'
 import { EditReservationPage } from './pages/user/EditReservationPage'
 import { JoinOrganizationPage } from './pages/user/JoinOrganizationPage'
@@ -279,7 +280,14 @@ export const router = createBrowserRouter([
                     ),
                   },
                   soon('organisations', 'Gestion', 'Organisations', 'organizations.update'),
-                  soon('documents', 'Gestion', 'Documents', 'documents.generate'),
+                  {
+                    path: 'documents',
+                    element: (
+                      <RequirePermission permission="documents.generate">
+                        <BackofficeDocumentsPage />
+                      </RequirePermission>
+                    ),
+                  },
                   {
                     path: 'vehicules',
                     element: (

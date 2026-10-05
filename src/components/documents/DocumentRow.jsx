@@ -1,10 +1,9 @@
 import { Download, ExternalLink, FileText } from 'lucide-react'
-import { useId, useState } from 'react'
 import { Link } from 'react-router'
-import { downloadDocument } from '../../api/documents'
+import { useDocumentFile } from '../../hooks/useDocumentFile'
 import { cx } from '../../lib/cx'
 import { formatDate, formatDateTime } from '../../lib/dates'
-import { fileKind, formatFileSize, getBlobErrorMessage, saveBlob, showBlobIn } from '../../lib/documents'
+import { fileKind, formatFileSize } from '../../lib/documents'
 import { DOCUMENT_TYPE_LABELS } from '../../lib/labels'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
@@ -12,40 +11,9 @@ import { Button } from '../ui/Button'
 // Un document : tuile du type de fichier, type et badges, mini-billet du déplacement lié (lien), nom, taille
 // et date, puis « Ouvrir » (nouvel onglet) et « Télécharger ». `showReservation` : false dans le détail d'un déplacement.
 export function DocumentRow({ document: doc, showReservation = true }) {
-  const [busy, setBusy] = useState(null) // 'open' | 'download'
-  const [error, setError] = useState(null)
-  const errorId = useId()
+  const { busy, error, errorId, open, download } = useDocumentFile(doc)
   const type = doc.document_type_label ?? DOCUMENT_TYPE_LABELS[doc.document_type] ?? doc.document_type
   const reservation = doc.reservation
-
-  async function handleOpen() {
-    // Onglet ouvert pendant le clic, rempli quand le fichier est arrivé (sinon bloqué comme popup)
-    const tab = window.open('', '_blank')
-    setBusy('open')
-    setError(null)
-    try {
-      const blob = await downloadDocument(doc.id)
-      if (tab) showBlobIn(tab, blob)
-      else saveBlob(blob, doc.file_name)
-    } catch (err) {
-      tab?.close()
-      setError(await getBlobErrorMessage(err))
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  async function handleDownload() {
-    setBusy('download')
-    setError(null)
-    try {
-      saveBlob(await downloadDocument(doc.id), doc.file_name)
-    } catch (err) {
-      setError(await getBlobErrorMessage(err))
-    } finally {
-      setBusy(null)
-    }
-  }
 
   const kind = fileKind(doc.mime_type)
 
@@ -89,7 +57,7 @@ export function DocumentRow({ document: doc, showReservation = true }) {
           <Button
             variant="secondary"
             className="text-sm"
-            onClick={handleOpen}
+            onClick={open}
             loading={busy === 'open'}
             disabled={busy !== null}
             aria-label={`Ouvrir ${doc.file_name} dans un nouvel onglet`}
@@ -100,7 +68,7 @@ export function DocumentRow({ document: doc, showReservation = true }) {
           <Button
             variant="secondary"
             className="text-sm"
-            onClick={handleDownload}
+            onClick={download}
             loading={busy === 'download'}
             disabled={busy !== null}
             aria-label={`Télécharger ${doc.file_name}`}
