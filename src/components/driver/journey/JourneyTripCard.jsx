@@ -23,7 +23,7 @@ function routeTarget(mission, state) {
 // Un trajet de « Ma journée » : horaires, organisation (appel direct), trajet, passagers, bus, itinéraire,
 // les quatre étapes et « Aide ». `engine` : application de navigation de la commune. `current` : trajet en cours, mis en avant. Une mission seulement approuvée
 // (pas encore confirmée par un agent) garde ses boutons éteints.
-export function JourneyTripCard({ mission, progress, current, engine, onRecorded, onAlertSent }) {
+export function JourneyTripCard({ mission, progress, current, engine, onRecorded, onUndone, onAlertSent }) {
   const state = progress?.state ?? 'a_venir'
   const arrivals = estimatedArrivals(mission)
   const passengerCount = totalPassengers(mission)
@@ -100,7 +100,7 @@ export function JourneyTripCard({ mission, progress, current, engine, onRecorded
       </div>
 
       {confirmed ? (
-        <JourneyStepButtons mission={mission} progress={progress} onRecorded={onRecorded} />
+        <JourneyStepButtons mission={mission} progress={progress} onRecorded={onRecorded} onUndone={onUndone} />
       ) : (
         <p className="rounded-control bg-surface-muted p-3 text-sm text-muted">
           Mission pas encore confirmée par un agent : les boutons s’activeront après la confirmation.

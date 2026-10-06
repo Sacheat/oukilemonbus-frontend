@@ -59,6 +59,15 @@ export function DriverJourneyPage() {
     else setNotice(null)
   }
 
+  // Appui annulé par le chauffeur (dans les 2 min) : l'avancement revient à l'étape précédente
+  function handleUndone(meta, event) {
+    setRecorded((previous) => ({
+      day,
+      progress: { ...(previous.day === day ? previous.progress : {}), [meta.progress.reservation_id]: meta.progress },
+    }))
+    setNotice(`${event.type_label} annulé : appuyez à nouveau au bon moment.`)
+  }
+
   function handleAlertSent() {
     setNotice(null)
     openAlert.reload()
@@ -91,6 +100,7 @@ export function DriverJourneyPage() {
             current={day === today && mission.id === currentId}
             engine={engine}
             onRecorded={handleRecorded}
+            onUndone={handleUndone}
             onAlertSent={handleAlertSent}
           />
         ))}
