@@ -25,3 +25,10 @@ export async function recordTripEvent(reservationId, body) {
   const { data } = await api.post(`/reservations/${reservationId}/trip-events`, body)
   return data
 }
+
+// Annule la dernière étape (agents et admins) : { data: étape annulée, meta: { progress } }.
+// 422 s'il n'y a pas d'étape ou si le compte rendu existe déjà (on corrige alors le compte rendu).
+export async function cancelLastTripEvent(reservationId) {
+  const { data } = await api.delete(`/reservations/${reservationId}/trip-events/last`)
+  return data
+}

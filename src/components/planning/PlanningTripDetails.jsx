@@ -11,8 +11,17 @@ import { PlanningTripSteps } from './PlanningTripSteps'
 // Détail d'un trajet dans le panneau latéral (lecture seule) : horaires, trajet, affectation, conflits,
 // puis chauffeurs et véhicules libres ou non pour ce créneau (include_availability), avec la raison.
 // `report` : compte rendu du chauffeur, affiché pour un trajet commencé ; `canManageReports` : l'agent peut le
-// saisir ou le corriger (`onReportSaved` après l'enregistrement).
-export function PlanningTripDetails({ trip, report = null, progress = null, canManageReports = false, onReportSaved }) {
+// saisir ou le corriger (`onReportSaved` après l'enregistrement) ; `canCancelSteps` : l'agent peut annuler la dernière
+// étape du chauffeur (`onStepCancelled` après l'annulation).
+export function PlanningTripDetails({
+  trip,
+  report = null,
+  progress = null,
+  canManageReports = false,
+  canCancelSteps = false,
+  onReportSaved,
+  onStepCancelled,
+}) {
   const conflicts = openConflicts(trip)
   const availability = trip.availability
 
@@ -38,7 +47,13 @@ export function PlanningTripDetails({ trip, report = null, progress = null, canM
         ]}
       />
 
-      <PlanningTripSteps trip={trip} progress={progress} />
+      <PlanningTripSteps
+        trip={trip}
+        progress={progress}
+        canCancel={canCancelSteps}
+        hasReport={Boolean(report)}
+        onStepCancelled={onStepCancelled}
+      />
 
       {trip.status === 'confirme' && hasTripStarted(trip) && (
         <section className="grid gap-2 border-t border-line pt-5">
