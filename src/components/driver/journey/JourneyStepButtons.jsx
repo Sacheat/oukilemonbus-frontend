@@ -62,7 +62,7 @@ export function JourneyStepButtons({ mission, progress, disabled, onRecorded, on
     setUndoing(true)
     setError(null)
     try {
-      const result = await cancelLastTripEvent(mission.id)
+      const result = await cancelLastTripEvent(mission.id, undoable.event.type)
       setUndoable(null)
       onUndone?.(result.meta, result.data)
     } catch (err) {
@@ -122,7 +122,7 @@ export function JourneyStepButtons({ mission, progress, disabled, onRecorded, on
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-control bg-surface-muted p-3 text-sm">
           <span>
             Appuyé par erreur ? Vous pouvez annuler « {undoable.event.type_label} » pendant {undoable.minutes} minute
-            {undoable.minutes > 1 ? 's' : ''}.
+            {undoable.minutes > 1 ? 's' : ''} après l’appui.
           </span>
           <Button variant="secondary" loading={undoing} onClick={undo}>
             <Undo2 className="size-4" aria-hidden="true" />

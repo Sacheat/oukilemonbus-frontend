@@ -217,7 +217,8 @@ export function PlanningPage() {
               report={reports.data?.[openedTrip.reservation_id] ?? null}
               progress={progress.data?.[openedTrip.reservation_id] ?? null}
               canManageReports={can('trip-reports.manage')}
-              canCancelSteps={can('trip-progress.manage')}
+              // Pas avant de savoir si le compte rendu existe (le backend refuserait l'annulation)
+              canCancelSteps={can('trip-progress.manage') && reports.data !== undefined}
               onReportSaved={handleReportSaved}
               onStepCancelled={handleStepCancelled}
             />

@@ -44,7 +44,7 @@ function ConfirmCancel({ reservationId, lastEvent, onClose, onCancelled }) {
     setSending(true)
     setError(null)
     try {
-      const result = await cancelLastTripEvent(reservationId)
+      const result = await cancelLastTripEvent(reservationId, lastEvent.type)
       onCancelled(result.data)
     } catch (requestError) {
       setError(getErrorMessage(requestError))
