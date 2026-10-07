@@ -4,7 +4,7 @@ import { NOTIFICATION_CATEGORY_LABELS } from './labels'
 // Catégories reçues selon le rôle : l'usager reçoit dans « admin_workflow » les réponses
 // à ses demandes d'adhésion ou de création ; un agent y reçoit le travail à traiter.
 export function notificationCategories(user) {
-  if (isInternal(user)) return ['admin_workflow', 'reservation_updates', 'last_minute_cancellation']
+  if (isInternal(user)) return ['admin_workflow', 'reservation_updates', 'last_minute_cancellation', 'weekly_planning']
   if (getHomePath(user) === '/chauffeur') return ['driver_planning', 'last_minute_cancellation']
   return ['reservation_updates', 'last_minute_cancellation', 'admin_workflow']
 }
@@ -52,7 +52,7 @@ export function notificationKind({ event_key: eventKey = '', category }) {
   if (eventKey.includes('conflict')) return 'conflict'
   if (category === 'last_minute_cancellation') return 'cancelled'
   if (category === 'admin_workflow') return 'organization'
-  if (category === 'driver_planning') return 'planning'
+  if (category === 'driver_planning' || category === 'weekly_planning') return 'planning'
   return 'reservation'
 }
 

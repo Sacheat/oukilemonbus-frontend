@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/useAuth'
 import { useApi } from '../../hooks/useApi'
 import { useForm } from '../../hooks/useForm'
 import { categoryLabel, DIGEST_OPTIONS, HOURS, notificationCategories } from '../../lib/notifications'
+import { OPT_IN_OPTIONS, optInChoice, optInValue } from '../../lib/weeklyPlanning'
 import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
@@ -19,7 +20,8 @@ function fetchPreferences(signal) {
 }
 
 // Préférences de notification (carte de /compte, ancre #notifications) :
-// catégories du rôle en interrupteurs (application, e-mail), envoi des e-mails en pastilles, heures silencieuses
+// catégories du rôle en interrupteurs (application, e-mail), envoi des e-mails en pastilles, heures silencieuses ;
+// agents et admins : qui reçoit le planning hebdomadaire (automatique, toujours, jamais)
 export function NotificationPreferencesCard() {
   const preferences = useApi(fetchPreferences)
   const location = useLocation()
@@ -52,6 +54,7 @@ function toFormValues(preferences) {
     quiet_enabled: preferences.quiet_hours_start !== null && preferences.quiet_hours_end !== null,
     quiet_hours_start: preferences.quiet_hours_start === null ? '22' : String(preferences.quiet_hours_start),
     quiet_hours_end: preferences.quiet_hours_end === null ? '7' : String(preferences.quiet_hours_end),
+    weekly_planning_choice: optInChoice(preferences.weekly_planning_opt_in),
   }
 }
 
@@ -62,8 +65,10 @@ function PreferencesForm({ initial }) {
   const [saved, setSaved] = useState(false)
   const { values } = form
 
+  const receivesWeeklyPlanning = categories.includes('weekly_planning')
   const toPayload = useCallback(
     (current) => ({
+      ...(receivesWeeklyPlanning ? { weekly_planning_opt_in: optInValue(current.weekly_planning_choice) } : {}),
       ...Object.fromEntries(
         categories.flatMap((category) => [
           [`notify_${category}_in_app`, Boolean(current[`notify_${category}_in_app`])],
@@ -74,7 +79,7 @@ function PreferencesForm({ initial }) {
       quiet_hours_start: current.quiet_enabled ? Number(current.quiet_hours_start) : null,
       quiet_hours_end: current.quiet_enabled ? Number(current.quiet_hours_end) : null,
     }),
-    [categories],
+    [categories, receivesWeeklyPlanning],
   )
 
   async function handleSubmit(event) {
@@ -116,6 +121,17 @@ function PreferencesForm({ initial }) {
           )
         })}
       </ul>
+
+      {receivesWeeklyPlanning && (
+        <ChoicePills
+          legend="Planning hebdomadaire : le recevoir"
+          options={OPT_IN_OPTIONS}
+          value={values.weekly_planning_choice}
+          onChange={(value) => form.setValues((current) => ({ ...current, weekly_planning_choice: value }))}
+          hint="Automatique : vous le recevez si vous êtes le responsable du planning, ou si aucun responsable n’est désigné. « Toujours » pour le recevoir quand même (remplacement, absence du responsable)."
+          error={form.errors.weekly_planning_opt_in}
+        />
+      )}
 
       <ChoicePills
         legend="Envoi des e-mails"
