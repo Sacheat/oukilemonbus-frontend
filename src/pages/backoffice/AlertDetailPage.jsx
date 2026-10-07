@@ -134,6 +134,7 @@ export function AlertDetailPage() {
               reservation && ['Départ', reservation.pickup?.address],
               reservation && ['Destination', reservation.destination?.address],
               alert.trip_progress_label && ['Avancement', alert.trip_progress_label],
+              alert.reminded_at && ['Relance automatique', `le ${formatDateTime(alert.reminded_at)} (personne ne l’avait prise en charge)`],
               alert.handled_by && ['Prise en charge', `${alert.handled_by}, le ${formatDateTime(alert.handled_at)}`],
               alert.closed_by && ['Clôture', `${alert.closed_by}, le ${formatDateTime(alert.closed_at)}`],
               alert.closing_note && ['Ce qui a été fait', alert.closing_note],

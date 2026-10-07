@@ -1,23 +1,40 @@
-import { Check, Flag, PlayCircle } from 'lucide-react'
-import { useState } from 'react'
-import { recordTripEvent } from '../../../api/tripProgress'
+import { Check, Flag, PlayCircle, Undo2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { cancelLastTripEvent, recordTripEvent } from '../../../api/tripProgress'
 import { cx } from '../../../lib/cx'
 import { readDevicePosition } from '../../../lib/devicePosition'
 import { JOURNEY_STEPS, LAST_STEP, stepStatus } from '../../../lib/driverJourney'
 import { getErrorMessage } from '../../../lib/errors'
 import { Alert } from '../../ui/Alert'
+import { Button } from '../../ui/Button'
 import { FinalArrivalModal } from './FinalArrivalModal'
+import { StepConfirmModal } from './StepConfirmModal'
 
 // Les quatre étapes d'un trajet, en deux lignes (aller, retour), avec de gros boutons pour le téléphone sur support :
 //   étape enregistrée → bouton éteint, coché, avec son heure (« Parti 09:02 »)
 //   étape suivante    → seul bouton actif ; la dernière arrivée demande d'abord les passagers transportés
 //   étapes suivantes  → grisées
 // Chaque appui relève la position du téléphone (sans bloquer s'il la refuse) ; le backend vérifie l'ordre et l'heure.
-// `onRecorded(meta)` reçoit l'avancement à jour et le compte rendu créé à la dernière arrivée.
-export function JourneyStepButtons({ mission, progress, disabled, onRecorded }) {
+// Erreur humaine, double sécurité :
+//   appui      → fenêtre « Confirmer … maintenant ? » (la dernière arrivée passe par la fenêtre des passagers)
+//   enregistré → « Annuler cet appui » pendant meta.undo_seconds (2 min, annoncé par le backend), puis il disparaît :
+//                au-delà, seul un agent peut annuler (le backend refuse aussi)
+// `onRecorded(meta, étape)` reçoit l'avancement à jour et le compte rendu créé à la dernière arrivée ;
+// `onUndone(meta, étape)` après une annulation.
+export function JourneyStepButtons({ mission, progress, disabled, onRecorded, onUndone }) {
   const [busyStep, setBusyStep] = useState(null)
   const [error, setError] = useState(null)
   const [askPassengers, setAskPassengers] = useState(false)
+  const [confirmStep, setConfirmStep] = useState(null)
+  // Dernier appui annulable : { event, minutes, until } (horloge du téléphone, simple affichage : le backend tranche)
+  const [undoable, setUndoable] = useState(null)
+  const [undoing, setUndoing] = useState(false)
+
+  useEffect(() => {
+    if (!undoable) return undefined
+    const timer = setTimeout(() => setUndoable(null), Math.max(0, undoable.until - Date.now()))
+    return () => clearTimeout(timer)
+  }, [undoable])
 
   async function record(type, passengers = {}) {
     setBusyStep(type)
@@ -26,6 +43,8 @@ export function JourneyStepButtons({ mission, progress, disabled, onRecorded }) 
       const position = await readDevicePosition()
       const result = await recordTripEvent(mission.id, { type, position, ...passengers })
       setAskPassengers(false)
+      const seconds = result.meta.undo_seconds
+      setUndoable(seconds ? { event: result.data, minutes: Math.round(seconds / 60), until: Date.now() + seconds * 1000 } : null)
       onRecorded(result.meta, result.data)
     } catch (err) {
       setError(getErrorMessage(err))
@@ -34,9 +53,24 @@ export function JourneyStepButtons({ mission, progress, disabled, onRecorded }) 
     }
   }
 
-  function handlePress(type) {
-    if (type === LAST_STEP) setAskPassengers(true)
-    else record(type)
+  function handlePress(step) {
+    if (step.type === LAST_STEP) setAskPassengers(true)
+    else setConfirmStep(step)
+  }
+
+  async function undo() {
+    setUndoing(true)
+    setError(null)
+    try {
+      const result = await cancelLastTripEvent(mission.id, undoable.event.type)
+      setUndoable(null)
+      onUndone?.(result.meta, result.data)
+    } catch (err) {
+      setUndoable(null)
+      setError(getErrorMessage(err))
+    } finally {
+      setUndoing(false)
+    }
   }
 
   const legs = ['Aller', 'Retour'].map((leg) => ({ leg, steps: JOURNEY_STEPS.filter((step) => step.leg === leg) }))
@@ -55,8 +89,8 @@ export function JourneyStepButtons({ mission, progress, disabled, onRecorded }) 
                 <button
                   key={step.type}
                   type="button"
-                  onClick={() => handlePress(step.type)}
-                  disabled={disabled || status !== 'next' || busyStep !== null}
+                  onClick={() => handlePress(step)}
+                  disabled={disabled || status !== 'next' || busyStep !== null || undoing}
                   aria-label={status === 'done' ? `${step.label} (${leg.toLowerCase()}) : enregistré à ${event.local_time}` : `${step.label} (${leg.toLowerCase()})`}
                   className={cx(
                     'flex min-h-16 items-center justify-center gap-2 rounded-card px-3 text-lg font-extrabold transition',
@@ -84,7 +118,30 @@ export function JourneyStepButtons({ mission, progress, disabled, onRecorded }) 
         </div>
       ))}
 
+      {undoable && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-control bg-surface-muted p-3 text-sm">
+          <span>
+            Appuyé par erreur ? Vous pouvez annuler « {undoable.event.type_label} » pendant {undoable.minutes} minute
+            {undoable.minutes > 1 ? 's' : ''} après l’appui.
+          </span>
+          <Button variant="secondary" loading={undoing} onClick={undo}>
+            <Undo2 className="size-4" aria-hidden="true" />
+            Annuler cet appui
+          </Button>
+        </div>
+      )}
+
       {error && <Alert tone="danger">{error}</Alert>}
+
+      <StepConfirmModal
+        step={confirmStep}
+        onCancel={() => setConfirmStep(null)}
+        onConfirm={() => {
+          const type = confirmStep.type
+          setConfirmStep(null)
+          record(type)
+        }}
+      />
 
       <FinalArrivalModal
         open={askPassengers}

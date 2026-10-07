@@ -82,6 +82,12 @@ export function PlanningPage() {
     reports.reload()
   }
 
+  // Étape annulée : le panneau reste ouvert, l'avancement est relu (badges et étapes à jour)
+  function handleStepCancelled(cancelledEvent) {
+    setNotice(`« ${cancelledEvent.type_label} » annulé : le chauffeur peut appuyer à nouveau.`)
+    progress.reload()
+  }
+
   function showWeek(monday) {
     updateSearch({ semaine: monday === mondayOf(today) ? null : monday })
   }
@@ -211,7 +217,10 @@ export function PlanningPage() {
               report={reports.data?.[openedTrip.reservation_id] ?? null}
               progress={progress.data?.[openedTrip.reservation_id] ?? null}
               canManageReports={can('trip-reports.manage')}
+              // Pas avant de savoir si le compte rendu existe (le backend refuserait l'annulation)
+              canCancelSteps={can('trip-progress.manage') && reports.data !== undefined}
               onReportSaved={handleReportSaved}
+              onStepCancelled={handleStepCancelled}
             />
           ) : tripList ? (
             <Alert tone="warning">Ce trajet ne fait pas partie de la période ou des filtres affichés.</Alert>

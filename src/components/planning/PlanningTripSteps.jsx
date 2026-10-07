@@ -3,6 +3,7 @@ import { useCallback } from 'react'
 import { getTripProgress } from '../../api/tripProgress'
 import { useApi } from '../../hooks/useApi'
 import { JOURNEY_STEPS, positionStateText, stepChecksByType, stepDistanceText } from '../../lib/driverJourney'
+import { CancelLastStepControl } from './CancelLastStepControl'
 import { PlanningStepsMap } from './PlanningStepsMap'
 
 const SOURCE_LABELS = { chauffeur: 'chauffeur', agent: 'agent', gps: 'GPS', systeme: 'système' }
@@ -11,7 +12,9 @@ const SOURCE_LABELS = { chauffeur: 'chauffeur', agent: 'agent', gps: 'GPS', syst
 // qui l'a signalée, si la position a été envoyée, et à quelle distance du lieu prévu (meta.step_checks, relu ici
 // quand une étape s'ajoute). Au-delà du seuil de la commune, l'étape est signalée « loin du lieu prévu » ; rien n'est
 // bloqué. Petite carte des positions sous la liste. Rien tant qu'aucune étape n'est enregistrée.
-export function PlanningTripSteps({ trip, progress }) {
+// `canCancel` : l'agent peut annuler la dernière étape (pas une fois le compte rendu créé : `hasReport`) ;
+// `onStepCancelled(étape)` après l'annulation.
+export function PlanningTripSteps({ trip, progress, canCancel = false, hasReport = false, onStepCancelled }) {
   const events = progress?.events ?? []
   const reservationId = trip.reservation_id
   const eventCount = events.length
@@ -30,6 +33,7 @@ export function PlanningTripSteps({ trip, progress }) {
     return event && { number: index + 1, latitude: event.latitude, longitude: event.longitude, far: Boolean(checks[step.type]?.far_from_expected), label: `${step.leg} · ${step.label}` }
   }).filter(Boolean)
   const farCount = Object.values(checks).filter((check) => check.far_from_expected).length
+  const lastEvent = JOURNEY_STEPS.map((step) => events.find((item) => item.type === step.type)).filter(Boolean).at(-1)
 
   return (
     <section className="grid gap-3 border-t border-line pt-5">
@@ -72,6 +76,9 @@ export function PlanningTripSteps({ trip, progress }) {
         })}
       </ol>
       <PlanningStepsMap pickup={trip.pickup_location} destination={trip.destination_location} steps={mapSteps} />
+      {canCancel && !hasReport && lastEvent && (
+        <CancelLastStepControl reservationId={reservationId} lastEvent={lastEvent} onCancelled={onStepCancelled} />
+      )}
     </section>
   )
 }
