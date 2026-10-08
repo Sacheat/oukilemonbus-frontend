@@ -9,6 +9,7 @@ import { Button } from '../ui/Button'
 // Approuver (confirmé, avec l'effet annoncé) ou refuser (motif obligatoire) une demande en attente.
 // L'avertissement « Rôle déjà tenu » est rappelé dans la fenêtre d'approbation.
 // `onDecided(message)` après un succès ; le backend refuse une demande déjà traitée (422, affiché dans la fenêtre).
+// Barre collée en bas du panneau (dernier élément de son contenu) : les boutons restent visibles pendant la lecture.
 export function RequestActions({ kind, request, onDecided }) {
   const [confirming, setConfirming] = useState(null) // 'approve' | 'reject'
   const id = requestIdOf(kind, request)
@@ -16,7 +17,10 @@ export function RequestActions({ kind, request, onDecided }) {
   const roleHeld = roleAlreadyHeldWarning(request.confidence_details?.warnings)
 
   return (
-    <section className="flex flex-wrap gap-2 border-t border-line pt-5">
+    <section
+      aria-label="Décision"
+      className="sticky bottom-0 -mx-5 -mb-5 flex flex-wrap gap-2 border-t border-line bg-surface px-5 py-3 shadow-[0_-4px_12px_rgb(0_0_0/0.06)]"
+    >
       <Button onClick={() => setConfirming('approve')}>
         <Check className="size-4" aria-hidden="true" /> Approuver
       </Button>
