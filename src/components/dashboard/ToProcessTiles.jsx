@@ -1,10 +1,11 @@
 import { CheckCircle2 } from 'lucide-react'
-import { countLabel, splitTiles, TILE_SHORT_LABELS } from '../../lib/dashboard'
+import { activeTiles, countLabel } from '../../lib/dashboard'
 import { Skeleton } from '../ui/Skeleton'
 import { StatTile } from '../home/StatTile'
 
-// Section « À traiter » : les compteurs non nuls en tuiles, ceux à zéro repliés en une ligne discrète,
-// « Tout est à jour » quand il n'y a rien. `toProcess` undefined : chargement. `can` : liens selon la permission.
+// Section « À faire » : uniquement ce sur quoi l'agent peut agir, en tuiles qui disent l'action (« 2 réservations à
+// valider ») et ouvrent la liste où le faire. Compteurs à zéro masqués ; « Tout est à jour » quand il n'y a rien.
+// `toProcess` undefined : chargement. `can` : liens selon la permission.
 export function ToProcessTiles({ toProcess, can }) {
   if (!toProcess) {
     return (
@@ -16,9 +17,9 @@ export function ToProcessTiles({ toProcess, can }) {
     )
   }
 
-  const { active, empty } = splitTiles(toProcess)
+  const tiles = activeTiles(toProcess)
 
-  if (active.length === 0) {
+  if (tiles.length === 0) {
     return (
       <p className="flex items-center gap-3 rounded-card border border-line bg-surface p-4 text-sm shadow-soft">
         <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-success-soft text-success">
@@ -26,34 +27,24 @@ export function ToProcessTiles({ toProcess, can }) {
         </span>
         <span>
           <strong className="block">Tout est à jour</strong>
-          <span className="text-muted">Aucune demande, aucun conflit ni aucune affectation en attente.</span>
+          <span className="text-muted">Aucune réservation, aucun conflit ni aucune demande en attente.</span>
         </span>
       </p>
     )
   }
 
   return (
-    <div className="grid gap-3">
-      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
-        {active.map((tile) => (
-          <StatTile
-            key={tile.key}
-            to={tile.to && can(tile.permission) ? tile.to : undefined}
-            icon={tile.icon}
-            tone={tile.tone}
-            value={toProcess[tile.key]}
-            label={countLabel(toProcess[tile.key], tile.labels)}
-          />
-        ))}
-      </div>
-      {empty.length > 0 && (
-        <p className="flex items-start gap-2 text-sm text-muted">
-          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
-          <span>
-            Rien en attente : {empty.map((tile) => TILE_SHORT_LABELS[tile.key]).join(', ')}.
-          </span>
-        </p>
-      )}
+    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+      {tiles.map((tile) => (
+        <StatTile
+          key={tile.key}
+          to={can(tile.permission) ? tile.to : undefined}
+          icon={tile.icon}
+          tone={tile.tone}
+          value={toProcess[tile.key]}
+          label={countLabel(toProcess[tile.key], tile.labels)}
+        />
+      ))}
     </div>
   )
 }
