@@ -1,28 +1,50 @@
-import { formatDate, formatTime } from '../../lib/dates'
-import { Card } from '../ui/Card'
-import { StatusBadge } from '../ui/StatusBadge'
+import { cx } from '../../lib/cx'
+import { councilStateHint } from '../../lib/councilDecisions'
+import { formatTime } from '../../lib/dates'
+import { totalPassengers } from '../../lib/reservations'
+import { Badge } from '../ui/Badge'
 
-// Réservation qui attend le Collège (onglet « À décider »), cliquable pour ouvrir le panneau de décision
-export function CollegeReservationRow({ reservation, onOpen }) {
-  const passengerCount = reservation.nb_children + reservation.nb_adults
+// Bordure gauche d'une réservation urgente (trajet dans 3 jours au plus, urgencyOf), comme dans la file Réservations
+const URGENCY_BORDERS = { danger: 'border-danger', warning: 'border-warning' }
+
+// Réservation qui attend le Collège (onglet « À décider »), en ligne compacte sous l'en-tête de son jour : heure, motif,
+// organisation et passagers, état du Collège (aucune décision ou décision reportée) à la place du statut de la
+// réservation, conflit éventuel, urgence. Ouvre le panneau de décision.
+export function CollegeReservationRow({ reservation, onOpen, selected, urgency }) {
+  const hint = councilStateHint(reservation)
 
   return (
-    <Card
-      as="button"
-      type="button"
-      onClick={() => onOpen(reservation.id)}
-      className="w-full text-left transition hover:border-line-strong hover:bg-surface-muted"
-    >
-      <span className="flex flex-wrap items-start justify-between gap-2">
-        <span className="font-bold">{reservation.organization?.name}</span>
-        <StatusBadge status={reservation.status} label={reservation.status_label} />
-      </span>
-      <span className="mt-1 block text-sm first-letter:uppercase">
-        {formatDate(reservation.trip_date)}, {formatTime(reservation.departure_time)} → {formatTime(reservation.return_time)}
-      </span>
-      <span className="mt-1 block text-sm break-words text-muted">
-        {reservation.trip_purpose} · {passengerCount} passager{passengerCount > 1 ? 's' : ''} · réservation n° {reservation.id}
-      </span>
-    </Card>
+    <li>
+      <button
+        type="button"
+        onClick={() => onOpen(reservation.id)}
+        aria-current={selected ? 'true' : undefined}
+        className={cx(
+          'flex min-h-11 w-full items-center gap-3 border-l-[3px] px-4 py-2.5 text-left hover:bg-surface-muted',
+          selected ? 'border-primary bg-soft hover:bg-soft' : (URGENCY_BORDERS[urgency] ?? 'border-transparent'),
+        )}
+      >
+        <span className="w-12 shrink-0 text-sm font-bold tabular-nums">{formatTime(reservation.departure_time)}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-semibold">{reservation.trip_purpose}</span>
+          <span className="block truncate text-sm text-muted">
+            {reservation.organization?.name} · {totalPassengers(reservation)} pers.
+          </span>
+          <span className="mt-1 flex flex-wrap gap-1">
+            <Badge tone={hint.tone} className="px-1.5 py-0.5 text-[11px]">
+              {hint.label}
+            </Badge>
+            {reservation.status === 'en_conflit' && (
+              <Badge tone="conflict" className="px-1.5 py-0.5 text-[11px]">
+                En conflit
+              </Badge>
+            )}
+          </span>
+        </span>
+        {urgency && (
+          <span className={cx('shrink-0 text-xs font-bold', urgency === 'danger' ? 'text-danger' : 'text-warning')}>Urgent</span>
+        )}
+      </button>
+    </li>
   )
 }
