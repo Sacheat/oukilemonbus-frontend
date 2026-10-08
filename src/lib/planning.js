@@ -80,7 +80,16 @@ export function readPlanningSearch(searchParams, now = new Date()) {
     vehicleId: searchParams.get('vehicule') ?? '',
     driverId: searchParams.get('chauffeur') ?? '',
     openedTripId: searchParams.get('trajet'),
+    dayParam: searchParams.get('jour'),
   }
+}
+
+// Jour montré en vue semaine sur petit écran (un jour à la fois, ?jour=) : celui de l'URL s'il est dans la semaine,
+// sinon aujourd'hui s'il en fait partie, sinon le lundi
+export function shownWeekDay(planningSearch, today) {
+  const days = workingDaysOf(planningSearch.weekStart)
+  if (days.includes(planningSearch.dayParam)) return planningSearch.dayParam
+  return days.includes(today) ? today : days[0]
 }
 
 // Période demandée au backend selon la vue : du lundi au vendredi, ou du … au … de la liste

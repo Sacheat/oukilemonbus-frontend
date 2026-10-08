@@ -47,7 +47,9 @@ export function reportOf(reports, reservationId) {
 // Badge d'un trajet dans une liste (`audience` : 'chauffeur' ou 'agent') :
 //   compte rendu inconnu (undefined)                         → rien
 //   compte rendu « réalisé » / « non réalisé »               → Réalisé (vert) / Non réalisé (rouge)
-//   confirmé, commencé, sans compte rendu, délai en cours    → À confirmer (orange)
+//   confirmé, commencé, sans compte rendu, délai en cours    → chauffeur : À confirmer ; agent : Compte rendu attendu
+//                                                              (orange ; « À confirmer » se confondait avec le statut
+//                                                              « Confirmé » sur les cartes du Planning)
 //   idem, délai du chauffeur dépassé                         → agent : Sans compte rendu (orange, il peut le saisir) ;
 //                                                              chauffeur : rien (il ne peut plus le faire)
 export function tripReportBadge(report, mission, audience = 'chauffeur', now = new Date()) {
@@ -55,7 +57,9 @@ export function tripReportBadge(report, mission, audience = 'chauffeur', now = n
   if (report?.outcome === 'realise') return { label: 'Réalisé', tone: 'success' }
   if (report?.outcome === 'non_realise') return { label: 'Non réalisé', tone: 'danger' }
   if (mission.status !== 'confirme' || !hasTripStarted(mission, now)) return null
-  if (!isDriverDeadlinePassed(mission, now)) return { label: 'À confirmer', tone: 'warning' }
+  if (!isDriverDeadlinePassed(mission, now)) {
+    return { label: audience === 'agent' ? 'Compte rendu attendu' : 'À confirmer', tone: 'warning' }
+  }
   return audience === 'agent' ? { label: 'Sans compte rendu', tone: 'warning' } : null
 }
 
