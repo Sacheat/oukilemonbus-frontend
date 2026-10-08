@@ -14,7 +14,10 @@ import { Pagination } from '../../components/ui/Pagination'
 import { VehicleCard } from '../../components/vehicles/VehicleCard'
 import { VehicleDrawerContent } from '../../components/vehicles/VehicleDrawerContent'
 import { useApi } from '../../hooks/useApi'
+import { useFleetToday } from '../../hooks/useFleetToday'
+import { useNow } from '../../hooks/useNow'
 import { NEW_VEHICLE, findVehicle, sortActiveFirst } from '../../lib/vehicles'
+import { fleetDayState, fleetPlanningLink } from '../../lib/fleetToday'
 
 // Flotte : véhicules en cartes (en service d'abord), paginés par 15.
 // ?vehicule=id ouvre le panneau de modification, ?vehicule=nouveau celui d'ajout ; ?page=n la page de la liste.
@@ -27,6 +30,9 @@ export function VehiclesPage() {
 
   const fetchVehicles = useCallback((signal) => getVehicles({ page }, { signal }), [page])
   const vehicles = useApi(fetchVehicles)
+  // État du jour de chaque carte (trajets, indisponibilités en cours, avancement réel)
+  const today = useFleetToday()
+  const nowTime = useNow().slice(11)
   const vehicleList = vehicles.data?.data // undefined tant que rien n'est reçu
   const canCreate = can('vehicles.create')
 
@@ -97,7 +103,13 @@ export function VehiclesPage() {
         <>
           <div className="grid gap-4 sm:grid-cols-2">
             {sortActiveFirst(vehicleList).map((vehicle) => (
-              <VehicleCard key={vehicle.id} vehicle={vehicle} onOpen={() => openDrawer(String(vehicle.id))} />
+              <VehicleCard
+                key={vehicle.id}
+                vehicle={vehicle}
+                onOpen={() => openDrawer(String(vehicle.id))}
+                dayState={fleetDayState('vehicle', vehicle.id, today, nowTime)}
+                planningHref={today && fleetPlanningLink('vehicle', vehicle.id, today.day)}
+              />
             ))}
           </div>
           <Pagination meta={vehicles.data.meta} onPageChange={changePage} />
