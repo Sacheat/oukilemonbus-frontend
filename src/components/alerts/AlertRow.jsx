@@ -2,12 +2,15 @@ import { ArrowRight, LifeBuoy } from 'lucide-react'
 import { Link } from 'react-router'
 import { cx } from '../../lib/cx'
 import { formatDateTime } from '../../lib/dates'
-import { ALERT_STATUS_TONES, alertPlaceText } from '../../lib/driverAlerts'
+import { ALERT_STATUS_TONES, alertPlaceText, alertWaitingText } from '../../lib/driverAlerts'
 import { Badge } from '../ui/Badge'
 
-// Une demande d'aide dans une liste : statut, heure, chauffeur et bus, trajet, message, lieu. Cliquable vers sa page.
-export function AlertRow({ alert }) {
+// Une demande d'aide dans une liste : statut, temps écoulé (« Sans réponse depuis 38 min » en rouge pour une demande
+// ouverte ; l'heure exacte en infobulle), chauffeur et bus, trajet, message, lieu. Cliquable vers sa page.
+// `now` : heure actuelle (useClock), pour un temps écoulé en direct.
+export function AlertRow({ alert, now }) {
   const open = alert.status !== 'cloturee'
+  const waiting = alertWaitingText(alert, now)
 
   return (
     <li>
@@ -24,7 +27,16 @@ export function AlertRow({ alert }) {
         <span className="grid min-w-0 flex-1 gap-1">
           <span className="flex flex-wrap items-center gap-2">
             <Badge tone={ALERT_STATUS_TONES[alert.status]}>{alert.status_label}</Badge>
-            <span className="text-sm text-muted">n° {alert.id} · {formatDateTime(alert.created_at)}</span>
+            <span className="text-sm text-muted">
+              n° {alert.id} ·{' '}
+              <time
+                dateTime={alert.created_at}
+                title={formatDateTime(alert.created_at)}
+                className={cx(waiting.urgent && 'text-danger', waiting.strong && 'font-bold')}
+              >
+                {waiting.text}
+              </time>
+            </span>
           </span>
           <span className="font-semibold">
             {alert.driver.name ?? 'Chauffeur'}

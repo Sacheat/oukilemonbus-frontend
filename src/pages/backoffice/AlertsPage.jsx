@@ -7,6 +7,10 @@ import { FilterChips } from '../../components/ui/FilterChips'
 import { Loader } from '../../components/ui/Loader'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Pagination } from '../../components/ui/Pagination'
+import { getDriverAlerts } from '../../api/driverAlerts'
+import { useApi } from '../../hooks/useApi'
+import { useAutoRefresh } from '../../hooks/useAutoRefresh'
+import { useClock } from '../../hooks/useClock'
 import { useDriverAlerts } from '../../hooks/useDriverAlerts'
 import { ALERT_FILTERS, DEFAULT_ALERT_FILTER, readAlertSearch } from '../../lib/driverAlerts'
 
@@ -16,12 +20,24 @@ const EMPTY_TITLES = {
   toutes: 'Aucune demande d’aide',
 }
 
-// Demandes d'aide des chauffeurs (agent et admin) : en cours par défaut (ouvertes puis prises en charge), clôturées,
-// ou toutes ; filtrées et paginées par le backend (?statut=, ?page=), relues toutes les 60 s.
+// Nombre de demandes de chaque filtre (meta.total d'une requête par filtre) : { 'en-cours': 3, … }
+async function fetchAlertCounts(signal) {
+  const pages = await Promise.all(
+    ALERT_FILTERS.map((option) => getDriverAlerts({ statuses: option.statuses.length ? option.statuses : undefined, per_page: 1 }, { signal })),
+  )
+  return Object.fromEntries(ALERT_FILTERS.map((option, index) => [option.value, pages[index].meta.total]))
+}
+
+// Demandes d'aide des chauffeurs (agent et admin) : en cours par défaut (ouvertes d'abord, puis prises en charge),
+// clôturées, ou toutes, avec leur nombre ; filtrées et paginées par le backend (?statut=, ?page=), relues toutes les
+// 60 s. Temps écoulé en direct (useClock) : « Sans réponse depuis 38 min » pour une demande ouverte.
 export function AlertsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { filter, statuses, page } = readAlertSearch(searchParams)
   const alerts = useDriverAlerts(statuses.join(','), page)
+  const counts = useApi(fetchAlertCounts)
+  useAutoRefresh(counts.reload)
+  const now = useClock()
   const alertList = alerts.loading ? undefined : alerts.data?.data
 
   function updateSearch(changes) {
@@ -42,7 +58,7 @@ export function AlertsPage() {
       <div className="overflow-hidden rounded-card border border-line bg-surface">
         <ul className="divide-y divide-line">
           {alertList.map((alert) => (
-            <AlertRow key={alert.id} alert={alert} />
+            <AlertRow key={alert.id} alert={alert} now={now} />
           ))}
         </ul>
         <div className="border-t border-line p-4 empty:hidden">
@@ -61,7 +77,7 @@ export function AlertsPage() {
       />
       <FilterChips
         label="Statut"
-        chips={ALERT_FILTERS.map(({ value, label }) => ({ value, label }))}
+        chips={ALERT_FILTERS.map(({ value, label }) => ({ value, label, count: counts.data?.[value] ?? null }))}
         value={filter}
         onChange={(value) => updateSearch({ statut: value === DEFAULT_ALERT_FILTER ? null : value, page: null })}
       />
