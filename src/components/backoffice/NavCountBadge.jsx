@@ -1,14 +1,23 @@
 import { useQueueCount } from '../../backoffice/useQueueCount'
+import { cx } from '../../lib/cx'
+import { NAV_COUNTS } from '../../lib/navCounts'
 
-// Nombre de demandes à traiter, à droite de « Réservations » dans la barre latérale (rien à 0)
-export function NavCountBadge() {
-  const { pendingCount } = useQueueCount()
-  if (pendingCount === 0) return null
+// Compteur à droite d'une entrée de la barre latérale (`name` : clé de NAV_COUNTS), rien à 0 ou pas encore chargé.
+// Rouge pour un compteur urgent (demandes d'aide), jaune sinon.
+export function NavCountBadge({ name }) {
+  const { counts } = useQueueCount()
+  const count = counts[name] ?? 0
+  if (count === 0) return null
   return (
-    <span className="ml-auto rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-on-accent tabular-nums">
+    <span
+      className={cx(
+        'ml-auto rounded-full px-2 py-0.5 text-xs font-bold tabular-nums',
+        NAV_COUNTS[name].urgent ? 'bg-danger text-on-danger' : 'bg-accent text-on-accent',
+      )}
+    >
       <span className="sr-only">, </span>
-      {pendingCount > 99 ? '99+' : pendingCount}
-      <span className="sr-only"> à traiter</span>
+      {count > 99 ? '99+' : count}
+      <span className="sr-only"> {NAV_COUNTS[name].sr}</span>
     </span>
   )
 }

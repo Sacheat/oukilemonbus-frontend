@@ -2,6 +2,7 @@ import { Inbox, Search } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { getRequests } from '../../api/requests'
+import { useQueueCount } from '../../backoffice/useQueueCount'
 import { RequestActions } from '../../components/requests/RequestActions'
 import { RequestDetails } from '../../components/requests/RequestDetails'
 import { RequestRow } from '../../components/requests/RequestRow'
@@ -50,6 +51,7 @@ export function RequestsPage() {
   const requests = useRequests(queue.kind, JSON.stringify(requestsApiParams(search)))
   const list = requests.data?.data
   const counts = useApi(fetchPendingCounts)
+  const { refreshCount } = useQueueCount()
   const opened = useRequest(queue.kind, openedId)
   const [notice, setNotice] = useState(null)
   const [searchInput, setSearchInput] = useState(search.search)
@@ -91,6 +93,7 @@ export function RequestsPage() {
     update({ demande: null })
     requests.reload()
     counts.reload()
+    refreshCount()
     setNotice(message)
   }
 
