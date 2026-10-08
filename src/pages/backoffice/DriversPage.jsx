@@ -14,7 +14,10 @@ import { Loader } from '../../components/ui/Loader'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Pagination } from '../../components/ui/Pagination'
 import { useApi } from '../../hooks/useApi'
+import { useFleetToday } from '../../hooks/useFleetToday'
+import { useNow } from '../../hooks/useNow'
 import { NEW_DRIVER, findDriver, sortActiveFirst } from '../../lib/drivers'
+import { fleetDayState, fleetPlanningLink } from '../../lib/fleetToday'
 
 // Flotte : chauffeurs en cartes (actifs d'abord), paginés par 15.
 // ?chauffeur=id ouvre le panneau de modification, ?chauffeur=nouveau celui d'ajout ; ?page=n la page de la liste.
@@ -27,6 +30,9 @@ export function DriversPage() {
 
   const fetchDrivers = useCallback((signal) => getDrivers({ page }, { signal }), [page])
   const drivers = useApi(fetchDrivers)
+  // État du jour de chaque carte (trajets, indisponibilités en cours, avancement réel)
+  const today = useFleetToday()
+  const nowTime = useNow().slice(11)
   const driverList = drivers.data?.data // undefined tant que rien n'est reçu
   const canCreate = can('drivers.create')
 
@@ -100,7 +106,13 @@ export function DriversPage() {
         <>
           <div className="grid gap-4 sm:grid-cols-2">
             {sortActiveFirst(driverList).map((driver) => (
-              <DriverCard key={driver.id} driver={driver} onOpen={() => openDrawer(String(driver.id))} />
+              <DriverCard
+                key={driver.id}
+                driver={driver}
+                onOpen={() => openDrawer(String(driver.id))}
+                dayState={fleetDayState('driver', driver.id, today, nowTime)}
+                planningHref={today && fleetPlanningLink('driver', driver.id, today.day)}
+              />
             ))}
           </div>
           <Pagination meta={drivers.data.meta} onPageChange={changePage} />
