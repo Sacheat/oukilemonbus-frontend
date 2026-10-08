@@ -2,16 +2,18 @@ import axios from 'axios'
 import { LoaderCircle, Search, UserRound, X } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import { cx } from '../../lib/cx'
-import { ACCOUNT_SEARCH_MIN_LENGTH, searchEligibleAccounts } from '../../lib/drivers'
+import { ACCOUNT_SEARCH_MIN_LENGTH } from '../../lib/drivers'
 import { getErrorMessage } from '../../lib/errors'
 
 const DEBOUNCE_MS = 300
 
 // Choix d'un compte par recherche côté backend (nom, prénom ou email), sur le modèle de LocationPicker.
 // La recherche part 300 ms après la dernière frappe, à partir de 2 lettres ; la requête précédente est annulée.
-// `driverList` : chauffeurs existants, pour écarter les comptes qui ont déjà un profil.
-// `value` : compte choisi ou null ; `inputProps` : props d'accessibilité fournies par <Field>.
-export function AccountPicker({ driverList, value, onChange, inputProps }) {
+// `search(texte, { signal })` → { accounts, hasMore } : fonction stable (useCallback) qui choisit les comptes proposés
+// (comptes sans profil chauffeur pour l'ajout d'un chauffeur, agents et admins pour le responsable du planning…).
+// `value` : compte choisi ou null ; `inputProps` : props d'accessibilité fournies par <Field> ;
+// `emptyText` : message quand rien ne correspond.
+export function AccountPicker({ search, value, onChange, inputProps, emptyText = 'Aucun compte disponible ne correspond.' }) {
   const listboxId = useId()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
@@ -26,7 +28,7 @@ export function AccountPicker({ driverList, value, onChange, inputProps }) {
     if (!searchable) return undefined
     const controller = new AbortController()
     const timer = setTimeout(() => {
-      searchEligibleAccounts(trimmed, driverList, { signal: controller.signal })
+      search(trimmed, { signal: controller.signal })
         .then(({ accounts, hasMore }) => setResults({ query: trimmed, accounts, hasMore, error: null }))
         .catch((error) => {
           if (axios.isCancel(error)) return
@@ -38,7 +40,7 @@ export function AccountPicker({ driverList, value, onChange, inputProps }) {
       clearTimeout(timer)
       controller.abort()
     }
-  }, [trimmed, searchable, driverList])
+  }, [trimmed, searchable, search])
 
   const loading = searchable && results.query !== trimmed
   const current = searchable && results.query === trimmed ? results : { accounts: [], hasMore: false, error: null }
@@ -137,7 +139,7 @@ export function AccountPicker({ driverList, value, onChange, inputProps }) {
           {loading && accounts.length === 0 && <li className="px-3 py-2 text-sm text-muted">Recherche…</li>}
           {!loading && current.error && <li className="px-3 py-2 text-sm text-danger">{getErrorMessage(current.error)}</li>}
           {!loading && !current.error && accounts.length === 0 && (
-            <li className="px-3 py-2 text-sm text-muted">Aucun compte disponible ne correspond.</li>
+            <li className="px-3 py-2 text-sm text-muted">{emptyText}</li>
           )}
           {accounts.map((account, index) => (
             <li

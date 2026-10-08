@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { createDriver, updateDriver } from '../../api/drivers'
 import { useForm } from '../../hooks/useForm'
-import { changedLicenceFields, driverFormValues, tomorrowApiDate } from '../../lib/drivers'
+import { changedLicenceFields, driverFormValues, searchEligibleAccounts, tomorrowApiDate } from '../../lib/drivers'
 import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
 import { Field, Input } from '../ui/Field'
@@ -16,6 +16,11 @@ export function DriverForm({ driver, driverList, onSaved }) {
   // Compte choisi (objet entier, pour l'afficher) ; le formulaire n'envoie que son id.
   // Gardé à part : les résultats de recherche changent à chaque frappe.
   const [selectedAccount, setSelectedAccount] = useState(null)
+  // Comptes proposés : actifs et sans profil chauffeur (stable tant que la liste des chauffeurs ne change pas)
+  const searchAccounts = useCallback(
+    (query, options) => searchEligibleAccounts(query, driverList, options),
+    [driverList],
+  )
 
   function chooseAccount(account) {
     setSelectedAccount(account)
@@ -47,7 +52,7 @@ export function DriverForm({ driver, driverList, onSaved }) {
           required
         >
           {(props) => (
-            <AccountPicker driverList={driverList} value={selectedAccount} onChange={chooseAccount} inputProps={props} />
+            <AccountPicker search={searchAccounts} value={selectedAccount} onChange={chooseAccount} inputProps={props} />
           )}
         </Field>
       )}
