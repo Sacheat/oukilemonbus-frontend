@@ -1,32 +1,35 @@
-import { formatDate } from '../../lib/dates'
-import { DECISION_STATUS } from '../../lib/documents'
-import { Badge } from '../ui/Badge'
-import { Card } from '../ui/Card'
+import { formatDate, formatTime } from '../../lib/dates'
 
-// Décision déjà prise (onglets « Approuvées » et « Refusées »), cliquable pour ouvrir le panneau de la réservation
+// Décision déjà prise (onglets « Approuvées » et « Refusées »), en ligne compacte sous l'en-tête du jour du trajet :
+// heure, motif et organisation, séance et référence. Le statut est celui de l'onglet : pas répété sur la ligne.
+// Ouvre le panneau de la réservation.
 export function CollegeDecisionRow({ decision, onOpen }) {
   const reservation = decision.reservation
-  const status = DECISION_STATUS[decision.decision_status]
 
   return (
-    <Card
-      as="button"
-      type="button"
-      onClick={() => onOpen(decision.reservation_id)}
-      className="w-full text-left transition hover:border-line-strong hover:bg-surface-muted"
-    >
-      <span className="flex flex-wrap items-start justify-between gap-2">
-        <span className="font-bold">{reservation?.organization?.name ?? `Réservation n° ${decision.reservation_id}`}</span>
-        {status && <Badge tone={status.tone}>{status.label}</Badge>}
-      </span>
-      {reservation?.trip_date && (
-        <span className="mt-1 block text-sm first-letter:uppercase">Trajet du {formatDate(reservation.trip_date)}</span>
-      )}
-      <span className="mt-1 block text-sm text-muted">
-        {decision.decision_date ? `Séance du ${formatDate(decision.decision_date, { day: 'numeric', month: 'long', year: 'numeric' })}` : 'Date de séance non renseignée'}
-        {decision.decision_reference && ` · réf. ${decision.decision_reference}`}
-        {` · réservation n° ${decision.reservation_id}`}
-      </span>
-    </Card>
+    <li>
+      <button
+        type="button"
+        onClick={() => onOpen(decision.reservation_id)}
+        className="flex min-h-11 w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-surface-muted"
+      >
+        <span className="w-12 shrink-0 text-sm font-bold tabular-nums">{formatTime(reservation?.departure_time)}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-semibold">{reservation?.trip_purpose ?? `Réservation n° ${decision.reservation_id}`}</span>
+          <span className="block truncate text-sm text-muted">
+            {[
+              reservation?.organization?.name,
+              decision.decision_date
+                ? `séance du ${formatDate(decision.decision_date, { day: 'numeric', month: 'long', year: 'numeric' })}`
+                : 'séance non renseignée',
+              decision.decision_reference && `réf. ${decision.decision_reference}`,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </span>
+        </span>
+        <span className="shrink-0 text-xs text-muted tabular-nums">n° {decision.reservation_id}</span>
+      </button>
+    </li>
   )
 }
