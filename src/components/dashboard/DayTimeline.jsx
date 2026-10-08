@@ -14,11 +14,13 @@ const STATUS_BARS = {
 }
 const STATUS_DOTS = { en_attente: 'bg-warning', approuve: 'bg-info', confirme: 'bg-success', en_conflit: 'bg-conflict' }
 
-// Frise de la journée : une ligne par bus, trajets en barres (départ → retour), trait « maintenant ».
-// Trajets terminés estompés, trajet en route souligné. Une barre ouvre le trajet dans le Planning si `linkable`.
+// Frise de la journée : une ligne par bus, trajets en barres (départ → retour) qui affichent l'heure de départ
+// (le nom complet au survol et pour les lecteurs d'écran), trait « maintenant ». Trajets terminés estompés,
+// trajet en route souligné (`progress` : avancement réel, sinon l'horaire). Une barre ouvre le trajet dans le
+// Planning si `linkable`.
 // Sur petit écran, la frise défile horizontalement dans son cadre (la page, elle, ne défile pas).
-export function DayTimeline({ trips, nowTime, linkable }) {
-  const timeline = dayTimeline(trips, nowTime)
+export function DayTimeline({ trips, nowTime, linkable, progress }) {
+  const timeline = dayTimeline(trips, nowTime, progress)
   const statuses = [...new Set(trips.map((trip) => trip.status))].filter((status) => STATUS_BARS[status])
   const scroller = useRef(null)
   // Repère où amener la frise quand elle défile (petit écran) : maintenant, sinon le premier trajet
@@ -77,7 +79,7 @@ export function DayTimeline({ trips, nowTime, linkable }) {
                         const { trip } = bar
                         const label = `${formatTime(trip.departure_time)} – ${formatTime(trip.return_time)}, ${trip.organization?.name ?? 'Organisation inconnue'}, ${trip.status_label ?? RESERVATION_STATUS_LABELS[trip.status]}`
                         const className = cx(
-                          'absolute inset-y-0 flex min-w-1 items-center overflow-hidden rounded-[4px] border-l-4 px-1.5 text-xs text-ink transition',
+                          'absolute inset-y-0 flex min-w-1 items-center overflow-hidden rounded-[4px] border-l-4 px-1 text-[11px] text-ink transition',
                           STATUS_BARS[trip.status] ?? 'bg-neutral-soft border-neutral',
                           bar.past && 'opacity-55',
                           bar.live && 'ring-2 ring-primary ring-offset-1 ring-offset-surface-muted',
@@ -85,9 +87,7 @@ export function DayTimeline({ trips, nowTime, linkable }) {
                         )
                         const style = { left: `${bar.left}%`, width: `${bar.width}%` }
                         const content = (
-                          <span className="truncate font-semibold">
-                            {trip.organization?.name ?? `n° ${trip.id}`}
-                          </span>
+                          <span className="truncate font-semibold tracking-tight tabular-nums">{formatTime(trip.departure_time)}</span>
                         )
                         return linkable ? (
                           <Link
