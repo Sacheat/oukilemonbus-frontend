@@ -4,23 +4,23 @@ import { mondayOf, periodLength } from './planning'
 import { keyLabel } from './shortcuts'
 import { todayApiDate, yesterdayApiDate } from './reservations'
 
-// Files de la page « Réservations » de l'espace gestion, dans l'ordre des pastilles.
-// `statuses` : statuts affichés ; `council` : seulement celles qui attendent le Collège (council=a_decider : type
-// soumis au Collège, sans décision ou décision en attente, trajet pas encore passé) ; `unassigned` : seulement celles
-// auxquelles il manque le chauffeur ou le véhicule (unassigned=1, filtré par le backend : une réservation approuvée et
-// complète est confirmée automatiquement, elle n'a rien à faire dans « À affecter ») ; `passengersToConfirm` : trajets
-// actifs des 14 prochains jours dont le demandeur n'a pas confirmé les passagers (passengers_to_confirm=1, même règle
-// que le compteur du tableau de bord ; l'agent peut relancer le demandeur). La valeur est gardée dans l'URL.
+// Files de la page « Réservations » de l'espace gestion, en deux groupes de pastilles : « À faire » (le travail de
+// l'agent) puis « Suivi » (consultation). `statuses` : statuts affichés ; `council` : seulement celles qui attendent le
+// Collège (council=a_decider : type soumis au Collège, sans décision ou décision en attente, trajet pas encore passé) ;
+// `unassigned` : seulement celles auxquelles il manque le chauffeur ou le véhicule (unassigned=1, filtré par le
+// backend : une réservation approuvée et complète est confirmée automatiquement, elle n'a rien à faire dans
+// « À affecter ») ; `passengersToConfirm` : trajets actifs des 14 prochains jours dont le demandeur n'a pas confirmé
+// les passagers (passengers_to_confirm=1, même règle que le compteur du tableau de bord ; l'agent peut relancer le
+// demandeur). La valeur est gardée dans l'URL (?file=).
 export const QUEUES = [
-  { value: 'a-traiter', label: 'À traiter', statuses: ['en_attente', 'en_conflit'] },
-  { value: 'en-attente', label: 'En attente', statuses: ['en_attente'], dot: 'bg-warning' },
-  { value: 'en-conflit', label: 'En conflit', statuses: ['en_conflit'], dot: 'bg-conflict' },
-  { value: 'college', label: 'Collège à décider', statuses: ['en_attente', 'en_conflit'], council: true, dot: 'bg-accent' },
-  { value: 'a-affecter', label: 'À affecter', statuses: ['approuve'], unassigned: true, dot: 'bg-info' },
-  { value: 'confirmees', label: 'Confirmées', statuses: ['confirme'], dot: 'bg-success' },
+  { value: 'a-traiter', label: 'À traiter', group: 'todo', statuses: ['en_attente', 'en_conflit'] },
+  { value: 'college', label: 'Collège à décider', group: 'todo', statuses: ['en_attente', 'en_conflit'], council: true, dot: 'bg-accent' },
+  { value: 'a-affecter', label: 'À affecter', group: 'todo', statuses: ['approuve'], unassigned: true, dot: 'bg-info' },
+  { value: 'confirmees', label: 'Confirmées', group: 'follow', statuses: ['confirme'], dot: 'bg-success' },
   {
     value: 'passagers',
     label: 'Passagers à confirmer',
+    group: 'follow',
     statuses: ['en_attente', 'en_conflit', 'approuve', 'confirme'],
     passengersToConfirm: true,
     dot: 'bg-neutral',
@@ -28,8 +28,40 @@ export const QUEUES = [
 ]
 export const DEFAULT_QUEUE = 'a-traiter'
 
-export function queueOf(value) {
-  return QUEUES.find((queue) => queue.value === value) ?? QUEUES[0]
+// Groupes de pastilles, dans l'ordre d'affichage
+export const QUEUE_GROUPS = [
+  { value: 'todo', label: 'À faire' },
+  { value: 'follow', label: 'Suivi' },
+]
+
+// Sous-filtre de « À traiter » (?statut=) : toutes, ou un seul statut. Valeur vide : toutes.
+export const TO_PROCESS_STATUSES = [
+  { value: '', label: 'Toutes' },
+  { value: 'en-attente', label: 'En attente', statuses: ['en_attente'], dot: 'bg-warning' },
+  { value: 'en-conflit', label: 'En conflit', statuses: ['en_conflit'], dot: 'bg-conflict' },
+]
+
+// Anciennes files devenues des sous-filtres de « À traiter » : les liens déjà partagés (tableau de bord, favoris,
+// historique) restent valides
+const LEGACY_FILES = { 'en-attente': 'en-attente', 'en-conflit': 'en-conflit' }
+
+// File affichée pour ?file= et ?statut= : la file, avec les statuts du sous-filtre s'il y en a un.
+// `key` : identifiant de la file et du sous-filtre (compteurs, messages) ; `statusFilter` : valeur de ?statut=.
+export function resolveQueue(file, statusFilter = '') {
+  const legacy = LEGACY_FILES[file]
+  const queue = QUEUES.find((item) => item.value === (legacy ? DEFAULT_QUEUE : file)) ?? QUEUES[0]
+  const sub = queue.value === DEFAULT_QUEUE ? TO_PROCESS_STATUSES.find((item) => item.value === (legacy ?? statusFilter)) : null
+  if (!sub?.statuses) return { ...queue, key: queue.value, statusFilter: '' }
+  return { ...queue, statuses: sub.statuses, key: `${queue.value}:${sub.value}`, statusFilter: sub.value }
+}
+
+export function readQueue(searchParams) {
+  return resolveQueue(searchParams.get('file') ?? DEFAULT_QUEUE, searchParams.get('statut') ?? '')
+}
+
+// Plusieurs statuts dans la file : la ligne affiche le sien ; un seul : il est déjà dit par la pastille
+export function showsRowStatus(queue) {
+  return queue.statuses.length > 1
 }
 
 // Période (?periode=…) : à venir par défaut (trajet le plus proche d'abord), passés (le plus récent d'abord)
@@ -99,18 +131,18 @@ function queueParams(queue, { period, organizationId, search }) {
   }
 }
 
-// Ce qui détermine la file chargée (file, période, organisation, recherche), sous forme de texte :
+// Ce qui détermine la file chargée (file, sous-filtre, période, organisation, recherche), sous forme de texte :
 // le hook useQueue ne recharge que si l'une de ces valeurs change.
 export function queueRequestKey(queue, filters) {
-  return JSON.stringify({ queue: queue.value, ...filters })
+  return JSON.stringify({ queue: queue.value, statusFilter: queue.statusFilter, ...filters })
 }
 
 // Les `pageCount` premières pages d'une file (15 réservations par page), mises bout à bout :
 // { items, total, lastPage }. « Charger plus » relit toutes les pages pour rester juste après une action
 // (une réservation traitée quitte la file et décale les suivantes).
 export async function fetchQueuePages(requestKey, pageCount, { signal } = {}) {
-  const { queue, ...filters } = JSON.parse(requestKey)
-  const params = queueParams(queueOf(queue), filters)
+  const { queue, statusFilter, ...filters } = JSON.parse(requestKey)
+  const params = queueParams(resolveQueue(queue, statusFilter), filters)
   const pages = await Promise.all(
     Array.from({ length: pageCount }, (_, index) => getReservations({ ...params, page: index + 1 }, { signal })),
   )
@@ -118,18 +150,24 @@ export async function fetchQueuePages(requestKey, pageCount, { signal } = {}) {
   return { items: pages.flatMap((page) => page.data), total: meta.total, lastPage: meta.last_page }
 }
 
-// Nombre de réservations de chaque file pour les filtres courants (une requête par file, lue dans meta.total)
+// Nombre de réservations de chaque file et de chaque sous-filtre de « À traiter » pour les filtres courants
+// (une requête par compteur, lue dans meta.total), indexé par `key` (resolveQueue) : { 'a-traiter': 4,
+// 'a-traiter:en-attente': 3, … }
 export async function fetchQueueCounts(filters, { signal } = {}) {
+  const queues = [
+    ...QUEUES.map((queue) => resolveQueue(queue.value)),
+    ...TO_PROCESS_STATUSES.filter((sub) => sub.statuses).map((sub) => resolveQueue(DEFAULT_QUEUE, sub.value)),
+  ]
   const totals = await Promise.all(
-    QUEUES.map((queue) => getReservations({ ...queueParams(queue, filters), page: 1 }, { signal })),
+    queues.map((queue) => getReservations({ ...queueParams(queue, filters), page: 1 }, { signal })),
   )
-  return Object.fromEntries(QUEUES.map((queue, index) => [queue.value, totals[index].meta.total]))
+  return Object.fromEntries(queues.map((queue, index) => [queue.key, totals[index].meta.total]))
 }
 
 // Nombre de demandes « à traiter » (en attente ou en conflit, trajet à venir) : même chiffre que la pastille
 // « À traiter » de la page, pour le badge du menu. Une seule réservation demandée suffit, on lit meta.total.
 export async function fetchPendingCount({ signal } = {}) {
-  const page = await getReservations({ ...queueParams(queueOf(DEFAULT_QUEUE), { period: 'a-venir' }), page: 1 }, { signal })
+  const page = await getReservations({ ...queueParams(resolveQueue(DEFAULT_QUEUE), { period: 'a-venir' }), page: 1 }, { signal })
   return page.meta.total
 }
 
@@ -235,6 +273,19 @@ export function nextStep(reservation, actions, decision, keys) {
   }
   if (status === 'confirme') return { tone: 'neutral', text: 'Confirmée : rien à faire, le trajet est prêt.' }
   return null
+}
+
+// Circuit de validation en clair pour le panneau (approval_type) : « Manuel » ne dit pas ce qui est attendu
+export function validationText(reservation) {
+  if (reservation.approval_type === 'auto') return 'Automatique (sans Collège)'
+  if (reservation.approval_type === 'manuel') return 'Par un agent, après décision du Collège'
+  return reservation.approval_type_label ?? '—'
+}
+
+// Activité prioritaire d'une école (gymnastique, psychomotricité : créneaux imposés), sinon null (rien à signaler)
+export function priorityActivityText(reservation) {
+  if (!reservation.activity_type || reservation.activity_type === 'standard') return null
+  return `${reservation.activity_type_label} (créneau prioritaire)`
 }
 
 // Lien vers ce trajet dans le Planning : semaine du trajet (du lundi au vendredi), ou vue liste sur ce seul jour

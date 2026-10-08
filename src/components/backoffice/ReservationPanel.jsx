@@ -8,7 +8,7 @@ import { cx } from '../../lib/cx'
 import { formatDate, formatDateTime, formatTime } from '../../lib/dates'
 import { openConflictsOf, resolvedConflictsOf } from '../../lib/conflicts'
 import { DECISION_STATUS } from '../../lib/documents'
-import { nextStep, planningHref } from '../../lib/queue'
+import { nextStep, planningHref, priorityActivityText, validationText } from '../../lib/queue'
 import { estimatedArrivals, shortAddress, totalPassengers } from '../../lib/reservations'
 import { keyLabel } from '../../lib/shortcuts'
 import { RegenerateDeliberation } from '../college/RegenerateDeliberation'
@@ -245,8 +245,8 @@ export function ReservationPanel({ reservation, decision, actions, onAction, bus
               'Passagers',
               `${totalPassengers(reservation)} (${reservation.nb_children} enfant${reservation.nb_children > 1 ? 's' : ''}, ${reservation.nb_adults} adulte${reservation.nb_adults > 1 ? 's' : ''})${reservation.passengers_confirmed_at ? ' · confirmés' : ''}`,
             ],
-            ['Activité', reservation.activity_type_label],
-            ['Validation', reservation.approval_type_label],
+            priorityActivityText(reservation) && ['Activité', priorityActivityText(reservation)],
+            ['Validation', validationText(reservation)],
             reservation.distance_km != null && [
               'Distance',
               `${Number(reservation.distance_km).toLocaleString('fr-BE', { maximumFractionDigits: 1 })} km · ${reservation.estimated_duration_min} min`,
