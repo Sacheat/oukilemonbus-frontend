@@ -13,8 +13,9 @@ const URGENCY_BORDERS = { danger: 'border-danger', warning: 'border-warning' }
 // Une réservation dans la file de l'espace gestion, en ligne compacte sous l'en-tête de son jour : heure, motif,
 // organisation et passagers, repères (Collège, affectation manquante), statut, urgence, série et conflits ouverts.
 // `to` : même page avec ?reservation=id (le détail s'ouvre à côté) ; `selected` : réservation ouverte ;
-// `urgency` : 'danger', 'warning' ou null (urgencyOf).
-export function QueueRow({ reservation, to, selected, urgency }) {
+// `urgency` : 'danger', 'warning' ou null (urgencyOf) ; `showStatus` : statut affiché (file de plusieurs statuts,
+// showsRowStatus ; dans une file d'un seul statut, la pastille le dit déjà et le motif garde la place).
+export function QueueRow({ reservation, to, selected, urgency, showStatus = true }) {
   const openConflicts = (reservation.conflicts ?? []).filter((conflict) => !conflict.is_resolved).length
   const hints = rowHints(reservation)
 
@@ -48,11 +49,13 @@ export function QueueRow({ reservation, to, selected, urgency }) {
             </span>
           )}
         </span>
-        <span className="flex shrink-0 flex-col items-end gap-1 text-xs">
-          <span className="inline-flex items-center gap-1.5 font-semibold">
-            <span aria-hidden="true" className={cx('size-2 rounded-full', STATUS_DOTS[reservation.status])} />
-            {reservation.status_label}
-          </span>
+        <span className="flex shrink-0 flex-col items-end gap-1 text-xs empty:hidden">
+          {showStatus && (
+            <span className="inline-flex items-center gap-1.5 font-semibold">
+              <span aria-hidden="true" className={cx('size-2 rounded-full', STATUS_DOTS[reservation.status])} />
+              {reservation.status_label}
+            </span>
+          )}
           {urgency && (
             <span className={cx('font-bold', urgency === 'danger' ? 'text-danger' : 'text-warning')}>Urgent</span>
           )}

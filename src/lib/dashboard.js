@@ -11,7 +11,7 @@ export const TO_PROCESS_TILES = [
     icon: Hourglass,
     tone: 'warning',
     labels: ['réservation à valider', 'réservations à valider'],
-    to: '/gestion/reservations?file=en-attente',
+    to: '/gestion/reservations?file=a-traiter&statut=en-attente',
     permission: 'reservations.approve',
   },
   {
@@ -19,7 +19,7 @@ export const TO_PROCESS_TILES = [
     icon: AlertTriangle,
     tone: 'conflict',
     labels: ['conflit à résoudre', 'conflits à résoudre'],
-    to: '/gestion/reservations?file=en-conflit',
+    to: '/gestion/reservations?file=a-traiter&statut=en-conflit',
     permission: 'reservations.approve',
   },
   {

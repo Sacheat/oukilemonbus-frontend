@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { getReservationDecision } from '../../api/documents'
 import { getAllDrivers } from '../../api/drivers'
-import { getAllOrganizations } from '../../api/organizations'
 import {
   approveReservation,
   cancelReservation,
@@ -15,7 +14,9 @@ import {
 } from '../../api/reservations'
 import { useAuth } from '../../auth/useAuth'
 import { AssignForm } from '../../components/backoffice/AssignForm'
+import { OrganizationFilter } from '../../components/backoffice/OrganizationFilter'
 import { QueueRow } from '../../components/backoffice/QueueRow'
+import { QueueTabs } from '../../components/backoffice/QueueTabs'
 import { DecisionSection } from '../../components/college/DecisionSection'
 import { ReasonModal } from '../../components/backoffice/ReasonModal'
 import { ReservationPanel } from '../../components/backoffice/ReservationPanel'
@@ -25,10 +26,10 @@ import { Button } from '../../components/ui/Button'
 import { Drawer } from '../../components/ui/Drawer'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ErrorState } from '../../components/ui/ErrorState'
-import { Input, Select } from '../../components/ui/Field'
-import { FilterChips } from '../../components/ui/FilterChips'
+import { Input } from '../../components/ui/Field'
 import { Modal } from '../../components/ui/Modal'
 import { PageHeader } from '../../components/ui/PageHeader'
+import { SegmentedControl } from '../../components/ui/SegmentedControl'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { Toast } from '../../components/ui/Toast'
 import { useApi } from '../../hooks/useApi'
@@ -48,9 +49,10 @@ import {
   mayHaveCouncilDecision,
   nextInQueue,
   PERIODS,
-  queueOf,
   queueRequestKey,
-  QUEUES,
+  readQueue,
+  showsRowStatus,
+  TO_PROCESS_STATUSES,
   urgencyOf,
 } from '../../lib/queue'
 import { keyLabel, loadShortcutSettings, saveShortcutSettings } from '../../lib/shortcuts'
@@ -66,12 +68,9 @@ const DONE_MESSAGES = {
 }
 const API_ACTIONS = { approve: approveReservation, confirm: confirmReservation, retryAssign: retryAssignReservation }
 
-// Chauffeurs (pour leur nom) et organisations (pour le filtre), chargés une fois
+// Chauffeurs (pour leur nom), chargés une fois
 function fetchDrivers(signal) {
   return getAllDrivers({ signal })
-}
-function fetchOrganizations(signal) {
-  return getAllOrganizations({ signal })
 }
 
 function isFresh(entry) {
@@ -88,13 +87,14 @@ const SEARCH_DELAY_MS = 300
 // Détail préchargé (réservations voisines dans la file) : réutilisé pendant 30 s, vidé après chaque action
 const PREFETCH_MAX_AGE_MS = 30_000
 
-// Espace gestion : file de traitement des réservations. Liste compacte filtrée (?file, ?periode, ?organisation, ?q),
-// 15 par page avec « Charger plus », et détail à côté (?reservation=id ; panneau glissant sur mobile), actions de l'agent, passage automatique à la
-// suivante et raccourcis clavier configurables (« ? »).
+// Espace gestion : file de traitement des réservations. Files en deux groupes (« À faire », « Suivi »), sous-filtre de
+// « À traiter » (?statut=en-attente|en-conflit), liste compacte filtrée (?file, ?periode, ?organisation, ?q), 15 par page
+// avec « Charger plus », et détail à côté (?reservation=id ; panneau glissant sur mobile), actions de l'agent, passage
+// automatique à la suivante et raccourcis clavier configurables (« ? », grand écran).
 export function ReservationsQueuePage() {
   const { can } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
-  const queue = queueOf(searchParams.get('file') ?? DEFAULT_QUEUE)
+  const queue = readQueue(searchParams)
   const period = searchParams.get('periode') ?? 'a-venir'
   const organizationId = searchParams.get('organisation') ?? ''
   const search = searchParams.get('q') ?? ''
@@ -145,7 +145,6 @@ export function ReservationsQueuePage() {
   )
   const decision = useApi(fetchDecision)
   const drivers = useApi(fetchDrivers)
-  const organizations = useApi(fetchOrganizations)
   const wide = useMediaQuery('(min-width: 1024px)')
   // Décision du Collège de la réservation ouverte (undefined tant qu'elle n'est pas chargée)
   const currentDecision = decision.loading || decision.error ? undefined : decision.data
@@ -313,7 +312,16 @@ export function ReservationsQueuePage() {
     }
   }, [selectedId, items, prefetched])
 
-  const chips = QUEUES.map((item) => ({ value: item.value, label: item.label, dot: item.dot, count: counts.data?.[item.value] ?? null }))
+  const statusOptions = TO_PROCESS_STATUSES.map((option) => ({
+    value: option.value,
+    label: option.label,
+    dot: option.dot,
+    count: counts.data?.[option.statuses ? `${DEFAULT_QUEUE}:${option.value}` : DEFAULT_QUEUE] ?? null,
+  }))
+  const rowStatus = showsRowStatus(queue)
+  // File vide : pas de panneau de détail, le message prend toute la largeur
+  const emptyList = Boolean(list.data) && items.length === 0
+  const filtered = Boolean(search || organizationId)
   const panelProps = reservation && {
     reservation,
     decision: currentDecision,
@@ -335,54 +343,47 @@ export function ReservationsQueuePage() {
         title="Réservations"
         description="Validez, affectez et suivez les demandes de trajet."
         actions={
-          <Button variant="secondary" onClick={() => setDialog('help')}>
-            <Keyboard className="size-4" aria-hidden="true" /> Raccourcis
-            <kbd aria-hidden="true" className="rounded border border-line-strong px-1 text-xs">
-              {keyLabel(settings.keys.help)}
-            </kbd>
-          </Button>
+          // Raccourcis clavier : grand écran seulement (inutiles sur un écran tactile)
+          wide && (
+            <Button variant="secondary" onClick={() => setDialog('help')}>
+              <Keyboard className="size-4" aria-hidden="true" /> Raccourcis
+              <kbd aria-hidden="true" className="rounded border border-line-strong px-1 text-xs">
+                {keyLabel(settings.keys.help)}
+              </kbd>
+            </Button>
+          )
         }
         className="pb-4"
       />
 
       <div className="grid gap-3">
-        <FilterChips label="File" chips={chips} value={queue.value} onChange={(value) => update({ file: value, reservation: null })} />
+        <QueueTabs value={queue.value} counts={counts.data} onChange={(value) => update({ file: value, statut: null, reservation: null })} />
         <div className="flex flex-wrap items-center gap-3">
-          <div role="group" aria-label="Période" className="flex rounded-control border border-line-strong bg-surface p-1">
-            {PERIODS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                aria-pressed={period === option.value}
-                onClick={() => update({ periode: option.value === 'a-venir' ? null : option.value, reservation: null })}
-                className={cx(
-                  'min-h-9 rounded-md px-3 text-sm font-semibold',
-                  period === option.value ? 'bg-primary text-on-primary' : 'text-muted hover:text-ink',
-                )}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <Select
-            aria-label="Organisation"
+          {queue.value === DEFAULT_QUEUE && (
+            <SegmentedControl
+              label="Statut"
+              options={statusOptions}
+              value={queue.statusFilter}
+              onChange={(value) => update({ statut: value, reservation: null })}
+            />
+          )}
+          <SegmentedControl
+            label="Période"
+            options={PERIODS}
+            value={period}
+            onChange={(value) => update({ periode: value === 'a-venir' ? null : value, reservation: null })}
+          />
+          <OrganizationFilter
             value={organizationId}
-            onChange={(event) => update({ organisation: event.target.value, reservation: null })}
-            className="max-w-xs py-2 text-sm"
-          >
-            <option value="">Toutes les organisations</option>
-            {organizations.data?.map((organization) => (
-              <option key={organization.id} value={organization.id}>
-                {organization.name}
-              </option>
-            ))}
-          </Select>
+            onChange={(id) => update({ organisation: id, reservation: null })}
+            className="min-w-0 flex-1 sm:w-64 sm:flex-none"
+          />
           <div className="relative w-full sm:w-72">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
             <Input
               type="search"
               aria-label="Rechercher une réservation"
-              placeholder="Motif, organisation, demandeur, n°"
+              placeholder="Motif, demandeur, n°"
               value={searchInput}
               onChange={(event) => changeSearch(event.target.value)}
               className="py-2 pl-9 text-sm"
@@ -397,7 +398,7 @@ export function ReservationsQueuePage() {
         </Alert>
       )}
 
-      <div className="mt-4 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,30rem)]">
+      <div className={cx('mt-4 grid items-start gap-5', !emptyList && 'lg:grid-cols-[minmax(0,1fr)_minmax(22rem,30rem)]')}>
         <section aria-label="File des réservations" aria-busy={list.loading} className="min-w-0">
           {list.error ? (
             <ErrorState error={list.error} onRetry={list.reload} />
@@ -409,17 +410,20 @@ export function ReservationsQueuePage() {
               ))}
             </div>
           ) : items.length === 0 ? (
-            <EmptyState icon={Inbox} title={queue.value === DEFAULT_QUEUE && !search ? 'Rien à traiter' : 'Aucune réservation'}>
-              {queue.value === DEFAULT_QUEUE && !search
-                ? 'Toutes les demandes de cette période sont traitées.'
+            <EmptyState icon={Inbox} title={queue.group === 'todo' && !filtered ? 'Rien à traiter' : 'Aucune réservation'}>
+              {queue.group === 'todo' && !filtered
+                ? 'Tout est à jour dans cette file pour cette période.'
                 : 'Aucune réservation ne correspond à ces filtres.'}
             </EmptyState>
           ) : (
             <>
               <p className="mb-2 text-sm text-muted">
                 {list.data.total} réservation{list.data.total > 1 ? 's' : ''}
-                {items.length < list.data.total && ` (${items.length} affichées)`} · {keyLabel(settings.keys.next)} / {keyLabel(settings.keys.previous)} pour
-                naviguer
+                {items.length < list.data.total && ` (${items.length} affichées)`}
+                <span className="hidden lg:inline">
+                  {' '}
+                  · {keyLabel(settings.keys.next)} / {keyLabel(settings.keys.previous)} pour naviguer
+                </span>
               </p>
               {/* Un groupe par jour, en-tête collé en haut de l'écran pendant le défilement (pas d'overflow-hidden
                   sur le cadre : il empêcherait l'en-tête de coller) */}
@@ -446,6 +450,7 @@ export function ReservationsQueuePage() {
                           to={hrefFor(item.id)}
                           selected={item.id === selectedId}
                           urgency={urgencyOf(item, today)}
+                          showStatus={rowStatus}
                         />
                       ))}
                     </ul>
@@ -464,22 +469,30 @@ export function ReservationsQueuePage() {
         </section>
 
         {/* Grand écran : détail à côté de la liste, collé en haut de l'écran pendant le défilement, sur toute sa
-            hauteur. Les actions sont en haut du panneau : visibles même quand le bas dépasse de l'écran */}
-        <aside
-          aria-label="Détail de la réservation"
-          className="sticky top-4 hidden h-[calc(100dvh-2rem)] min-h-[28rem] overflow-hidden rounded-card border border-line bg-surface shadow-soft lg:block"
-        >
-          {panelProps ? (
-            <ReservationPanel {...panelProps} onClose={() => select(null)} />
-          ) : (
-            <div className="grid h-full place-content-center p-6 text-center text-sm text-muted">
-              <p className="font-semibold text-ink">Aucune réservation ouverte</p>
-              <p className="mt-1">
-                Choisissez-en une dans la liste, ou appuyez sur {keyLabel(settings.keys.next)} pour ouvrir la première.
-              </p>
-            </div>
-          )}
-        </aside>
+            hauteur. Les actions sont en haut du panneau : visibles même quand le bas dépasse de l'écran.
+            Rien d'ouvert : un encart compact ; file vide : pas de panneau du tout */}
+        {!emptyList && (
+          <aside
+            aria-label="Détail de la réservation"
+            className={cx(
+              'sticky top-4 hidden overflow-hidden rounded-card border border-line bg-surface shadow-soft lg:block',
+              panelProps ? 'h-[calc(100dvh-2rem)] min-h-[28rem]' : 'border-dashed shadow-none',
+            )}
+          >
+            {panelProps ? (
+              <ReservationPanel {...panelProps} onClose={() => select(null)} />
+            ) : (
+              <div className="p-5 text-sm text-muted">
+                <p className="font-semibold text-ink">Aucune réservation ouverte</p>
+                <p className="mt-1">
+                  Choisissez-en une dans la liste, ou appuyez sur{' '}
+                  <kbd className="rounded border border-line-strong px-1 text-xs">{keyLabel(settings.keys.next)}</kbd> pour
+                  ouvrir la première.
+                </p>
+              </div>
+            )}
+          </aside>
+        )}
       </div>
 
       {/* Mobile et tablette : détail dans un panneau glissant (ouvert seulement sous 1024 px : c'est une

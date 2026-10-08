@@ -1,5 +1,4 @@
 import { api } from './client'
-import { fetchAllPages } from './pagination'
 
 // ----- Mes organisations (la liste vient de /auth/me : organizations[].membership) -----
 
@@ -101,15 +100,6 @@ export async function uploadRequestProof(kind, requestId, file) {
 
 export async function deleteRequestProof(kind, requestId) {
   await api.delete(PROOF_PATHS[kind](requestId))
-}
-
-// Toutes les organisations (rôles internes : GET /organizations), toutes pages confondues, triées par nom
-export async function getAllOrganizations({ signal } = {}) {
-  const items = await fetchAllPages(
-    async (page, options) => (await api.get('/organizations', { params: { page }, ...options })).data,
-    { signal },
-  )
-  return items.sort((a, b) => a.name.localeCompare(b.name, 'fr'))
 }
 
 // ----- Gestion des organisations (/gestion/organisations : agents et admins) -----
