@@ -3,6 +3,7 @@ import { PROGRESS_BADGES } from './driverJourney'
 import { periodLength, todayInBrussels } from './planning'
 
 // Tuiles « À faire » du tableau de bord, dans l'ordre d'affichage : uniquement ce sur quoi l'agent peut agir.
+// `inTotal: false` : compteur déjà inclus dans un autre (pas additionné dans le total du bandeau).
 // `key` : compteur de `to_process` (GET /dashboard) ; `labels` disent l'action (« à valider ») ;
 // `to` et `permission` : liste où le traiter, cliquable seulement avec la permission.
 export const TO_PROCESS_TILES = [
@@ -37,6 +38,8 @@ export const TO_PROCESS_TILES = [
     labels: ['décision du Collège à encoder', 'décisions du Collège à encoder'],
     to: '/gestion/college',
     permission: 'council-decisions.create',
+    // Ces réservations sont déjà comptées en attente ou en conflit : pas recomptées dans le total du bandeau
+    inTotal: false,
   },
   {
     key: 'join_requests_pending',
@@ -105,9 +108,10 @@ export function activeTiles(toProcess) {
   return TO_PROCESS_TILES.filter((tile) => toProcess[tile.key] > 0)
 }
 
-// Demandes sur lesquelles un agent peut agir
+// Demandes sur lesquelles un agent peut agir, chacune comptée une fois : réservations en attente, en conflit et à
+// affecter, demandes d'adhésion et de création (les décisions du Collège portent sur des réservations déjà comptées)
 function actionableCount(toProcess) {
-  return TO_PROCESS_TILES.reduce((total, tile) => total + (toProcess[tile.key] ?? 0), 0)
+  return TO_PROCESS_TILES.filter((tile) => tile.inTotal !== false).reduce((total, tile) => total + (toProcess[tile.key] ?? 0), 0)
 }
 
 // Section « À surveiller » : ce qui ne demande pas d'action de l'agent tout de suite, mais qu'il doit voir passer
