@@ -22,8 +22,14 @@ function isPast(reservation) {
   return reservation.trip_date < todayApiDate()
 }
 
+// Trajet commencé (le chauffeur a signalé son départ) : plus d'annulation, comme le backend
 export function canCancel(user, reservation) {
-  return CANCELLABLE_STATUSES.includes(reservation.status) && !isPast(reservation) && isRequesterOrManager(user, reservation)
+  return (
+    CANCELLABLE_STATUSES.includes(reservation.status) &&
+    !isPast(reservation) &&
+    !reservation.trip_started_at &&
+    isRequesterOrManager(user, reservation)
+  )
 }
 
 export const EDITABLE_STATUSES = ['en_attente', 'en_conflit']
