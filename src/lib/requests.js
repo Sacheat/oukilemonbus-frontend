@@ -107,3 +107,14 @@ export function approvalEffect(kind, request) {
   const type = request.organization_type_label ?? ORGANIZATION_TYPE_LABELS[request.organization_type]
   return `L’organisation « ${request.organization_name} » (${type}) sera créée et ${name} en deviendra responsable. Une notification lui sera envoyée et le justificatif sera supprimé.`
 }
+
+// Une demande à traiter qui attend depuis plus de STALE_REQUEST_DAYS jours est signalée dans la liste (bordure et
+// « En attente depuis N jours ») : le tri par défaut (plus anciennes d'abord) la met déjà en tête.
+export const STALE_REQUEST_DAYS = 7
+
+// Nombre de jours d'attente d'une demande encore en attente, s'il dépasse le seuil ; null sinon
+export function staleDays(request, now = new Date()) {
+  if (request.status !== 'en_attente' || !request.created_at) return null
+  const days = Math.floor((now - new Date(request.created_at)) / 86_400_000)
+  return days > STALE_REQUEST_DAYS ? days : null
+}
