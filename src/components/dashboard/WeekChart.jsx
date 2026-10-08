@@ -7,8 +7,13 @@ const TRIP_LABELS = ['trajet', 'trajets']
 
 // Histogramme des trajets actifs d'aujourd'hui à J+6 (GET /dashboard → week.trips_by_day).
 // Une barre par jour, le nombre au-dessus, une infobulle au survol ; un clic ouvre le Planning sur ce jour si `linkable`.
+// Semaine sans trajet : une phrase plutôt que sept zéros.
 export function WeekChart({ days, linkable }) {
   const bars = weekBars(days)
+
+  if (bars.every((bar) => bar.count === 0)) {
+    return <p className="px-5 py-6 text-sm text-muted">Aucun trajet prévu sur les 7 prochains jours.</p>
+  }
 
   return (
     <ol className="grid grid-cols-7 gap-1.5 px-4 pt-4 pb-3" aria-label="Trajets des 7 prochains jours">
@@ -24,7 +29,7 @@ export function WeekChart({ days, linkable }) {
               {formatDate(bar.date, { weekday: 'long', day: 'numeric', month: 'long' })} · {bar.count}{' '}
               {countLabel(bar.count, TRIP_LABELS)}
             </span>
-            <span className="flex h-28 w-full flex-col items-center justify-end gap-1">
+            <span className="flex h-24 w-full flex-col items-center justify-end gap-1">
               <span className={cx('text-sm font-bold tabular-nums', bar.count === 0 && 'text-muted')}>{bar.count}</span>
               {bar.count > 0 ? (
                 <span

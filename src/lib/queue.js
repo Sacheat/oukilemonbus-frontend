@@ -8,7 +8,9 @@ import { todayApiDate, yesterdayApiDate } from './reservations'
 // `statuses` : statuts affichés ; `council` : seulement celles qui attendent le Collège (council=a_decider : type
 // soumis au Collège, sans décision ou décision en attente, trajet pas encore passé) ; `unassigned` : seulement celles
 // auxquelles il manque le chauffeur ou le véhicule (unassigned=1, filtré par le backend : une réservation approuvée et
-// complète est confirmée automatiquement, elle n'a rien à faire dans « À affecter »). La valeur est gardée dans l'URL.
+// complète est confirmée automatiquement, elle n'a rien à faire dans « À affecter ») ; `passengersToConfirm` : trajets
+// actifs des 14 prochains jours dont le demandeur n'a pas confirmé les passagers (passengers_to_confirm=1, même règle
+// que le compteur du tableau de bord ; l'agent peut relancer le demandeur). La valeur est gardée dans l'URL.
 export const QUEUES = [
   { value: 'a-traiter', label: 'À traiter', statuses: ['en_attente', 'en_conflit'] },
   { value: 'en-attente', label: 'En attente', statuses: ['en_attente'], dot: 'bg-warning' },
@@ -16,6 +18,13 @@ export const QUEUES = [
   { value: 'college', label: 'Collège à décider', statuses: ['en_attente', 'en_conflit'], council: true, dot: 'bg-accent' },
   { value: 'a-affecter', label: 'À affecter', statuses: ['approuve'], unassigned: true, dot: 'bg-info' },
   { value: 'confirmees', label: 'Confirmées', statuses: ['confirme'], dot: 'bg-success' },
+  {
+    value: 'passagers',
+    label: 'Passagers à confirmer',
+    statuses: ['en_attente', 'en_conflit', 'approuve', 'confirme'],
+    passengersToConfirm: true,
+    dot: 'bg-neutral',
+  },
 ]
 export const DEFAULT_QUEUE = 'a-traiter'
 
@@ -84,6 +93,7 @@ function queueParams(queue, { period, organizationId, search }) {
     statuses: queue.statuses,
     ...(queue.council && { council: 'a_decider' }),
     ...(queue.unassigned && { unassigned: 1 }),
+    ...(queue.passengersToConfirm && { passengers_to_confirm: 1 }),
     ...(organizationId && { organization_id: organizationId }),
     ...(search && { q: search }),
   }

@@ -1,15 +1,16 @@
-import { AlertTriangle, Bus, CalendarDays, CalendarOff, Gavel, Hourglass, Inbox, UserPlus, Users } from 'lucide-react'
+import { AlertTriangle, Bus, CalendarDays, CalendarOff, Gavel, Hourglass, Inbox, ListChecks, UserPlus } from 'lucide-react'
+import { PROGRESS_BADGES } from './driverJourney'
 import { periodLength, todayInBrussels } from './planning'
 
-// Tuiles « À traiter » du tableau de bord, dans l'ordre d'affichage. `key` : compteur de `to_process` (GET /dashboard) ;
-// `to` et `permission` : liste où le traiter, cliquable seulement avec la permission. Sans `to` : chiffre seul
-// (les passagers sont confirmés par le demandeur, l'agent n'a rien à faire dans l'application).
+// Tuiles « À faire » du tableau de bord, dans l'ordre d'affichage : uniquement ce sur quoi l'agent peut agir.
+// `key` : compteur de `to_process` (GET /dashboard) ; `labels` disent l'action (« à valider ») ;
+// `to` et `permission` : liste où le traiter, cliquable seulement avec la permission.
 export const TO_PROCESS_TILES = [
   {
     key: 'pending',
     icon: Hourglass,
     tone: 'warning',
-    labels: ['réservation en attente', 'réservations en attente'],
+    labels: ['réservation à valider', 'réservations à valider'],
     to: '/gestion/reservations?file=en-attente',
     permission: 'reservations.approve',
   },
@@ -17,7 +18,7 @@ export const TO_PROCESS_TILES = [
     key: 'in_conflict',
     icon: AlertTriangle,
     tone: 'conflict',
-    labels: ['réservation en conflit', 'réservations en conflit'],
+    labels: ['conflit à résoudre', 'conflits à résoudre'],
     to: '/gestion/reservations?file=en-conflit',
     permission: 'reservations.approve',
   },
@@ -25,7 +26,7 @@ export const TO_PROCESS_TILES = [
     key: 'awaiting_assignment',
     icon: Bus,
     tone: 'info',
-    labels: ['réservation à affecter', 'réservations à affecter'],
+    labels: ['chauffeur ou bus à affecter', 'chauffeurs ou bus à affecter'],
     to: '/gestion/reservations?file=a-affecter',
     permission: 'reservations.approve',
   },
@@ -38,39 +39,40 @@ export const TO_PROCESS_TILES = [
     permission: 'council-decisions.create',
   },
   {
-    key: 'passengers_to_confirm',
-    icon: Users,
-    tone: 'neutral',
-    labels: ['trajet sans passagers confirmés (14 j)', 'trajets sans passagers confirmés (14 j)'],
-  },
-  {
     key: 'join_requests_pending',
     icon: UserPlus,
     tone: 'primary',
-    labels: ['demande d’adhésion', 'demandes d’adhésion'],
-    to: '/gestion/demandes',
+    labels: ['demande d’adhésion à examiner', 'demandes d’adhésion à examiner'],
+    to: '/gestion/demandes?file=adhesions',
     permission: 'org-registration-requests.review',
   },
   {
     key: 'registration_requests_pending',
     icon: Inbox,
     tone: 'primary',
-    labels: ['demande de création d’organisation', 'demandes de création d’organisation'],
-    to: '/gestion/demandes',
+    labels: ['nouvelle organisation à examiner', 'nouvelles organisations à examiner'],
+    to: '/gestion/demandes?file=organisations',
     permission: 'org-registration-requests.review',
   },
 ]
 
-// Actions rapides du bandeau, dans l'ordre (la première en bouton principal), affichées selon la permission
+// Actions rapides du bandeau, dans l'ordre (la première en bouton principal), affichées selon la permission.
+// `count: 'queue'` : la première affiche le nombre de réservations à traiter (même chiffre que le menu).
 export const QUICK_ACTIONS = [
+  {
+    to: '/gestion/reservations',
+    label: 'Traiter les réservations',
+    icon: ListChecks,
+    permission: 'reservations.approve',
+    count: 'queue',
+  },
+  { to: '/gestion/planning', label: 'Planning de la semaine', icon: CalendarDays, permission: 'reservations.view' },
   {
     to: '/gestion/indisponibilites?indisponibilite=nouvelle',
     label: 'Nouvelle indisponibilité',
     icon: CalendarOff,
     permission: 'unavailabilities.create',
   },
-  { to: '/gestion/planning', label: 'Planning de la semaine', icon: CalendarDays, permission: 'reservations.view' },
-  { to: '/gestion/college', label: 'Décisions du Collège', icon: Gavel, permission: 'council-decisions.create' },
 ]
 
 // Libellé au singulier pour 0 ou 1, au pluriel au-delà
@@ -98,32 +100,82 @@ export function licenceAlert(expiryDate, today = todayInBrussels()) {
   return { expired: false, days: periodLength(today, expiryDate) - 1 }
 }
 
-// Nom court de chaque tuile, pour la ligne « Rien en attente » qui regroupe les compteurs à zéro
-export const TILE_SHORT_LABELS = {
-  pending: 'réservations en attente',
-  in_conflict: 'conflits',
-  awaiting_assignment: 'affectations',
-  council_pending: 'décisions du Collège',
-  passengers_to_confirm: 'passagers à confirmer',
-  join_requests_pending: 'demandes d’adhésion',
-  registration_requests_pending: 'créations d’organisation',
+// Tuiles à afficher : compteurs non nuls seulement (« Tout est à jour » quand il n'y en a aucun)
+export function activeTiles(toProcess) {
+  return TO_PROCESS_TILES.filter((tile) => toProcess[tile.key] > 0)
 }
 
-// Tuiles à mettre en avant (compteur non nul) et compteurs à zéro, repliés en une ligne
-export function splitTiles(toProcess) {
-  const active = TO_PROCESS_TILES.filter((tile) => toProcess[tile.key] > 0)
-  const empty = TO_PROCESS_TILES.filter((tile) => !(toProcess[tile.key] > 0))
-  return { active, empty }
-}
-
-// Demandes sur lesquelles un agent peut agir (sans les passagers, que confirme le demandeur)
+// Demandes sur lesquelles un agent peut agir
 function actionableCount(toProcess) {
-  return TO_PROCESS_TILES.filter((tile) => tile.to).reduce((total, tile) => total + (toProcess[tile.key] ?? 0), 0)
+  return TO_PROCESS_TILES.reduce((total, tile) => total + (toProcess[tile.key] ?? 0), 0)
 }
 
-// La journée en une phrase pour le bandeau : « 3 demandes à traiter, 2 trajets aujourd'hui dont 1 non affecté,
-// 1 alerte flotte. »
-export function daySummary({ to_process: toProcess, today, fleet_alerts: alerts }) {
+// Section « À surveiller » : ce qui ne demande pas d'action de l'agent tout de suite, mais qu'il doit voir passer
+// (passagers que le demandeur doit confirmer, indisponibilités du jour, véhicules désactivés, permis).
+// `links` : file « Passagers à confirmer », pages Indisponibilités, Véhicules et Chauffeurs, null sans la permission
+// (un permis ouvre la fiche de son chauffeur). Liste vide : rien à signaler.
+export function watchItems({ to_process: toProcess, fleet_alerts: alerts }, links, today = todayInBrussels()) {
+  const items = []
+  const passengers = toProcess.passengers_to_confirm ?? 0
+  if (passengers > 0) {
+    items.push({
+      key: 'passengers',
+      kind: 'passengers',
+      tone: 'neutral',
+      title: `${passengers} ${countLabel(passengers, ['trajet', 'trajets'])} sans passagers confirmés dans les 14 jours`,
+      detail: 'Le demandeur doit les confirmer ; vous pouvez le relancer si le trajet approche.',
+      to: links.passengers,
+    })
+  }
+  const vehicles = alerts.vehicles_unavailable_today ?? 0
+  if (vehicles > 0) {
+    items.push({
+      key: 'vehicles-unavailable',
+      kind: 'unavailable',
+      tone: 'warning',
+      title: `${vehicles} ${countLabel(vehicles, ['véhicule indisponible', 'véhicules indisponibles'])} aujourd’hui`,
+      to: links.unavailabilities,
+    })
+  }
+  const drivers = alerts.drivers_unavailable_today ?? 0
+  if (drivers > 0) {
+    items.push({
+      key: 'drivers-unavailable',
+      kind: 'unavailable',
+      tone: 'warning',
+      title: `${drivers} ${countLabel(drivers, ['chauffeur indisponible', 'chauffeurs indisponibles'])} aujourd’hui`,
+      to: links.unavailabilities,
+    })
+  }
+  const inactive = alerts.inactive_vehicles ?? 0
+  if (inactive > 0) {
+    items.push({
+      key: 'inactive-vehicles',
+      kind: 'vehicle',
+      tone: 'neutral',
+      title: `${inactive} ${countLabel(inactive, ['véhicule désactivé', 'véhicules désactivés'])}`,
+      to: links.vehicles,
+    })
+  }
+  for (const licence of alerts.licences_expiring_30_days ?? []) {
+    const { expired, days } = licenceAlert(licence.licence_expiry_date, today)
+    items.push({
+      key: `licence-${licence.driver_id}`,
+      kind: expired ? 'licence-expired' : 'licence',
+      tone: expired ? 'danger' : 'warning',
+      title: licence.full_name ?? 'Chauffeur',
+      expiryDate: licence.licence_expiry_date,
+      expired,
+      days,
+      to: links.drivers && `${links.drivers}?chauffeur=${licence.driver_id}`,
+    })
+  }
+  return items
+}
+
+// La journée en une phrase pour le bandeau : « 3 demandes à traiter, 2 trajets aujourd'hui dont 1 non affecté. »
+// (les alertes flotte sont dans « À surveiller », l'avancement dans l'encart « Maintenant »)
+export function daySummary({ to_process: toProcess, today }) {
   const parts = []
   const toDo = actionableCount(toProcess)
   parts.push(toDo === 0 ? 'Aucune demande à traiter' : `${toDo} ${countLabel(toDo, ['demande à traiter', 'demandes à traiter'])}`)
@@ -138,13 +190,6 @@ export function daySummary({ to_process: toProcess, today, fleet_alerts: alerts 
     else parts.push(`${tripsText}, ${tripCount > 1 ? 'tous affectés' : 'affecté'}`)
   }
 
-  const alertCount =
-    (alerts.vehicles_unavailable_today > 0 ? 1 : 0) +
-    (alerts.drivers_unavailable_today > 0 ? 1 : 0) +
-    (alerts.inactive_vehicles > 0 ? 1 : 0) +
-    alerts.licences_expiring_30_days.length
-  if (alertCount > 0) parts.push(`${alertCount} ${countLabel(alertCount, ['alerte flotte', 'alertes flotte'])}`)
-
   return `${parts.join(', ')}.`
 }
 
@@ -154,15 +199,54 @@ export function toMinutes(time) {
   return hours * 60 + minutes
 }
 
-// Trajets confirmés en cours (départ passé, retour à venir) et prochain départ confirmé de la journée.
-// `nowTime` : heure actuelle à Bruxelles "HH:mm". Les trajets non confirmés ne partent pas : ils sont ignorés.
-export function tripsNow(trips, nowTime) {
+// États du backend (TripProgressState) où le bus a quitté le dépôt et n'est pas encore rentré
+const MOVING_STATES = ['en_route_aller', 'sur_place', 'en_route_retour']
+
+// Le chauffeur a-t-il signalé son départ sans être encore rentré ? (`progress` : avancement d'un trajet)
+export function isTripMoving(progress) {
+  return MOVING_STATES.includes(progress?.state)
+}
+
+// Le trajet est-il en route ? D'après les étapes du chauffeur quand on les a (`progress` : avancement du trajet,
+// undefined si inconnu), sinon d'après l'horaire (départ passé, retour à venir).
+function isOnTheRoad(trip, progress, now) {
+  if (progress) return isTripMoving(progress)
+  return toMinutes(trip.departure_time) <= now && now < toMinutes(trip.return_time)
+}
+
+// Ce qui se passe maintenant, pour l'encart du bandeau. `nowTime` : heure actuelle à Bruxelles "HH:mm" ;
+// `progressById` : avancement par reservation_id (GET /trip-progress), null ou undefined s'il n'est pas disponible :
+// on se repère alors sur l'horaire (`fromSchedule`). Seuls les trajets confirmés partent.
+//   onTheRoad : bus en route ;
+//   late      : départ confirmé dont l'heure est passée sans que le chauffeur ait signalé son départ ;
+//   next      : prochain départ confirmé.
+export function tripsNow(trips, nowTime, progressById) {
   const now = toMinutes(nowTime)
   const confirmed = trips.filter((trip) => trip.status === 'confirme')
+  const progressOf = (trip) => progressById?.[trip.id]
+  const notStarted = (trip) => !progressOf(trip) || progressOf(trip).state === 'a_venir'
   return {
-    onTheRoad: confirmed.filter((trip) => toMinutes(trip.departure_time) <= now && now < toMinutes(trip.return_time)),
-    next: confirmed.find((trip) => toMinutes(trip.departure_time) > now) ?? null,
+    fromSchedule: progressById == null,
+    onTheRoad: confirmed.filter((trip) => isOnTheRoad(trip, progressOf(trip), now)),
+    late: progressById
+      ? confirmed.filter(
+          (trip) => notStarted(trip) && toMinutes(trip.departure_time) <= now && now < toMinutes(trip.return_time),
+        )
+      : [],
+    next: confirmed.find((trip) => toMinutes(trip.departure_time) > now && notStarted(trip)) ?? null,
   }
+}
+
+// Badge d'avancement d'un trajet du jour : étape réelle du chauffeur, ou « Pas encore parti » quand l'heure de départ
+// d'un trajet confirmé est passée. null : rien à afficher (à venir, ou avancement inconnu).
+export function tripProgressBadge(trip, progress, nowTime) {
+  if (!progress) return null
+  if (progress.state !== 'a_venir') return PROGRESS_BADGES[progress.state] ?? null
+  const now = toMinutes(nowTime)
+  if (trip.status === 'confirme' && toMinutes(trip.departure_time) <= now && now < toMinutes(trip.return_time)) {
+    return { label: 'Pas encore parti', tone: 'warning' }
+  }
+  return null
 }
 
 // « dans 45 min », « dans 2 h 10 »
@@ -179,7 +263,8 @@ const DAY_END = 19 * 60
 // Frise de la journée : une ligne par bus (par plaque, « Non affecté » en dernier), de 7 h à 19 h au moins
 // (élargie aux trajets plus tôt ou plus tard). Deux trajets qui se chevauchent sur le même bus vont sur deux
 // sous-lignes. Positions en % ; `now` : position du trait « maintenant », null hors de la plage.
-export function dayTimeline(trips, nowTime) {
+// `progressById` : avancement réel (bus en route souligné), sinon l'horaire.
+export function dayTimeline(trips, nowTime, progressById) {
   const start = Math.min(DAY_START, ...trips.map((trip) => Math.floor(toMinutes(trip.departure_time) / 60) * 60))
   const end = Math.max(DAY_END, ...trips.map((trip) => Math.ceil(toMinutes(trip.return_time) / 60) * 60))
   const position = (minutes) => ((minutes - start) / (end - start)) * 100
@@ -197,7 +282,7 @@ export function dayTimeline(trips, nowTime) {
       left: position(departure),
       width: position(toMinutes(trip.return_time)) - position(departure),
       past: toMinutes(trip.return_time) <= now,
-      live: trip.status === 'confirme' && departure <= now && now < toMinutes(trip.return_time),
+      live: trip.status === 'confirme' && isOnTheRoad(trip, progressById?.[trip.id], now),
     }
     if (lane) lane.push(bar)
     else lanes.push([bar])

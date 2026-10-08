@@ -15,7 +15,8 @@ const MAX_POLL_ATTEMPTS = 60 // 2 minutes
 //        si « succeeded » → on télécharge le document et on l'enregistre sous son nom
 //        si « failed »    → on affiche l'erreur du backend
 //        sinon            → on attend encore (2 minutes au plus)
-export function PlanningExportButton({ exportParams, disabled }) {
+// `compact` : bouton discret en lien (en-tête d'un panneau du tableau de bord).
+export function PlanningExportButton({ exportParams, disabled, compact = false }) {
   const [exportState, setExportState] = useState({ step: 'idle' }) // idle, preparing, downloading, done, error
   const pollTimer = useRef(null)
 
@@ -70,7 +71,13 @@ export function PlanningExportButton({ exportParams, disabled }) {
 
   return (
     <div className="grid justify-items-start gap-1.5 sm:justify-items-end">
-      <Button variant="secondary" onClick={startExport} loading={busy} disabled={disabled}>
+      <Button
+        variant={compact ? 'link' : 'secondary'}
+        onClick={startExport}
+        loading={busy}
+        disabled={disabled}
+        className={compact ? 'min-h-11 text-sm' : undefined}
+      >
         <FileSpreadsheet className="size-4" aria-hidden="true" />
         Exporter en Excel
       </Button>

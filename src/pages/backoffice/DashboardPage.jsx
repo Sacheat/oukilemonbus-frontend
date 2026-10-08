@@ -1,13 +1,14 @@
-import { OpenAlertsBanner } from '../../components/alerts/OpenAlertsBanner'
 import { Link } from 'react-router'
 import { getDashboard } from '../../api/dashboard'
 import { useAuth } from '../../auth/useAuth'
+import { useQueueCount } from '../../backoffice/useQueueCount'
+import { OpenAlertsBanner } from '../../components/alerts/OpenAlertsBanner'
 import { DashboardHero } from '../../components/dashboard/DashboardHero'
 import { DayTimeline } from '../../components/dashboard/DayTimeline'
-import { FleetAlerts } from '../../components/dashboard/FleetAlerts'
 import { PanelSkeleton } from '../../components/dashboard/PanelSkeleton'
 import { TodayTrips } from '../../components/dashboard/TodayTrips'
 import { ToProcessTiles } from '../../components/dashboard/ToProcessTiles'
+import { WatchList } from '../../components/dashboard/WatchList'
 import { WeekChart } from '../../components/dashboard/WeekChart'
 import { PlanningExportButton } from '../../components/planning/PlanningExportButton'
 import { ErrorState } from '../../components/ui/ErrorState'
@@ -15,7 +16,8 @@ import { Panel } from '../../components/ui/Panel'
 import { useApi } from '../../hooks/useApi'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh'
 import { useNow } from '../../hooks/useNow'
-import { countLabel, QUICK_ACTIONS } from '../../lib/dashboard'
+import { useTripProgress } from '../../hooks/useTripProgress'
+import { countLabel, QUICK_ACTIONS, watchItems } from '../../lib/dashboard'
 import { brusselsNow } from '../../lib/dates'
 import { ACTIVE_STATUSES } from '../../lib/planning'
 
@@ -24,18 +26,26 @@ function fetchDashboard(signal) {
   return getDashboard({ signal }).then((data) => ({ ...data, receivedAt: brusselsNow().slice(11) }))
 }
 
-// Tableau de bord de l'espace gestion (agent et admin) : bandeau (journée en une phrase, bus en route, prochain
-// départ, actions rapides), compteurs « à traiter », frise et liste des trajets du jour, 7 prochains jours et alertes
-// flotte, tous lus dans GET /dashboard. Rechargé toutes les 60 s et au retour sur l'onglet, sans effacer l'affichage
-// pendant le rechargement. Chaque lien n'est actif qu'avec la permission de la page visée.
+// Tableau de bord de l'espace gestion (agent et admin), du plus urgent au plus lointain : bandeau (journée en une
+// phrase, actions rapides dont « Traiter les réservations », encart « Maintenant »), demandes d'aide en cours,
+// « À faire » (seulement ce sur quoi l'agent peut agir), « À surveiller » (passagers à confirmer par le demandeur,
+// alertes flotte), frise et liste des trajets du jour, 7 prochains jours. Chiffres lus dans GET /dashboard ;
+// avancement réel des trajets du jour dans GET /trip-progress (repli sur l'horaire s'il échoue). Rechargés toutes
+// les 60 s et au retour sur l'onglet, sans effacer l'affichage. Chaque lien n'est actif qu'avec la permission de la
+// page visée.
 export function DashboardPage() {
   const { user, can } = useAuth()
+  const { pendingCount } = useQueueCount()
   const dashboard = useApi(fetchDashboard)
   useAutoRefresh(dashboard.reload)
   const nowTime = useNow().slice(11)
   const data = dashboard.data
+  const tripProgress = useTripProgress(data ? data.today.trips.map((trip) => trip.id).join(',') : '')
+  // undefined : en cours de chargement ; null : indisponible (l'encart « Maintenant » se repère sur l'horaire)
+  const progress = tripProgress.data ?? (tripProgress.error ? null : undefined)
   const canSeePlanning = can('reservations.view')
-  const fleetLinks = {
+  const watchLinks = {
+    passengers: can('reservations.approve') ? '/gestion/reservations?file=passagers' : null,
     unavailabilities: can('unavailabilities.create') ? '/gestion/indisponibilites' : null,
     vehicles: can('vehicles.update') ? '/gestion/vehicules' : null,
     drivers: can('drivers.update') ? '/gestion/chauffeurs' : null,
@@ -56,6 +66,9 @@ export function DashboardPage() {
         nowTime={nowTime}
         updatedAt={data?.receivedAt}
         actions={QUICK_ACTIONS.filter((action) => can(action.permission))}
+        queueCount={pendingCount}
+        progress={data ? progress : undefined}
+        linkable={canSeePlanning}
       />
 
       {can('driver-alerts.manage') && <OpenAlertsBanner />}
@@ -65,10 +78,12 @@ export function DashboardPage() {
 
       <section aria-labelledby="to-process-title">
         <h2 id="to-process-title" className="mb-3 text-base font-bold">
-          À traiter
+          À faire
         </h2>
         <ToProcessTiles toProcess={data?.to_process} can={can} />
       </section>
+
+      {data && <WatchList items={watchItems(data, watchLinks)} />}
 
       <div className="grid gap-7 lg:grid-cols-5">
         <div className="min-w-0 lg:col-span-3">
@@ -86,10 +101,20 @@ export function DashboardPage() {
               <>
                 {data.today.trips.length > 0 && (
                   <div className="border-b border-line">
-                    <DayTimeline trips={data.today.trips} nowTime={nowTime} linkable={canSeePlanning} />
+                    <DayTimeline
+                      trips={data.today.trips}
+                      nowTime={nowTime}
+                      linkable={canSeePlanning}
+                      progress={progress ?? undefined}
+                    />
                   </div>
                 )}
-                <TodayTrips trips={data.today.trips} linkable={canSeePlanning} />
+                <TodayTrips
+                  trips={data.today.trips}
+                  linkable={canSeePlanning}
+                  progress={progress ?? undefined}
+                  nowTime={nowTime}
+                />
               </>
             ) : (
               !dashboard.error && <PanelSkeleton rows={3} />
@@ -97,20 +122,15 @@ export function DashboardPage() {
           </Panel>
         </div>
 
-        <div className="grid min-w-0 content-start gap-7 lg:col-span-2">
+        <div className="min-w-0 self-start lg:col-span-2">
           <Panel
             title="7 prochains jours"
-            action={canSeePlanning && weekExportParams && <PlanningExportButton exportParams={weekExportParams} />}
+            action={
+              canSeePlanning && weekExportParams && <PlanningExportButton exportParams={weekExportParams} compact />
+            }
           >
             {data ? (
               <WeekChart days={data.week.trips_by_day} linkable={canSeePlanning} />
-            ) : (
-              !dashboard.error && <PanelSkeleton rows={2} />
-            )}
-          </Panel>
-          <Panel title="Alertes flotte">
-            {data ? (
-              <FleetAlerts alerts={data.fleet_alerts} links={fleetLinks} />
             ) : (
               !dashboard.error && <PanelSkeleton rows={2} />
             )}
