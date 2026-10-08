@@ -59,12 +59,18 @@ export function ReservationEditPage() {
   }
 
   const terminal = ['refuse', 'annule'].includes(reservation.status)
-  if (terminal || reservation.trip_date.slice(0, 10) < todayInBrussels()) {
+  // Trajet commencé : le chauffeur a signalé son départ (même règle que le backend)
+  const started = Boolean(reservation.trip_started_at)
+  if (terminal || started || reservation.trip_date.slice(0, 10) < todayInBrussels()) {
     return (
       <div className="grid gap-5">
         <div>{backLink}</div>
         <Alert tone="warning" title="Cette réservation ne peut plus être modifiée">
-          {terminal ? `Elle est ${reservation.status === 'refuse' ? 'refusée' : 'annulée'}.` : 'Le trajet est passé.'}
+          {terminal
+            ? `Elle est ${reservation.status === 'refuse' ? 'refusée' : 'annulée'}.`
+            : started
+              ? `Le trajet a commencé : le chauffeur a signalé son départ à ${reservation.trip_started_local_time}.`
+              : 'Le trajet est passé.'}
         </Alert>
       </div>
     )

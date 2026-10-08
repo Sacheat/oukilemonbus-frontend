@@ -89,11 +89,14 @@ export function nextInQueue(list, currentId) {
 // Trajet passé (`today` : aujourd'hui à Bruxelles, le jour même n'est pas passé) : consultation seulement. Le backend
 // ne bloque que l'approbation, mais un trajet passé n'a plus à être affecté, confirmé, refusé ni annulé (la clôture de
 // nuit s'occupe des non confirmés). Restent les notes d'une décision du Collège existante et « Résolu » sur un conflit.
+// Trajet commencé (`trip_started_at` : le chauffeur a signalé son départ) : figé comme le backend, plus d'affectation,
+// de modification ni d'annulation ; une étape enregistrée par erreur s'annule d'abord dans le Planning.
 export function agentActions(reservation, can, decision = null, today) {
   const { status } = reservation
   const tripPassed = reservation.trip_date.slice(0, 10) < today
   const terminal = status === 'refuse' || status === 'annule'
-  const open = !terminal && !tripPassed
+  const tripStarted = Boolean(reservation.trip_started_at)
+  const open = !terminal && !tripPassed && !tripStarted
   const assigned = Boolean(reservation.driver_id && reservation.vehicle_id)
   const openConflicts = (reservation.conflicts ?? []).some((conflict) => !conflict.is_resolved)
   const needsCouncil = reservation.approval_type === 'manuel'
@@ -101,6 +104,7 @@ export function agentActions(reservation, can, decision = null, today) {
   const approvable = can('reservations.approve') && ['en_attente', 'en_conflit'].includes(status) && !tripPassed
   return {
     tripPassed,
+    tripStarted,
     approve: approvable && (!needsCouncil || councilOk),
     approveBlocked: approvable && needsCouncil && !councilOk,
     // Trajet passé encore à traiter : plus d'approbation possible, la clôture automatique l'annulera cette nuit
@@ -110,7 +114,8 @@ export function agentActions(reservation, can, decision = null, today) {
     assign: can('reservations.assign') && open,
     retryAssign: can('reservations.assign') && open && !assigned,
     confirm: can('reservations.confirm') && status === 'approuve' && assigned && !openConflicts && !tripPassed,
-    cancel: can('reservations.cancel') && ['en_attente', 'en_conflit', 'approuve', 'confirme'].includes(status) && !tripPassed,
+    cancel:
+      can('reservations.cancel') && ['en_attente', 'en_conflit', 'approuve', 'confirme'].includes(status) && !tripPassed && !tripStarted,
     resolveConflicts: can('reservations.manage-conflicts') && !terminal,
     // Modifier (horaires, lieux, passagers) pour régler un conflit : statut non terminal, trajet pas encore passé
     edit: can('reservations.update') && open,
@@ -243,6 +248,12 @@ export function nextStep(reservation, actions, decision, keys) {
   const key = (id) => (keys[id] ? ` (${keyLabel(keys[id])})` : '')
   const openConflicts = (reservation.conflicts ?? []).filter((conflict) => !conflict.is_resolved).length
   if (actions.tripPassed || ['refuse', 'annule'].includes(status)) return null
+  if (actions.tripStarted) {
+    return {
+      tone: 'info',
+      text: `Trajet en cours depuis ${reservation.trip_started_local_time} : plus d’affectation, de modification ni d’annulation. Un départ signalé par erreur s’annule dans le Planning.`,
+    }
+  }
 
   if (['en_attente', 'en_conflit'].includes(status)) {
     if (reservation.approval_type === 'manuel' && decision === undefined) return null
