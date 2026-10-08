@@ -1,3 +1,5 @@
+import { getCouncilDecisions } from '../api/documents'
+import { getReservations } from '../api/reservations'
 import { DECISION_STATUS } from './documents'
 
 // Onglets de la page (?onglet=) : « À décider » par défaut
@@ -64,11 +66,34 @@ export function decisionSavedMessage(decision) {
   if (decision.decision_status === 'approuve') {
     return (
       'Décision enregistrée : approuvée. La délibération a été générée et le demandeur prévenu. ' +
-      'La réservation peut maintenant être approuvée par un agent.'
+      'Vous pouvez maintenant approuver la réservation.'
     )
   }
   if (decision.decision_status === 'refuse') {
     return 'Décision enregistrée : refusée. La réservation a été refusée, la délibération générée et le demandeur prévenu.'
   }
   return 'Décision enregistrée : en attente. La réservation reste en attente du Collège.'
+}
+
+// État du Collège d'une réservation à décider (ligne de l'onglet « À décider », à la place du statut de la réservation) :
+// décision encodée « en attente » (le Collège a reporté) ou aucune décision encore
+export function councilStateHint(reservation) {
+  return reservation.council_decision_status === 'en_attente'
+    ? { label: 'Décision reportée', tone: 'info' }
+    : { label: 'Aucune décision', tone: 'neutral' }
+}
+
+// Décisions prises sous la forme attendue par groupByDay (lib/queue) : la date du trajet de leur réservation
+export function decisionsWithTripDate(decisions) {
+  return decisions.map((decision) => ({ ...decision, trip_date: decision.reservation?.trip_date ?? decision.decision_date ?? '' }))
+}
+
+// Nombre d'éléments de chaque onglet (une requête par onglet, lue dans meta.total) : { 'a-decider': 8, approuvees: 80, … }
+export async function fetchCollegeCounts({ signal } = {}) {
+  const [toDecide, approved, refused] = await Promise.all([
+    getReservations({ council: 'a_decider', per_page: 1 }, { signal }),
+    getCouncilDecisions({ decision_status: 'approuve', per_page: 1 }, { signal }),
+    getCouncilDecisions({ decision_status: 'refuse', per_page: 1 }, { signal }),
+  ])
+  return { 'a-decider': toDecide.meta.total, approuvees: approved.meta.total, refusees: refused.meta.total }
 }
