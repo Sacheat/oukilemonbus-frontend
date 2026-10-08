@@ -14,8 +14,10 @@ import { Loader } from '../../components/ui/Loader'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { useApi } from '../../hooks/useApi'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh'
+import { useClock } from '../../hooks/useClock'
+import { cx } from '../../lib/cx'
 import { formatDate, formatDateTime } from '../../lib/dates'
-import { ALERT_STATUS_TONES, alertPlaceText, telHref } from '../../lib/driverAlerts'
+import { ALERT_STATUS_TONES, alertPlaceText, alertWaitingText, telHref } from '../../lib/driverAlerts'
 import { getErrorMessage } from '../../lib/errors'
 
 const LINK = 'inline-flex min-h-11 items-center gap-2 rounded-control border border-line-strong bg-surface px-4 font-bold hover:bg-surface-muted'
@@ -34,6 +36,7 @@ export function AlertDetailPage() {
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
   const { refreshCount } = useQueueCount()
+  const now = useClock()
 
   const alert = override && loaded.loading ? override : loaded.data
 
@@ -62,6 +65,7 @@ export function AlertDetailPage() {
 
   const reservation = alert.reservation
   const open = alert.status !== 'cloturee'
+  const waiting = alertWaitingText(alert, now)
 
   return (
     <div className="grid gap-6">
@@ -71,7 +75,12 @@ export function AlertDetailPage() {
       <PageHeader
         eyebrow={`Demande d’aide n° ${alert.id}`}
         title={`${alert.driver.name ?? 'Chauffeur'}${alert.vehicle ? ` · ${alert.vehicle.licence_plate}` : ''}`}
-        description={`Envoyée le ${formatDateTime(alert.created_at)}`}
+        description={
+          <>
+            Envoyée le {formatDateTime(alert.created_at)} ·{' '}
+            <span className={cx(waiting.urgent && 'text-danger', waiting.strong && 'font-bold')}>{waiting.text}</span>
+          </>
+        }
         actions={<Badge tone={ALERT_STATUS_TONES[alert.status]}>{alert.status_label}</Badge>}
       />
 
@@ -96,8 +105,9 @@ export function AlertDetailPage() {
         </div>
 
         <div className="grid gap-5">
+          {/* Grand écran : actions à côté de la carte ; plus petit : dans la barre collée en bas (fin de page) */}
           {open && (
-            <div className="flex flex-wrap gap-2">
+            <div className="hidden flex-wrap gap-2 lg:flex">
               {alert.status === 'ouverte' && (
                 <Button onClick={handleTake} loading={taking}>
                   Prendre en charge
@@ -111,7 +121,7 @@ export function AlertDetailPage() {
 
           <div className="flex flex-wrap gap-2">
             {alert.driver.phone && (
-              <a href={telHref(alert.driver.phone)} className={LINK}>
+              <a href={telHref(alert.driver.phone)} className={cx(LINK, open && 'max-lg:hidden')}>
                 <Phone className="size-4" aria-hidden="true" /> Appeler le chauffeur
               </a>
             )}
@@ -146,6 +156,27 @@ export function AlertDetailPage() {
           {!reservation && <p className="text-sm text-muted">Demande envoyée en dehors d’un trajet.</p>}
         </div>
       </div>
+
+      {/* Sous 1 024 px (agent de garde sur son téléphone) : les actions utiles tout de suite, toujours visibles en bas
+          de l'écran pendant la lecture ; la barre est le dernier élément de la page, collée au bas de la fenêtre */}
+      {open && (
+        <div className="sticky bottom-0 z-[1001] -mx-5 -mb-8 flex gap-2 border-t border-line bg-surface px-5 py-3 shadow-[0_-4px_12px_rgb(0_0_0/0.06)] sm:-mx-8 sm:px-8 lg:hidden">
+          {alert.driver.phone && (
+            <a href={telHref(alert.driver.phone)} className={cx(LINK, 'flex-1 justify-center')}>
+              <Phone className="size-4" aria-hidden="true" /> Appeler
+            </a>
+          )}
+          {alert.status === 'ouverte' ? (
+            <Button onClick={handleTake} loading={taking} className="flex-1">
+              Prendre en charge
+            </Button>
+          ) : (
+            <Button variant="secondary" onClick={() => setClosing(true)} className="flex-1">
+              Clôturer
+            </Button>
+          )}
+        </div>
+      )}
 
       <CloseAlertModal
         open={closing}
