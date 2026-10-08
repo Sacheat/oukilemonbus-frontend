@@ -68,7 +68,7 @@ export function SidebarLayout({ sections }) {
                       >
                         <item.icon className="size-4.5" aria-hidden="true" />
                         {item.label}
-                        {item.badge === 'queue' && <NavCountBadge />}
+                        {item.badge && <NavCountBadge name={item.badge} />}
                       </NavLink>
                     </li>
                   ))}

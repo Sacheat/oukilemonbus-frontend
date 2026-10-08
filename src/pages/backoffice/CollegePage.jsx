@@ -1,6 +1,7 @@
 import { Gavel } from 'lucide-react'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
+import { useQueueCount } from '../../backoffice/useQueueCount'
 import { CollegeDecisionRow } from '../../components/college/CollegeDecisionRow'
 import { CollegeDrawerContent } from '../../components/college/CollegeDrawerContent'
 import { CollegeReservationRow } from '../../components/college/CollegeReservationRow'
@@ -28,6 +29,7 @@ export function CollegePage() {
   const [notice, setNotice] = useState(null)
   const { tab, page, openedReservationId } = readCollegeSearch(searchParams)
   const list = useCollegeList(tab, page)
+  const { refreshCount } = useQueueCount()
   const items = list.data?.data
 
   function updateSearch(changes) {
@@ -48,6 +50,7 @@ export function CollegePage() {
   function handleSaved(savedDecision) {
     updateSearch({ reservation: null })
     list.reload()
+    refreshCount()
     setNotice(decisionSavedMessage(savedDecision))
   }
 

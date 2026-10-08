@@ -3,7 +3,8 @@ import { Building2, Bus, CalendarDays, CalendarOff, FileText, Gavel, House, Inbo
 import { recurrenceOrganizations } from './lib/recurrences'
 
 // Menus de chaque espace. Un lien n'est affiché que si l'utilisateur a la
-// `permission` indiquée (et que `visible(auth)` renvoie vrai, le cas échéant).
+// `permission` indiquée (et que `visible(auth)` renvoie vrai, le cas échéant). `badge` : compteur affiché à droite
+// (clé de NAV_COUNTS, lib/navCounts.js).
 
 export const USER_NAV = [
   { to: '/espace', end: true, label: 'Accueil', icon: House },
@@ -36,8 +37,8 @@ export const BACKOFFICE_NAV = [
       { to: '/gestion', end: true, label: 'Tableau de bord', icon: LayoutDashboard, permission: 'dashboard.view' },
       { to: '/gestion/reservations', label: 'Réservations', icon: ListChecks, permission: 'reservations.approve', badge: 'queue' },
       { to: '/gestion/planning', label: 'Planning', icon: CalendarDays, permission: 'reservations.view' },
-      { to: '/gestion/college', label: 'Décisions du Collège', icon: Gavel, permission: 'council-decisions.create' },
-      { to: '/gestion/demandes', label: 'Demandes', icon: Inbox, permission: 'org-registration-requests.review' },
+      { to: '/gestion/college', label: 'Décisions du Collège', icon: Gavel, permission: 'council-decisions.create', badge: 'college' },
+      { to: '/gestion/demandes', label: 'Demandes', icon: Inbox, permission: 'org-registration-requests.review', badge: 'requests' },
       { to: '/gestion/organisations', label: 'Organisations', icon: Building2, permission: 'organizations.update' },
       { to: '/gestion/documents', label: 'Documents', icon: FileText, permission: 'documents.generate' },
     ],
@@ -48,7 +49,7 @@ export const BACKOFFICE_NAV = [
       { to: '/gestion/vehicules', label: 'Véhicules', icon: Bus, permission: 'vehicles.update' },
       { to: '/gestion/chauffeurs', label: 'Chauffeurs', icon: Users, permission: 'drivers.update' },
       { to: '/gestion/indisponibilites', label: 'Indisponibilités', icon: CalendarOff, permission: 'unavailabilities.create' },
-      { to: '/gestion/alertes', label: 'Demandes d’aide', icon: LifeBuoy, permission: 'driver-alerts.manage' },
+      { to: '/gestion/alertes', label: 'Demandes d’aide', icon: LifeBuoy, permission: 'driver-alerts.manage', badge: 'alerts' },
     ],
   },
   {

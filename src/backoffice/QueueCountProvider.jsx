@@ -1,32 +1,29 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../auth/useAuth'
-import { fetchPendingCount } from '../lib/queue'
+import { activeNavCounts, fetchNavCounts } from '../lib/navCounts'
 import { QueueCountContext } from './QueueCountContext'
 
 const POLL_MS = 60_000
 
-// Nombre de demandes « à traiter » de l'espace gestion, pour le badge du menu (même chiffre que la pastille
-// « À traiter » de la page Réservations). Rechargé toutes les 60 s (onglet visible), au retour sur l'onglet et
-// après une action de l'agent (refreshCount). Seulement pour qui peut approuver.
+// Compteurs de la barre latérale de l'espace gestion (NAV_COUNTS : réservations à traiter, Collège à décider,
+// demandes à examiner, demandes d'aide en cours), chacun selon sa permission. Un seul minuteur pour tous : relus toutes
+// les 60 s (onglet visible), au retour sur l'onglet et après une action de l'agent (refreshCount).
+// `pendingCount` : réservations à traiter (badge de « Réservations », bouton du tableau de bord).
 export function QueueCountProvider({ children }) {
   const { can } = useAuth()
-  const active = can('reservations.approve')
-  const [pendingCount, setPendingCount] = useState(0)
+  const keysText = activeNavCounts(can).join(',')
+  const [counts, setCounts] = useState({})
 
-  // Compteur indicatif : une erreur passagère ne doit rien casser (401 gérée par le client)
-  const refreshCount = useCallback(
-    () =>
-      fetchPendingCount()
-        .then(setPendingCount)
-        .catch(() => {}),
-    [],
-  )
+  const refreshCount = useCallback(() => {
+    if (!keysText) return
+    fetchNavCounts(keysText.split(','))
+      .then(setCounts)
+      .catch(() => {})
+  }, [keysText])
 
   useEffect(() => {
-    if (!active) return undefined
-    fetchPendingCount()
-      .then(setPendingCount)
-      .catch(() => {})
+    if (!keysText) return undefined
+    refreshCount()
     const timer = setInterval(() => {
       if (document.visibilityState === 'visible') refreshCount()
     }, POLL_MS)
@@ -38,11 +35,8 @@ export function QueueCountProvider({ children }) {
       clearInterval(timer)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [active, refreshCount])
+  }, [keysText, refreshCount])
 
-  const value = useMemo(
-    () => ({ pendingCount: active ? pendingCount : 0, refreshCount }),
-    [active, pendingCount, refreshCount],
-  )
+  const value = useMemo(() => ({ counts, pendingCount: counts.queue ?? 0, refreshCount }), [counts, refreshCount])
   return <QueueCountContext.Provider value={value}>{children}</QueueCountContext.Provider>
 }

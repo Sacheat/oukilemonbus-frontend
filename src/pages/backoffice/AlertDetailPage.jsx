@@ -2,6 +2,7 @@ import { ArrowLeft, ExternalLink, Phone } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { getDriverAlert, takeDriverAlert } from '../../api/driverAlerts'
+import { useQueueCount } from '../../backoffice/useQueueCount'
 import { AlertMap } from '../../components/alerts/AlertMap'
 import { CloseAlertModal } from '../../components/alerts/CloseAlertModal'
 import { Alert } from '../../components/ui/Alert'
@@ -32,6 +33,7 @@ export function AlertDetailPage() {
   const [closing, setClosing] = useState(false)
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
+  const { refreshCount } = useQueueCount()
 
   const alert = override && loaded.loading ? override : loaded.data
 
@@ -40,6 +42,7 @@ export function AlertDetailPage() {
     setOverride(updated)
     setNotice(message)
     loaded.reload()
+    refreshCount()
   }
 
   async function handleTake() {
