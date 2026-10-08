@@ -2,7 +2,8 @@ import { getReservations } from '../api/reservations'
 import { formatDate } from './dates'
 import { mondayOf, periodLength } from './planning'
 import { keyLabel } from './shortcuts'
-import { todayApiDate, yesterdayApiDate } from './reservations'
+import { hasOpenCouncilDerogation } from './conflicts'
+import { needsCouncilDecision, todayApiDate, yesterdayApiDate } from './reservations'
 
 // Files de la page « Réservations » de l'espace gestion, dans l'ordre des pastilles.
 // `statuses` : statuts affichés ; `council` : seulement celles qui attendent le Collège (council=a_decider : type
@@ -57,6 +58,13 @@ export function nextInQueue(list, currentId) {
 // Trajet passé (`today` : aujourd'hui à Bruxelles, le jour même n'est pas passé) : consultation seulement. Le backend
 // ne bloque que l'approbation, mais un trajet passé n'a plus à être affecté, confirmé, refusé ni annulé (la clôture de
 // nuit s'occupe des non confirmés). Restent les notes d'une décision du Collège existante et « Résolu » sur un conflit.
+// Décision du Collège à montrer ou à charger pour cette réservation : exigée (CPAS, ASBL, externes), ou facultative
+// mais utile (dérogation horaire ouverte d'une organisation interne), ou déjà encodée (`council_decision_status`
+// du backend, null sans décision)
+export function mayHaveCouncilDecision(reservation) {
+  return needsCouncilDecision(reservation) || hasOpenCouncilDerogation(reservation) || reservation.council_decision_status != null
+}
+
 export function agentActions(reservation, can, decision = null, today) {
   const { status } = reservation
   const tripPassed = reservation.trip_date.slice(0, 10) < today
@@ -64,16 +72,23 @@ export function agentActions(reservation, can, decision = null, today) {
   const open = !terminal && !tripPassed
   const assigned = Boolean(reservation.driver_id && reservation.vehicle_id)
   const openConflicts = (reservation.conflicts ?? []).some((conflict) => !conflict.is_resolved)
-  const needsCouncil = reservation.approval_type === 'manuel'
+  const needsCouncil = needsCouncilDecision(reservation)
   const councilOk = decision?.decision_status === 'approuve'
   const approvable = can('reservations.approve') && ['en_attente', 'en_conflit'].includes(status) && !tripPassed
   return {
     tripPassed,
+    // Décision facultative (organisation interne) : elle ne bloque jamais l'approbation
+    councilOptional: !needsCouncil,
     approve: approvable && (!needsCouncil || councilOk),
     approveBlocked: approvable && needsCouncil && !councilOk,
     // Trajet passé encore à traiter : plus d'approbation possible, la clôture automatique l'annulera cette nuit
     approveExpired: can('reservations.approve') && ['en_attente', 'en_conflit'].includes(status) && tripPassed,
-    council: can('council-decisions.create') && needsCouncil && !terminal && (!tripPassed || Boolean(decision)),
+    // Exigée, ou facultative mais utile (dérogation horaire ouverte), ou à consulter / corriger si elle existe déjà
+    council:
+      can('council-decisions.create') &&
+      (needsCouncil || hasOpenCouncilDerogation(reservation) || Boolean(decision)) &&
+      !terminal &&
+      (!tripPassed || Boolean(decision)),
     reject: can('reservations.reject') && ['en_attente', 'en_conflit', 'approuve'].includes(status) && !tripPassed,
     assign: can('reservations.assign') && open,
     retryAssign: can('reservations.assign') && open && !assigned,
@@ -178,13 +193,13 @@ export function urgencyOf(reservation, today) {
 }
 
 // Repères d'une ligne : ce qui attend avant de pouvoir avancer. [{ label, tone }]
-//   validation manuelle en attente ou en conflit → état du Collège (`council_decision_status` du backend ;
+//   Collège exigé (needsCouncilDecision), demande en attente ou en conflit → état du Collège (`council_decision_status` du backend ;
 //     absent : repère neutre « Collège »)
 //   approuvée sans chauffeur et / ou sans véhicule → ce qui manque
 export function rowHints(reservation) {
   const hints = []
   const undecided = ['en_attente', 'en_conflit'].includes(reservation.status)
-  if (undecided && reservation.approval_type === 'manuel') {
+  if (undecided && needsCouncilDecision(reservation)) {
     const council = reservation.council_decision_status
     if (council === undefined) hints.push({ label: 'Collège', tone: 'neutral' })
     else if (council === 'approuve') hints.push({ label: 'Collège favorable', tone: 'success' })
@@ -207,7 +222,7 @@ export function nextStep(reservation, actions, decision, keys) {
   if (actions.tripPassed || ['refuse', 'annule'].includes(status)) return null
 
   if (['en_attente', 'en_conflit'].includes(status)) {
-    if (reservation.approval_type === 'manuel' && decision === undefined) return null
+    if (needsCouncilDecision(reservation) && decision === undefined) return null
     if (actions.approveBlocked && openConflicts > 0) {
       return {
         tone: 'conflict',

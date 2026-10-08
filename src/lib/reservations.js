@@ -17,6 +17,14 @@ export function isRequesterOrManager(user, reservation) {
   return reservation.requested_by_user_id === user.id || isManagerOf(user, reservation.organization_id)
 }
 
+// Décision du Collège exigée avant l'approbation : selon le type d'organisation (`organization.rules.council_required`,
+// tiré de la config du backend : CPAS, ASBL, externes). Repli sur `approval_type` si les règles ne sont pas fournies.
+// Pour les autres types (écoles, personnel communal), elle reste possible mais facultative (dérogation horaire).
+export function needsCouncilDecision(reservation) {
+  const required = reservation.organization?.rules?.council_required
+  return typeof required === 'boolean' ? required : reservation.approval_type === 'manuel'
+}
+
 // Plus aucune action une fois la date du trajet passée
 function isPast(reservation) {
   return reservation.trip_date < todayApiDate()

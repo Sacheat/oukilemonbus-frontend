@@ -45,6 +45,7 @@ import {
   DEFAULT_QUEUE,
   fetchQueueCounts,
   groupByDay,
+  mayHaveCouncilDecision,
   nextInQueue,
   PERIODS,
   queueOf,
@@ -132,15 +133,15 @@ export function ReservationsQueuePage() {
   // Détail chargé, sinon la ligne de la liste le temps du chargement
   const reservation = detail.data?.id === selectedId ? detail.data : items.find((item) => item.id === selectedId) ?? null
 
-  // Décision du Collège : seulement pour une validation manuelle (CPAS, ASBL, externes) ; écoles et personnel
-  // communal n'en ont jamais, inutile de la demander
-  const selectedManual = reservation?.approval_type === 'manuel'
+  // Décision du Collège : exigée (CPAS, ASBL, externes), ou facultative mais utile (dérogation horaire d'une
+  // organisation interne), ou déjà encodée ; sinon inutile de la demander
+  const selectedCouncil = reservation ? mayHaveCouncilDecision(reservation) : false
   const fetchDecision = useCallback(
     (signal) =>
-      selectedId && selectedManual
+      selectedId && selectedCouncil
         ? cachedOr(prefetched, `d:${selectedId}`, () => getReservationDecision(selectedId, { signal }))
         : Promise.resolve(null),
-    [selectedId, selectedManual, prefetched],
+    [selectedId, selectedCouncil, prefetched],
   )
   const decision = useApi(fetchDecision)
   const drivers = useApi(fetchDrivers)
@@ -302,7 +303,7 @@ export function ReservationsQueuePage() {
     if (index === -1) return
     for (const neighbour of [items[index + 1], items[index - 1]].filter(Boolean)) {
       const loads = [[`r:${neighbour.id}`, () => getReservation(neighbour.id)]]
-      if (neighbour.approval_type === 'manuel') loads.push([`d:${neighbour.id}`, () => getReservationDecision(neighbour.id)])
+      if (mayHaveCouncilDecision(neighbour)) loads.push([`d:${neighbour.id}`, () => getReservationDecision(neighbour.id)])
       for (const [key, load] of loads) {
         if (isFresh(prefetched.get(key))) continue
         load()

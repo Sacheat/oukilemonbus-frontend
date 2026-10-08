@@ -8,7 +8,7 @@ import { cx } from '../../lib/cx'
 import { formatDate, formatDateTime, formatTime } from '../../lib/dates'
 import { openConflictsOf, resolvedConflictsOf } from '../../lib/conflicts'
 import { DECISION_STATUS } from '../../lib/documents'
-import { nextStep, planningHref } from '../../lib/queue'
+import { mayHaveCouncilDecision, nextStep, planningHref } from '../../lib/queue'
 import { estimatedArrivals, shortAddress, totalPassengers } from '../../lib/reservations'
 import { keyLabel } from '../../lib/shortcuts'
 import { RegenerateDeliberation } from '../college/RegenerateDeliberation'
@@ -195,11 +195,12 @@ export function ReservationPanel({ reservation, decision, actions, onAction, bus
           </section>
         )}
 
-        {reservation.approval_type === 'manuel' && (
+        {mayHaveCouncilDecision(reservation) && (
           <section aria-labelledby="panel-council" className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-line p-3.5">
             <div className="min-w-0">
               <h3 id="panel-council" className="flex items-center gap-2 text-sm font-bold">
-                <Landmark className="size-4 text-muted" aria-hidden="true" /> Décision du Collège
+                <Landmark className="size-4 text-muted" aria-hidden="true" />
+                {actions.councilOptional ? 'Dérogation du Collège (facultative)' : 'Décision du Collège'}
               </h3>
               {decision === undefined ? (
                 <p className="text-sm text-muted">Chargement…</p>
@@ -213,6 +214,10 @@ export function ReservationPanel({ reservation, decision, actions, onAction, bus
                       .filter(Boolean)
                       .join(' · ')}
                   </span>
+                </p>
+              ) : actions.councilOptional ? (
+                <p className="text-sm text-muted">
+                  Pas exigée pour ce type d’organisation. Une décision favorable lève la dérogation horaire.
                 </p>
               ) : (
                 <p className="text-sm text-muted">Aucune décision enregistrée.</p>
