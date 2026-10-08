@@ -17,6 +17,24 @@ export function weekdayLabel(day) {
   return WEEKDAYS.find((option) => option.value === String(day))?.label ?? ''
 }
 
+// Heures d'envoi proposées : au quart d'heure, car l'envoi est vérifié toutes les 15 minutes (planning:send-weekly) ;
+// 12:07 partirait en fait à 12:15. Le backend refuse aussi une autre heure (422).
+export const SEND_TIMES = Array.from({ length: 96 }, (_, index) => {
+  const hours = String(Math.floor(index / 4)).padStart(2, '0')
+  const minutes = String((index % 4) * 15).padStart(2, '0')
+  return `${hours}:${minutes}`
+})
+
+// Liste du choix de l'heure ; une ancienne valeur hors quart d'heure reste affichée pour ne pas être changée en silence
+export function sendTimeOptions(current) {
+  return SEND_TIMES.includes(current) ? SEND_TIMES : [current, ...SEND_TIMES].filter(Boolean)
+}
+
+// Le responsable choisi diffère-t-il de celui enregistré ?
+export function ownerHasChanged(municipality, owner) {
+  return (owner?.id ?? null) !== (municipality.weekly_planning_owner_user_id ?? null)
+}
+
 // Valeurs du formulaire de la page Communes : celles appliquées (effective_*), pour montrer ce qui se passe vraiment
 export function weeklyPlanningFormValues(municipality) {
   return {
@@ -33,8 +51,7 @@ export function weeklyPlanningChanges(municipality, values, owner) {
   if (values.weekly_planning_enabled !== initial.weekly_planning_enabled) changes.weekly_planning_enabled = values.weekly_planning_enabled
   if (values.weekly_planning_send_day !== initial.weekly_planning_send_day) changes.weekly_planning_send_day = Number(values.weekly_planning_send_day)
   if (values.weekly_planning_send_time !== initial.weekly_planning_send_time) changes.weekly_planning_send_time = values.weekly_planning_send_time
-  const ownerId = owner?.id ?? null
-  if (ownerId !== (municipality.weekly_planning_owner_user_id ?? null)) changes.weekly_planning_owner_user_id = ownerId
+  if (ownerHasChanged(municipality, owner)) changes.weekly_planning_owner_user_id = owner?.id ?? null
   return changes
 }
 

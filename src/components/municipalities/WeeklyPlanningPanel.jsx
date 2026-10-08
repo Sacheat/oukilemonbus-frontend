@@ -3,7 +3,9 @@ import { updateMunicipality } from '../../api/municipalities'
 import { useForm } from '../../hooks/useForm'
 import {
   ownerChangeText,
+  ownerHasChanged,
   searchInternalAccounts,
+  sendTimeOptions,
   WEEKDAYS,
   weekdayLabel,
   weeklyPlanningChanges,
@@ -12,7 +14,7 @@ import {
 import { AccountPicker } from '../drivers/AccountPicker'
 import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
-import { Field, Input, Select } from '../ui/Field'
+import { Field, Select } from '../ui/Field'
 import { Modal } from '../ui/Modal'
 import { Panel } from '../ui/Panel'
 import { Switch } from '../ui/Switch'
@@ -20,7 +22,8 @@ import { Switch } from '../ui/Switch'
 // Compte du responsable tel que renvoyé par la commune, au format du sélecteur de compte
 function ownerAccount(municipality) {
   const owner = municipality.weekly_planning_owner
-  return owner ? { id: owner.id, full_name: owner.name, email: owner.email, active: owner.active } : null
+  // effective : false si le compte est désactivé ou n'est plus agent ni admin (il ne compte plus, voir le backend)
+  return owner ? { id: owner.id, full_name: owner.name, email: owner.email, effective: owner.effective } : null
 }
 
 // Planning hebdomadaire envoyé automatiquement (admin seulement ; le backend refuse ces champs à un agent) :
@@ -32,7 +35,7 @@ export function WeeklyPlanningPanel({ municipality, onSaved, onUnchanged }) {
   const [owner, setOwner] = useState(() => ownerAccount(municipality))
   const [confirmOwner, setConfirmOwner] = useState(false)
   const { values } = form
-  const ownerChanged = (owner?.id ?? null) !== (municipality.weekly_planning_owner_user_id ?? null)
+  const ownerChanged = ownerHasChanged(municipality, owner)
 
   async function save() {
     setConfirmOwner(false)
@@ -84,15 +87,24 @@ export function WeeklyPlanningPanel({ municipality, onSaved, onUnchanged }) {
               </Select>
             )}
           </Field>
-          <Field label="Heure de l’envoi" hint="Heure de Bruxelles." error={form.errors.weekly_planning_send_time}>
+          <Field
+            label="Heure de l’envoi"
+            hint="Heure de Bruxelles, au quart d’heure : l’envoi est vérifié toutes les 15 minutes."
+            error={form.errors.weekly_planning_send_time}
+          >
             {(props) => (
-              <Input
+              <Select
                 {...props}
-                type="time"
                 value={values.weekly_planning_send_time}
                 onChange={form.handle('weekly_planning_send_time')}
                 disabled={!values.weekly_planning_enabled}
-              />
+              >
+                {sendTimeOptions(values.weekly_planning_send_time).map((time) => (
+                  <option key={time} value={time}>
+                    {time}
+                  </option>
+                ))}
+              </Select>
             )}
           </Field>
         </div>
@@ -112,8 +124,11 @@ export function WeeklyPlanningPanel({ municipality, onSaved, onUnchanged }) {
             />
           )}
         </Field>
-        {owner && owner.active === false && (
-          <Alert tone="warning">Ce compte est désactivé : le planning part à tous les agents et administrateurs.</Alert>
+        {owner && owner.effective === false && (
+          <Alert tone="warning">
+            Ce compte est désactivé ou n’est plus agent ni administrateur : il ne compte plus comme responsable, le planning
+            part à tous les agents et administrateurs. Choisissez un autre responsable ou retirez-le.
+          </Alert>
         )}
 
         <div>
