@@ -84,6 +84,14 @@ export function conflictActions(conflict, actions) {
   return conflictGuide(conflict).actions.filter((name) => allowed[name])
 }
 
+// Dérogations qu'une décision favorable du Collège lève automatiquement (CouncilDecisionService du backend)
+export const COUNCIL_DEROGATION_TYPES = ['departure_before_allowed_time', 'return_after_allowed_time', 'duration_over_allowed_limit']
+
+// La réservation a une dérogation horaire ouverte : seul cas où une décision du Collège facultative a un effet
+export function hasOpenCouncilDerogation(reservation) {
+  return openConflictsOf(reservation).some((conflict) => COUNCIL_DEROGATION_TYPES.includes(conflict.type))
+}
+
 export function openConflictsOf(reservation) {
   return (reservation.conflicts ?? []).filter((conflict) => !conflict.is_resolved)
 }

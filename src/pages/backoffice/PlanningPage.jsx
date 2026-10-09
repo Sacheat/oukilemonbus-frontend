@@ -29,6 +29,7 @@ import {
   planningRequestKey,
   readPlanningSearch,
   requestedPeriod,
+  shownWeekDay,
   todayInBrussels,
   tripsByDay,
 } from '../../lib/planning'
@@ -41,7 +42,8 @@ async function fetchFleet(signal) {
 
 // Planning (lecture seule) : trajets d'une semaine (lundi → vendredi, par défaut) ou d'une période en liste
 // (31 jours au plus), filtrés par statut, véhicule et chauffeur ; détail d'un trajet dans un panneau ; export Excel.
-// Tout l'état est dans l'URL : ?vue=liste, ?semaine=, ?du=&au=, ?statuts=tous, ?vehicule=, ?chauffeur=, ?trajet=
+// Tout l'état est dans l'URL : ?vue=liste, ?semaine=, ?jour= (petit écran : jour affiché de la semaine), ?du=&au=,
+// ?statuts=tous, ?vehicule=, ?chauffeur=, ?trajet=
 export function PlanningPage() {
   const { can } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -57,7 +59,7 @@ export function PlanningPage() {
   const fleet = useApi(fetchFleet)
 
   const tripList = planning.data?.data
-  // Comptes rendus des trajets affichés (badges Réalisé, Non réalisé, À confirmer)
+  // Comptes rendus des trajets affichés (badges Réalisé, Non réalisé, Compte rendu attendu, Sans compte rendu)
   const tripIds = (tripList ?? []).map((trip) => trip.reservation_id).join(',')
   const reports = useTripReports(tripIds)
   // Avancement des trajets (boutons Départ / Arrivée des chauffeurs), relu toutes les 60 s
@@ -89,7 +91,7 @@ export function PlanningPage() {
   }
 
   function showWeek(monday) {
-    updateSearch({ semaine: monday === mondayOf(today) ? null : monday })
+    updateSearch({ semaine: monday === mondayOf(today) ? null : monday, jour: null })
   }
 
   return (
@@ -199,6 +201,8 @@ export function PlanningPage() {
         weekStart={planningSearch.weekStart}
         tripsGroupedByDay={groupedTrips}
         today={today}
+        shownDay={shownWeekDay(planningSearch, today)}
+        onShowDay={(day) => updateSearch({ jour: day === today ? null : day })}
         onOpenTrip={(trip) => updateSearch({ trajet: String(trip.reservation_id) })}
         reports={reports.data}
         progress={progress.data}

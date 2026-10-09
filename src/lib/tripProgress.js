@@ -1,6 +1,6 @@
 import { formatDate, formatDateTime } from './dates'
 import { countdown } from './home'
-import { todayApiDate } from './reservations'
+import { needsCouncilDecision, todayApiDate } from './reservations'
 
 // Étapes du suivi d'une demande, comme le suivi d'un colis.
 // État d'une étape : 'done' (franchie), 'current' (en cours), 'warning' (bloquée), 'stopped' (refus
@@ -26,7 +26,11 @@ export function progressSteps(reservation, today = todayApiDate()) {
         : {
             key: 'validated',
             label: 'Validation',
-            detail: manual ? 'Examen par la commune, puis décision du Collège.' : 'Approbation automatique.',
+            detail: manual
+              ? needsCouncilDecision(reservation)
+                ? 'Examen par la commune, puis décision du Collège.'
+                : 'Examen par la commune.'
+              : 'Approbation automatique.',
             state: status === 'en_attente' ? 'current' : 'upcoming',
           }
 

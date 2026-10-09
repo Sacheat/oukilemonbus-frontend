@@ -1,4 +1,5 @@
 import { brusselsNow, toLocalMinute } from './dates'
+import { periodLength } from './planning'
 
 // Valeur de ?indisponibilite= pour ouvrir le formulaire de déclaration
 export const NEW_UNAVAILABILITY = 'nouvelle'
@@ -100,4 +101,21 @@ export function unavailabilityFormValues(unavailability) {
     reason: unavailability?.reason ?? '',
     change_reason: '',
   }
+}
+
+// Durée d'une indisponibilité, pour la liste : moins de 24 h en heures (« 3 h », « 2 h 30 »), même à cheval sur minuit ;
+// au-delà, en jours de calendrier comptés début et fin compris (« 3 jours » du 09/10 au 11/10). Heures de Bruxelles
+// sans fuseau : les deux bornes sont lues de la même façon.
+export function unavailabilityDuration({ start_datetime: start, end_datetime: end }) {
+  if (!start || !end) return ''
+  const minutesOf = (value) => {
+    const [year, month, day] = value.slice(0, 10).split('-').map(Number)
+    return Date.UTC(year, month - 1, day, Number(value.slice(11, 13)), Number(value.slice(14, 16))) / 60_000
+  }
+  const minutes = Math.max(0, minutesOf(end) - minutesOf(start))
+  if (minutes < 24 * 60) {
+    const rest = minutes % 60
+    return `${Math.floor(minutes / 60)} h${rest ? ` ${String(rest).padStart(2, '0')}` : ''}`
+  }
+  return `${periodLength(start.slice(0, 10), end.slice(0, 10))} jours`
 }

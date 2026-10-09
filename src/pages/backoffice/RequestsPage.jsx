@@ -2,6 +2,7 @@ import { Inbox, Search } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { getRequests } from '../../api/requests'
+import { useQueueCount } from '../../backoffice/useQueueCount'
 import { RequestActions } from '../../components/requests/RequestActions'
 import { RequestDetails } from '../../components/requests/RequestDetails'
 import { RequestRow } from '../../components/requests/RequestRow'
@@ -50,6 +51,7 @@ export function RequestsPage() {
   const requests = useRequests(queue.kind, JSON.stringify(requestsApiParams(search)))
   const list = requests.data?.data
   const counts = useApi(fetchPendingCounts)
+  const { refreshCount } = useQueueCount()
   const opened = useRequest(queue.kind, openedId)
   const [notice, setNotice] = useState(null)
   const [searchInput, setSearchInput] = useState(search.search)
@@ -91,6 +93,7 @@ export function RequestsPage() {
     update({ demande: null })
     requests.reload()
     counts.reload()
+    refreshCount()
     setNotice(message)
   }
 
@@ -108,9 +111,21 @@ export function RequestsPage() {
       {notice && <Alert tone="success">{notice}</Alert>}
 
       <div className="grid gap-3">
-        <FilterChips label="Files" chips={chips} value={queue.value} onChange={changeQueue} />
+        {/* Files : pastilles en grand écran, liste déroulante sous 640 px (comme la file Réservations) */}
+        <div className="hidden sm:block">
+          <FilterChips label="Files" chips={chips} value={queue.value} onChange={changeQueue} />
+        </div>
+        <Select aria-label="File" value={queue.value} onChange={(event) => changeQueue(event.target.value)} className="py-2 text-sm font-semibold sm:hidden">
+          {chips.map((chip) => (
+            <option key={chip.value} value={chip.value}>
+              {chip.label}
+              {chip.count == null ? '' : ` (${chip.count})`}
+            </option>
+          ))}
+        </Select>
         <div className="flex flex-wrap items-center gap-3">
-          <div role="group" aria-label="Statut" className="flex w-fit flex-wrap rounded-control border border-line-strong bg-surface p-1">
+          {/* Statuts : une seule rangée, qui défile sur petit écran plutôt que de passer à la ligne */}
+          <div role="group" aria-label="Statut" className="flex w-full overflow-x-auto rounded-control border border-line-strong bg-surface p-1 sm:w-fit">
             {REQUEST_STATUS_TABS.map((tab) => (
               <button
                 key={tab.value}
@@ -118,7 +133,7 @@ export function RequestsPage() {
                 aria-pressed={status.value === tab.value}
                 onClick={() => changeStatus(tab.value)}
                 className={cx(
-                  'min-h-11 rounded-md px-3 text-sm font-semibold',
+                  'min-h-11 shrink-0 rounded-md px-3 text-sm font-semibold whitespace-nowrap',
                   status.value === tab.value ? 'bg-primary text-on-primary' : 'text-muted hover:text-ink',
                 )}
               >
@@ -137,28 +152,31 @@ export function RequestsPage() {
               className="py-2 pl-9 text-sm"
             />
           </div>
-          {queue.kind === 'creation' && (
-            <Select
-              aria-label="Type d’organisation"
-              value={type}
-              onChange={(event) => update({ type: event.target.value, page: null })}
-              className="w-full py-2 text-sm sm:w-56"
-            >
-              <option value="">Tous les types</option>
-              {Object.entries(ORGANIZATION_TYPE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
+          {/* Type et tri côte à côte (deux colonnes sur petit écran) */}
+          <div className={cx('grid w-full gap-3 sm:flex sm:w-auto', queue.kind === 'creation' && 'grid-cols-2')}>
+            {queue.kind === 'creation' && (
+              <Select
+                aria-label="Type d’organisation"
+                value={type}
+                onChange={(event) => update({ type: event.target.value, page: null })}
+                className="min-w-0 py-2 text-sm sm:w-56"
+              >
+                <option value="">Tous les types</option>
+                {Object.entries(ORGANIZATION_TYPE_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </Select>
+            )}
+            <Select aria-label="Trier les demandes" value={sort} onChange={(event) => changeSort(event.target.value)} className="min-w-0 py-2 text-sm sm:w-60">
+              {REQUEST_SORTS.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
                 </option>
               ))}
             </Select>
-          )}
-          <Select aria-label="Trier les demandes" value={sort} onChange={(event) => changeSort(event.target.value)} className="w-full py-2 text-sm sm:w-60">
-            {REQUEST_SORTS.map((item) => (
-              <option key={item.value} value={item.value}>
-                {item.label}
-              </option>
-            ))}
-          </Select>
+          </div>
         </div>
       </div>
 

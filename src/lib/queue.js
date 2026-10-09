@@ -2,7 +2,8 @@ import { getReservations } from '../api/reservations'
 import { formatDate } from './dates'
 import { mondayOf, periodLength } from './planning'
 import { keyLabel } from './shortcuts'
-import { todayApiDate, yesterdayApiDate } from './reservations'
+import { hasOpenCouncilDerogation } from './conflicts'
+import { needsCouncilDecision, todayApiDate, yesterdayApiDate } from './reservations'
 
 // Files de la page « Réservations » de l'espace gestion, en deux groupes de pastilles : « À faire » (le travail de
 // l'agent) puis « Suivi » (consultation). `statuses` : statuts affichés ; `council` : seulement celles qui attendent le
@@ -83,8 +84,15 @@ export function nextInQueue(list, currentId) {
   return next?.id ?? null
 }
 
+// Décision du Collège à montrer ou à charger pour cette réservation : exigée (CPAS, ASBL, externes), ou facultative
+// mais utile (dérogation horaire ouverte d'une organisation interne), ou déjà encodée (`council_decision_status`
+// du backend, null sans décision)
+export function mayHaveCouncilDecision(reservation) {
+  return needsCouncilDecision(reservation) || hasOpenCouncilDerogation(reservation) || reservation.council_decision_status != null
+}
+
 // Actions possibles d'un agent sur une réservation, selon son statut (le backend reste l'autorité).
-// Validation manuelle (ASBL, CPAS, externes) : l'approbation exige une décision favorable du Collège
+// Collège exigé (needsCouncilDecision : CPAS, ASBL, externes) : l'approbation exige une décision favorable du Collège
 // (`decision` : décision de la réservation, ou null) ; `approveBlocked` signale ce cas pour l'expliquer.
 // Trajet passé (`today` : aujourd'hui à Bruxelles, le jour même n'est pas passé) : consultation seulement. Le backend
 // ne bloque que l'approbation, mais un trajet passé n'a plus à être affecté, confirmé, refusé ni annulé (la clôture de
@@ -99,17 +107,24 @@ export function agentActions(reservation, can, decision = null, today) {
   const open = !terminal && !tripPassed && !tripStarted
   const assigned = Boolean(reservation.driver_id && reservation.vehicle_id)
   const openConflicts = (reservation.conflicts ?? []).some((conflict) => !conflict.is_resolved)
-  const needsCouncil = reservation.approval_type === 'manuel'
+  const needsCouncil = needsCouncilDecision(reservation)
   const councilOk = decision?.decision_status === 'approuve'
   const approvable = can('reservations.approve') && ['en_attente', 'en_conflit'].includes(status) && !tripPassed
   return {
     tripPassed,
+    // Décision facultative (organisation interne) : elle ne bloque jamais l'approbation
+    councilOptional: !needsCouncil,
     tripStarted,
     approve: approvable && (!needsCouncil || councilOk),
     approveBlocked: approvable && needsCouncil && !councilOk,
     // Trajet passé encore à traiter : plus d'approbation possible, la clôture automatique l'annulera cette nuit
     approveExpired: can('reservations.approve') && ['en_attente', 'en_conflit'].includes(status) && tripPassed,
-    council: can('council-decisions.create') && needsCouncil && !terminal && (!tripPassed || Boolean(decision)),
+    // Exigée, ou facultative mais utile (dérogation horaire ouverte), ou à consulter / corriger si elle existe déjà
+    council:
+      can('council-decisions.create') &&
+      (needsCouncil || hasOpenCouncilDerogation(reservation) || Boolean(decision)) &&
+      !terminal &&
+      (!tripPassed || Boolean(decision)),
     reject: can('reservations.reject') && ['en_attente', 'en_conflit', 'approuve'].includes(status) && !tripPassed,
     assign: can('reservations.assign') && open,
     retryAssign: can('reservations.assign') && open && !assigned,
@@ -221,13 +236,13 @@ export function urgencyOf(reservation, today) {
 }
 
 // Repères d'une ligne : ce qui attend avant de pouvoir avancer. [{ label, tone }]
-//   validation manuelle en attente ou en conflit → état du Collège (`council_decision_status` du backend ;
+//   Collège exigé (needsCouncilDecision), demande en attente ou en conflit → état du Collège (`council_decision_status` du backend ;
 //     absent : repère neutre « Collège »)
 //   approuvée sans chauffeur et / ou sans véhicule → ce qui manque
 export function rowHints(reservation) {
   const hints = []
   const undecided = ['en_attente', 'en_conflit'].includes(reservation.status)
-  if (undecided && reservation.approval_type === 'manuel') {
+  if (undecided && needsCouncilDecision(reservation)) {
     const council = reservation.council_decision_status
     if (council === undefined) hints.push({ label: 'Collège', tone: 'neutral' })
     else if (council === 'approuve') hints.push({ label: 'Collège favorable', tone: 'success' })
@@ -256,7 +271,7 @@ export function nextStep(reservation, actions, decision, keys) {
   }
 
   if (['en_attente', 'en_conflit'].includes(status)) {
-    if (reservation.approval_type === 'manuel' && decision === undefined) return null
+    if (needsCouncilDecision(reservation) && decision === undefined) return null
     if (actions.approveBlocked && openConflicts > 0) {
       return {
         tone: 'conflict',
@@ -286,10 +301,13 @@ export function nextStep(reservation, actions, decision, keys) {
   return null
 }
 
-// Circuit de validation en clair pour le panneau (approval_type) : « Manuel » ne dit pas ce qui est attendu
+// Circuit de validation en clair pour le panneau : approbation automatique ou par un agent (approval_type), Collège
+// selon le type d'organisation (needsCouncilDecision) ; « Manuel » ne disait pas ce qui est attendu
 export function validationText(reservation) {
   if (reservation.approval_type === 'auto') return 'Automatique (sans Collège)'
-  if (reservation.approval_type === 'manuel') return 'Par un agent, après décision du Collège'
+  if (reservation.approval_type === 'manuel') {
+    return needsCouncilDecision(reservation) ? 'Par un agent, après décision du Collège' : 'Par un agent (Collège facultatif)'
+  }
   return reservation.approval_type_label ?? '—'
 }
 

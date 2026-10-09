@@ -12,7 +12,7 @@ import { PlanningWeek } from './PlanningWeek'
 //   chargement         → indicateur
 //   vue semaine        → 5 colonnes, même vides
 //   vue liste          → jours qui ont des trajets, ou « Aucun trajet »
-export function PlanningResults({ problem, planning, view, weekStart, tripsGroupedByDay, today, onOpenTrip, reports, progress }) {
+export function PlanningResults({ problem, planning, view, weekStart, tripsGroupedByDay, today, shownDay, onShowDay, onOpenTrip, reports, progress }) {
   if (problem) return <Alert tone="warning">{problem}</Alert>
   if (planning.error) return <ErrorState error={planning.error} onRetry={planning.reload} />
 
@@ -20,7 +20,18 @@ export function PlanningResults({ problem, planning, view, weekStart, tripsGroup
   if (!tripList) return <Loader />
 
   if (view === 'semaine') {
-    return <PlanningWeek weekStart={weekStart} tripsGroupedByDay={tripsGroupedByDay} today={today} onOpenTrip={onOpenTrip} reports={reports} progress={progress} />
+    return (
+      <PlanningWeek
+        weekStart={weekStart}
+        tripsGroupedByDay={tripsGroupedByDay}
+        today={today}
+        shownDay={shownDay}
+        onShowDay={onShowDay}
+        onOpenTrip={onOpenTrip}
+        reports={reports}
+        progress={progress}
+      />
+    )
   }
   if (tripList.length === 0) return <EmptyState icon={CalendarDays} title="Aucun trajet sur cette période" />
   return <PlanningList tripsGroupedByDay={tripsGroupedByDay} today={today} onOpenTrip={onOpenTrip} reports={reports} progress={progress} />
