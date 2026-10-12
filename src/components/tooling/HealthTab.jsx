@@ -2,8 +2,9 @@ import { CheckCircle2, RefreshCw, TriangleAlert } from 'lucide-react'
 import { Link } from 'react-router'
 import { getInspectorStatus, getNotificationsHealth, getSystemHealth } from '../../api/tooling'
 import { useApi } from '../../hooks/useApi'
+import { useClock } from '../../hooks/useClock'
 import { cx } from '../../lib/cx'
-import { formatDateTime } from '../../lib/dates'
+import { formatDateTime, formatRelative } from '../../lib/dates'
 import { checkStatus, formatDuration, healthChecks, NOTIFICATION_METRICS, utcStamp } from '../../lib/tooling'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
@@ -11,8 +12,9 @@ import { ErrorState } from '../ui/ErrorState'
 import { Panel } from '../ui/Panel'
 import { Skeleton } from '../ui/Skeleton'
 
+// Heure de la réponse gardée avec les contrôles, pour « Contrôlé il y a … »
 function fetchHealth(signal) {
-  return getSystemHealth({ signal })
+  return getSystemHealth({ signal }).then((data) => ({ ...data, checkedAt: new Date().toISOString() }))
 }
 function fetchNotifications(signal) {
   return getNotificationsHealth({ signal })
@@ -23,7 +25,9 @@ function fetchInspector(signal) {
 
 // Onglet Santé : contrôles du système (lents : APIs externes, 10 appels par minute au plus), envois d'emails et
 // état du journal. « Relancer les contrôles » recharge les trois ; l'affichage reste en place pendant le rechargement.
+// Heure du dernier contrôle en direct ; les contrôles à surveiller du bandeau mènent à leur carte.
 export function HealthTab() {
+  const now = useClock()
   const health = useApi(fetchHealth)
   const notifications = useApi(fetchNotifications)
   const inspector = useApi(fetchInspector)
@@ -51,16 +55,36 @@ export function HealthTab() {
             ) : (
               <TriangleAlert className="size-5" aria-hidden="true" />
             )}
-            {warnings.length === 0
-              ? 'Tous les contrôles sont au vert.'
-              : `${warnings.length} ${warnings.length > 1 ? 'contrôles demandent' : 'contrôle demande'} votre attention : ${warnings.map((check) => check.label).join(', ')}.`}
+            {warnings.length === 0 ? (
+              'Tous les contrôles sont au vert.'
+            ) : (
+              <span>
+                {warnings.length} {warnings.length > 1 ? 'contrôles demandent' : 'contrôle demande'} votre attention :{' '}
+                {warnings.map((check, index) => (
+                  <span key={check.key}>
+                    {index > 0 && ', '}
+                    <a href={`#controle-${check.key}`} className="underline underline-offset-2 hover:no-underline">
+                      {check.label}
+                    </a>
+                  </span>
+                ))}
+                .
+              </span>
+            )}
           </p>
         ) : (
           <Skeleton className="h-11 w-80 max-w-full rounded-card" />
         )}
-        <Button variant="secondary" onClick={reloadAll} loading={health.loading}>
-          <RefreshCw className="size-4" aria-hidden="true" /> Relancer les contrôles
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          {health.data && (
+            <p className="text-sm text-muted" aria-live="polite">
+              Contrôlé {formatRelative(health.data.checkedAt, now)}
+            </p>
+          )}
+          <Button variant="secondary" onClick={reloadAll} loading={health.loading}>
+            <RefreshCw className="size-4" aria-hidden="true" /> Relancer les contrôles
+          </Button>
+        </div>
       </div>
 
       {health.error && <ErrorState error={health.error} onRetry={health.reload} />}
@@ -74,7 +98,14 @@ export function HealthTab() {
             ? checks.map((check) => {
                 const status = checkStatus(check.status)
                 return (
-                  <li key={check.key} className="grid gap-1.5 rounded-card border border-line bg-surface p-4 shadow-soft">
+                  <li
+                    key={check.key}
+                    id={`controle-${check.key}`}
+                    className={cx(
+                      'grid scroll-mt-24 content-start gap-1.5 rounded-card border bg-surface p-4 shadow-soft',
+                      check.status === 'ok' ? 'border-line' : status.tone === 'danger' ? 'border-danger' : 'border-warning-line',
+                    )}
+                  >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="font-semibold">{check.label}</span>
                       <Badge tone={status.tone}>{status.label}</Badge>
@@ -119,7 +150,14 @@ export function HealthTab() {
           )}
         </Panel>
 
-        <Panel title="Journal (Inspector)">
+        <Panel
+          title="Journal (Inspector)"
+          action={
+            <Link to="?onglet=journal" className="text-sm font-semibold text-link hover:underline">
+              Ouvrir le journal
+            </Link>
+          }
+        >
           {inspector.error ? (
             <ErrorState error={inspector.error} onRetry={inspector.reload} className="m-5" />
           ) : (

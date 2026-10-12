@@ -1,16 +1,22 @@
 import { ChevronRight } from 'lucide-react'
+import { cx } from '../../lib/cx'
 import { formatDateTime } from '../../lib/dates'
 import { formatDuration, httpStatusTone } from '../../lib/tooling'
 import { Badge } from '../ui/Badge'
 
-// Une entrée du journal, cliquable : heure, titre du flow (« — » sans flow), méthode et chemin, auteur, code HTTP, durée
-export function JournalRow({ entry, onOpen }) {
+// Une entrée du journal, cliquable : heure, titre du flow (« — » sans flow), méthode et chemin, auteur, code HTTP, durée.
+// `selected` : entrée ouverte dans le panneau.
+export function JournalRow({ entry, selected, onOpen }) {
   return (
     <li>
       <button
         type="button"
         onClick={() => onOpen(entry)}
-        className="flex min-h-11 w-full items-start gap-3 px-4 py-3 text-left text-sm transition hover:bg-surface-muted sm:px-5"
+        aria-current={selected ? 'true' : undefined}
+        className={cx(
+          'flex min-h-11 w-full items-start gap-3 px-4 py-3 text-left text-sm transition hover:bg-surface-muted sm:px-5',
+          selected && 'bg-surface-muted',
+        )}
       >
         <span className="w-24 shrink-0 text-xs text-muted tabular-nums">{formatDateTime(entry.created_at)}</span>
         <span className="min-w-0 flex-1">

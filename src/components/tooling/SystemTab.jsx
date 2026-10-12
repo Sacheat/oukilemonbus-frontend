@@ -1,6 +1,10 @@
+import { Search } from 'lucide-react'
+import { useState } from 'react'
 import { Link } from 'react-router'
 import { getApiCatalog, getInspectorFlows, getPermissionMatrix, getToolboxOverview } from '../../api/tooling'
 import { useApi } from '../../hooks/useApi'
+import { filterRouteCatalog, SYSTEM_SECTIONS } from '../../lib/tooling'
+import { Input } from '../ui/Field'
 import { ErrorState } from '../ui/ErrorState'
 import { Loader } from '../ui/Loader'
 import { Panel } from '../ui/Panel'
@@ -37,8 +41,11 @@ function flowsByCategory(flows) {
 }
 
 // Onglet Système : chiffres de la base, règles métier actives, architecture, matrice des permissions,
-// flows métier documentés (avec lien vers le journal filtré) et catalogue de l'API (routes internes, APIs externes)
+// flows métier documentés (avec lien vers le journal filtré) et catalogue de l'API (routes internes, APIs externes,
+// recherche dans les routes : les domaines trouvés s'ouvrent). Sommaire d'ancres en tête, la page étant longue.
 export function SystemTab() {
+  const [routeQuery, setRouteQuery] = useState('')
+  const searching = routeQuery.trim() !== ''
   const overview = useApi(fetchOverview)
   const matrix = useApi(fetchMatrix)
   const flows = useApi(fetchFlows)
@@ -46,9 +53,21 @@ export function SystemTab() {
 
   return (
     <div className="grid gap-7">
+      <nav aria-label="Sections de l’onglet Système" className="flex flex-wrap gap-2">
+        {SYSTEM_SECTIONS.map((section) => (
+          <a
+            key={section.id}
+            href={`#${section.id}`}
+            className="inline-flex min-h-11 items-center rounded-full border border-line-strong bg-surface px-3.5 text-sm font-semibold hover:border-primary hover:text-link"
+          >
+            {section.label}
+          </a>
+        ))}
+      </nav>
+
       {loaded(overview, (data) => (
         <div className="grid gap-7">
-          <section aria-labelledby="db-title" className="grid gap-3">
+          <section id="systeme-base" aria-labelledby="db-title" className="grid scroll-mt-24 gap-3">
             <h2 id="db-title" className="text-base font-bold">
               Base de données
             </h2>
@@ -61,7 +80,7 @@ export function SystemTab() {
               ))}
             </ul>
           </section>
-          <div className="grid items-start gap-7 lg:grid-cols-2">
+          <div id="systeme-regles" className="grid scroll-mt-24 items-start gap-7 lg:grid-cols-2">
             <Panel title="Règles métier actives">
               <dl className="divide-y divide-line">
                 {data.business_rules.map((rule) => (
@@ -91,75 +110,98 @@ export function SystemTab() {
         </div>
       ))}
 
-      <Panel title="Permissions par rôle">{loaded(matrix, (data) => <PermissionMatrix data={data} />)}</Panel>
+      <div id="systeme-permissions" className="scroll-mt-24">
+        <Panel title="Permissions par rôle">{loaded(matrix, (data) => <PermissionMatrix data={data} />)}</Panel>
+      </div>
 
-      <Panel title="Flows métier documentés">
-        {loaded(flows, (data) => (
-          <div className="divide-y divide-line">
-            {flowsByCategory(data.flows).map(([category, items]) => (
-              <details key={category} className="group px-5 py-2">
-                <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-2 font-semibold">
-                  {category}
-                  <span className="text-sm font-normal text-muted">{items.length}</span>
-                </summary>
-                <div className="grid gap-4 pb-3">
-                  {items.map(({ key, flow }) => (
-                    <div key={key} className="grid gap-1">
-                      <FlowSheet flowKey={key} flow={flow} />
-                      <Link to={`?onglet=journal&flow=${encodeURIComponent(key)}`} className="text-sm font-semibold text-link hover:underline">
-                        Voir ses entrées dans le journal
-                      </Link>
-                    </div>
+      <div id="systeme-flows" className="scroll-mt-24">
+        <Panel title="Flows métier documentés">
+          {loaded(flows, (data) => (
+            <div className="divide-y divide-line">
+              {flowsByCategory(data.flows).map(([category, items]) => (
+                <details key={category} className="group px-5 py-2">
+                  <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-2 font-semibold">
+                    {category}
+                    <span className="text-sm font-normal text-muted">{items.length}</span>
+                  </summary>
+                  <div className="grid gap-4 pb-3">
+                    {items.map(({ key, flow }) => (
+                      <div key={key} className="grid gap-1">
+                        <FlowSheet flowKey={key} flow={flow} />
+                        <Link to={`?onglet=journal&flow=${encodeURIComponent(key)}`} className="text-sm font-semibold text-link hover:underline">
+                          Voir ses entrées dans le journal
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              ))}
+            </div>
+          ))}
+        </Panel>
+      </div>
+
+      <div id="systeme-api" className="scroll-mt-24">
+        <Panel title="Catalogue de l’API">
+          {loaded(catalog, (data) => (
+            <div className="grid gap-5 p-5">
+              <section className="grid gap-3">
+                <h3 className="font-bold">APIs externes</h3>
+                <ul className="grid gap-3 lg:grid-cols-3">
+                  {data.external.map((service) => (
+                    <li key={service.name} className="grid gap-1 rounded-card border border-line p-4 text-sm">
+                      <span className="font-semibold">{service.name}</span>
+                      <span>{service.used_for}</span>
+                      <code className="text-xs break-all text-muted">{service.url}</code>
+                      {service.fallback && <span className="text-muted">Repli : {service.fallback}</span>}
+                      {service.env_key && <span className="text-xs text-muted">Clé : {service.env_key}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+              <section className="grid gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="font-bold">Routes internes</h3>
+                  <div className="relative w-full sm:w-80">
+                    <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+                    <Input
+                      type="search"
+                      aria-label="Chercher une route"
+                      placeholder="Chemin, méthode ou permission"
+                      value={routeQuery}
+                      onChange={(event) => setRouteQuery(event.target.value)}
+                      className="py-2 pl-9 text-sm"
+                    />
+                  </div>
+                </div>
+                {filterRouteCatalog(data.internal, routeQuery).length === 0 && (
+                  <p className="text-sm text-muted">Aucune route ne correspond.</p>
+                )}
+                <div className="divide-y divide-line rounded-card border border-line empty:hidden">
+                  {filterRouteCatalog(data.internal, routeQuery).map(([domain, routes]) => (
+                    // Recherche en cours : domaines trouvés ouverts (la clé remonte l'élément pour appliquer `open`)
+                    <details key={`${domain}-${searching}`} open={searching} className="px-4 py-1.5">
+                      <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-2 text-sm font-semibold">
+                        {domain}
+                        <span className="font-normal text-muted">{routes.length}</span>
+                      </summary>
+                      <ul className="grid gap-1 pb-2">
+                        {routes.map((route) => (
+                          <li key={`${route.method} ${route.uri}`} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+                            <span className="w-14 font-mono font-semibold">{route.method}</span>
+                            <code className="min-w-0 flex-1 break-all">{route.uri}</code>
+                            {route.permission && <code className="text-muted">{route.permission}</code>}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
                   ))}
                 </div>
-              </details>
-            ))}
-          </div>
-        ))}
-      </Panel>
-
-      <Panel title="Catalogue de l’API">
-        {loaded(catalog, (data) => (
-          <div className="grid gap-5 p-5">
-            <section className="grid gap-3">
-              <h3 className="font-bold">APIs externes</h3>
-              <ul className="grid gap-3 lg:grid-cols-3">
-                {data.external.map((service) => (
-                  <li key={service.name} className="grid gap-1 rounded-card border border-line p-4 text-sm">
-                    <span className="font-semibold">{service.name}</span>
-                    <span>{service.used_for}</span>
-                    <code className="text-xs break-all text-muted">{service.url}</code>
-                    {service.fallback && <span className="text-muted">Repli : {service.fallback}</span>}
-                    {service.env_key && <span className="text-xs text-muted">Clé : {service.env_key}</span>}
-                  </li>
-                ))}
-              </ul>
-            </section>
-            <section className="grid gap-2">
-              <h3 className="font-bold">Routes internes</h3>
-              <div className="divide-y divide-line rounded-card border border-line">
-                {Object.entries(data.internal).map(([domain, routes]) => (
-                  <details key={domain} className="px-4 py-1.5">
-                    <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-2 text-sm font-semibold">
-                      {domain}
-                      <span className="font-normal text-muted">{routes.length}</span>
-                    </summary>
-                    <ul className="grid gap-1 pb-2">
-                      {routes.map((route) => (
-                        <li key={`${route.method} ${route.uri}`} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
-                          <span className="w-14 font-mono font-semibold">{route.method}</span>
-                          <code className="min-w-0 flex-1 break-all">{route.uri}</code>
-                          {route.permission && <code className="text-muted">{route.permission}</code>}
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                ))}
-              </div>
-            </section>
-          </div>
-        ))}
-      </Panel>
+              </section>
+            </div>
+          ))}
+        </Panel>
+      </div>
     </div>
   )
 }
