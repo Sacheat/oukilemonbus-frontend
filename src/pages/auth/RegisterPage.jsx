@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router'
 import { useAuth } from '../../auth/useAuth'
 import { Alert } from '../../components/ui/Alert'
 import { Button } from '../../components/ui/Button'
-import { Field, Input, PasswordInput } from '../../components/ui/Field'
+import { Checkbox, Field, Input, PasswordInput } from '../../components/ui/Field'
 import { useForm } from '../../hooks/useForm'
 import { AuthCard } from './AuthCard'
 
@@ -16,6 +16,7 @@ export function RegisterPage() {
     phone: '',
     password: '',
     password_confirmation: '',
+    privacy_policy_accepted: false,
   })
 
   async function handleSubmit(event) {
@@ -68,7 +69,7 @@ export function RegisterPage() {
           {(props) => <Input {...props} type="tel" autoComplete="tel" value={form.values.phone} onChange={form.handle('phone')} />}
         </Field>
 
-        <Field label="Mot de passe" required hint="8 caractères minimum." error={form.errors.password}>
+        <Field label="Mot de passe" required hint="12 caractères minimum, avec des lettres et des chiffres." error={form.errors.password}>
           {(props) => (
             <PasswordInput {...props} autoComplete="new-password" value={form.values.password} onChange={form.handle('password')} />
           )}
@@ -84,6 +85,29 @@ export function RegisterPage() {
             />
           )}
         </Field>
+
+        <div className="sm:col-span-2">
+          <Checkbox
+            checked={form.values.privacy_policy_accepted}
+            onChange={(event) => form.setValues((values) => ({ ...values, privacy_policy_accepted: event.target.checked }))}
+            aria-invalid={Boolean(form.errors.privacy_policy_accepted) || undefined}
+            aria-describedby={form.errors.privacy_policy_accepted ? 'privacy-error' : undefined}
+            label={
+              <span>
+                J’ai lu la{' '}
+                <Link to="/confidentialite" target="_blank" className="font-bold text-link hover:underline">
+                  politique de confidentialité
+                </Link>{' '}
+                (nouvel onglet). *
+              </span>
+            }
+          />
+          {form.errors.privacy_policy_accepted && (
+            <p id="privacy-error" className="text-sm font-semibold text-danger">
+              {form.errors.privacy_policy_accepted}
+            </p>
+          )}
+        </div>
 
         <Button type="submit" loading={form.submitting} className="w-full sm:col-span-2">
           Créer mon compte

@@ -6,6 +6,7 @@ import { QueueCountProvider } from '../backoffice/QueueCountProvider'
 import { NavCountBadge } from '../components/backoffice/NavCountBadge'
 import { Loader } from '../components/ui/Loader'
 import { Logo } from '../components/ui/Logo'
+import { PrivacyPolicyBanner } from '../components/account/PrivacyPolicyBanner'
 import { NotificationBell } from '../components/notifications/NotificationBell'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
 import { TourLauncher } from '../components/tour/TourLauncher'
@@ -101,6 +102,7 @@ export function SidebarLayout({ sections, tour }) {
               <UserMenu />
             </div>
           </header>
+          <PrivacyPolicyBanner />
 
           <main className="px-5 py-8 sm:px-8 sm:py-9">
             {/* Page chargée à la demande (lazyPage) : Loader le temps de son premier téléchargement */}

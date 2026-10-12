@@ -4,6 +4,7 @@ import { Link, NavLink, Outlet } from 'react-router'
 import { useAuth } from '../auth/useAuth'
 import { Loader } from '../components/ui/Loader'
 import { Logo } from '../components/ui/Logo'
+import { PrivacyPolicyBanner } from '../components/account/PrivacyPolicyBanner'
 import { NotificationBell } from '../components/notifications/NotificationBell'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
 import { TourLauncher } from '../components/tour/TourLauncher'
@@ -92,6 +93,7 @@ export function TopNavLayout({ nav, tour }) {
           </nav>
         )}
       </header>
+      <PrivacyPolicyBanner />
 
       <main className="mx-auto max-w-[1050px] px-5 py-8 sm:px-10 sm:py-9">
         {/* Page chargée à la demande (lazyPage) : Loader le temps de son premier téléchargement */}

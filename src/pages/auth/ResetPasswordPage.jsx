@@ -98,7 +98,7 @@ export function ResetPasswordPage() {
           </p>
         )}
 
-        <Field label="Nouveau mot de passe" required hint="8 caractères minimum." error={form.errors.password}>
+        <Field label="Nouveau mot de passe" required hint="12 caractères minimum, avec des lettres et des chiffres." error={form.errors.password}>
           {(props) => (
             <PasswordInput {...props} autoComplete="new-password" value={form.values.password} onChange={form.handle('password')} />
           )}

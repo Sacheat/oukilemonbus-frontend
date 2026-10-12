@@ -61,7 +61,7 @@ export function UserCreateForm({ onCreated }) {
 
       <Field
         label="Mot de passe provisoire"
-        hint="8 caractères au moins. Transmettez-le à la personne : il ne sera plus affiché après la création."
+        hint="12 caractères au moins, avec des lettres et des chiffres (« Générer » le fait). Transmettez-le à la personne : il ne sera plus affiché après la création."
         error={form.errors.password}
         required
       >

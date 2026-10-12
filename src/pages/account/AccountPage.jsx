@@ -179,7 +179,9 @@ const EMPTY_PASSWORDS = { current_password: '', password: '', password_confirmat
 // Règles du nouveau mot de passe, affichées en direct sous les champs
 function passwordRules({ password, password_confirmation: confirmation }) {
   return [
-    { label: '8 caractères minimum', ok: password.length >= 8 },
+    // Même règle que le backend (RGPD, octobre 2026) : 12 caractères, lettres et chiffres
+    { label: '12 caractères minimum', ok: password.length >= 12 },
+    { label: 'Des lettres et des chiffres', ok: /\p{L}/u.test(password) && /\d/.test(password) },
     { label: 'Confirmation identique', ok: confirmation !== '' && confirmation === password },
   ]
 }
