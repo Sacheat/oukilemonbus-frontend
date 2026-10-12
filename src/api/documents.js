@@ -21,8 +21,8 @@ export async function getDocument(documentId, { signal } = {}) {
 }
 
 // Fichier (PDF ou image) en Blob, avec la session
-export async function downloadDocument(documentId) {
-  const { data } = await api.get(`/documents/${documentId}/download`, { responseType: 'blob' })
+export async function downloadDocument(documentId, { signal } = {}) {
+  const { data } = await api.get(`/documents/${documentId}/download`, { responseType: 'blob', signal })
   return data
 }
 
