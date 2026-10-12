@@ -1,5 +1,6 @@
 import { saveTripReport } from '../../api/tripReports'
 import { useForm } from '../../hooks/useForm'
+import { withSensitiveHint } from '../../lib/privacy'
 import { OUTCOME_OPTIONS, remarksForOutcome, tripReportFormValues } from '../../lib/tripReports'
 import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
@@ -88,7 +89,7 @@ export function TripReportForm({ mission, report, onSaved, onCancel }) {
       {form.values.outcome && (
         <Field
           label={notRealised ? 'Pourquoi le trajet n’a-t-il pas eu lieu ?' : 'Remarque'}
-          hint={notRealised ? 'Les agents seront prévenus.' : 'Facultatif. Par exemple : retard, enfant absent.'}
+          hint={withSensitiveHint(notRealised ? 'Les agents seront prévenus.' : 'Facultatif. Par exemple : retard, enfant absent.')}
           error={form.errors.remarks}
           required={notRealised}
         >

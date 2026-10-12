@@ -1,6 +1,7 @@
 import { Users } from 'lucide-react'
 import { cx } from '../../../lib/cx'
 import { ACTIVITY_TYPE_LABELS } from '../../../lib/labels'
+import { SENSITIVE_TEXT_SHORT } from '../../../lib/privacy'
 import { ChoicePills } from '../../ui/ChoicePills'
 import { Field, Textarea } from '../../ui/Field'
 import { NumberStepper } from '../../ui/NumberStepper'
@@ -90,7 +91,8 @@ export function PassengersStep({ values, setField, errors, needsJustification, m
             <span>
               {needsJustification
                 ? 'Votre trajet nécessite une dérogation : expliquez ici pourquoi ces horaires sont nécessaires.'
-                : 'Par exemple : sortie à la piscine, visite du musée…'}
+                : 'Par exemple : sortie à la piscine, visite du musée…'}{' '}
+              {SENSITIVE_TEXT_SHORT}
             </span>
             <span className="shrink-0 tabular-nums">
               {values.trip_purpose.length} / {PURPOSE_MAX}

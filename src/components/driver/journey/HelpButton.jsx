@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { createDriverAlert } from '../../../api/driverAlerts'
 import { readDevicePosition } from '../../../lib/devicePosition'
 import { getErrorMessage } from '../../../lib/errors'
+import { withSensitiveHint } from '../../../lib/privacy'
 import { Alert } from '../../ui/Alert'
 import { Button } from '../../ui/Button'
 import { Field, Textarea } from '../../ui/Field'
@@ -63,7 +64,7 @@ function HelpForm({ mission, onCancel, onSent }) {
         Les agents sont prévenus immédiatement, avec votre position.
         {mission && ` Trajet : ${mission.organization?.name ?? `n° ${mission.id}`}.`}
       </p>
-      <Field label="Que se passe-t-il ?" hint="Facultatif. Par exemple : pneu crevé, enfant malade, accident.">
+      <Field label="Que se passe-t-il ?" hint={withSensitiveHint('Facultatif. Par exemple : pneu crevé, accident, route barrée.')}>
         {(props) => <Textarea {...props} rows={3} maxLength={500} value={message} onChange={(event) => setMessage(event.target.value)} />}
       </Field>
       {error && <Alert tone="danger">{error}</Alert>}

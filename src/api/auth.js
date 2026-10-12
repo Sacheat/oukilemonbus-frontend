@@ -39,6 +39,12 @@ export async function getPrivacyPolicy({ signal } = {}) {
 }
 
 // Le compte connecté a lu la version en vigueur (422 sur `version` si la page est périmée)
+// Export RGPD de ses propres données (tout compte connecté) : fichier JSON reçu en Blob
+export async function downloadMyPersonalData() {
+  const { data } = await api.get('/auth/me/personal-data', { responseType: 'blob' })
+  return data
+}
+
 export async function acceptPrivacyPolicy(version) {
   const { data } = await api.post('/auth/me/privacy-policy', { version })
   return data.data ?? data

@@ -1,7 +1,8 @@
-import { BadgeCheck, Bell, Circle, CircleCheck, Compass, KeyRound, UserRound } from 'lucide-react'
+import { BadgeCheck, Bell, Circle, CircleCheck, Compass, FileDown, KeyRound, UserRound } from 'lucide-react'
 import { useState } from 'react'
 import { updatePassword, updateProfile } from '../../api/users'
 import { useAuth } from '../../auth/useAuth'
+import { PersonalDataCard } from '../../components/account/PersonalDataCard'
 import { NotificationPreferencesCard } from '../../components/notifications/NotificationPreferencesCard'
 import { OrganizationAvatar } from '../../components/organizations/OrganizationAvatar'
 import { ResendVerificationButton } from '../../components/ResendVerificationButton'
@@ -22,15 +23,16 @@ const SECTIONS = [
   { id: 'securite', label: 'Sécurité', icon: KeyRound },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'tutoriels', label: 'Tutoriels', icon: Compass },
+  { id: 'donnees', label: 'Mes données', icon: FileDown },
 ]
 
-// Mon compte : en-tête de profil, puis les sections Informations, Sécurité, Notifications et Tutoriels,
+// Mon compte : en-tête de profil, puis les sections Informations, Sécurité, Notifications, Tutoriels et Mes données,
 // avec un sommaire à gauche en grand écran qui suit la section visible
 export function AccountPage() {
   const active = useActiveSection(SECTIONS.map((section) => section.id))
   return (
     <>
-      <PageHeader eyebrow="Mon compte" title="Mon compte" description="Vos coordonnées, votre mot de passe, vos notifications et les tutoriels." />
+      <PageHeader eyebrow="Mon compte" title="Mon compte" description="Vos coordonnées, votre mot de passe, vos notifications, les tutoriels et vos données." />
       <ProfileHeader />
       <div className="mt-6 grid items-start gap-6 lg:grid-cols-[200px_minmax(0,1fr)]">
         <nav aria-label="Sections du compte" className="hidden lg:sticky lg:top-6 lg:block">
@@ -56,6 +58,7 @@ export function AccountPage() {
           <PasswordForm />
           <NotificationPreferencesCard />
           <ToursCard />
+          <PersonalDataCard />
         </div>
       </div>
     </>

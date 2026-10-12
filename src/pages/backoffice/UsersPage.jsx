@@ -26,7 +26,7 @@ const SEARCH_DELAY_MS = 300
 // Administration des comptes (admin) : liste paginée filtrée par le backend (recherche ?q=, ?role=, ?statut=),
 // compte ouvert dans un panneau (?utilisateur=id), création (?utilisateur=nouveau). Après la création ou
 // l'enregistrement des informations ou des rôles : le panneau reste ouvert sur le compte relu, avec un message, et la
-// liste se recharge derrière. Désactiver ou réactiver : panneau fermé et message en haut de la page.
+// liste se recharge derrière. Désactiver, réactiver ou anonymiser : panneau fermé et message en haut de la page.
 // Compteurs des pastilles : `meta.role_counts` de la liste (repli : un appel par rôle si le backend ne le renvoie pas).
 export function UsersPage() {
   const { user: currentUser, can, refresh } = useAuth()
@@ -122,6 +122,11 @@ export function UsersPage() {
       updatedUser.active ? `Compte réactivé : ${updatedUser.full_name}.` : `Compte désactivé : ${updatedUser.full_name}.`,
       updatedUser,
     )
+  }
+
+  // Anonymisation : le nom a déjà disparu du compte renvoyé, le message reprend celui affiché avant
+  function handleAnonymized(anonymizedUser) {
+    finishAction(`Compte de ${openedUser?.full_name ?? anonymizedUser.full_name} anonymisé.`, anonymizedUser)
   }
 
   const filtered = Boolean(search || role || status)
@@ -236,10 +241,13 @@ export function UsersPage() {
             canSeeOrganizations={can('organizations.update')}
             canSendResetLink={can('users.send-password-reset')}
             canUseTools={can('tooling.access')}
+            canExportData={can('users.export-data')}
+            canAnonymize={can('users.anonymize')}
             onCreated={handleCreated}
             onInfoSaved={(savedUser) => handleSaved(savedUser, 'Informations enregistrées.')}
             onRolesSaved={(savedUser) => handleSaved(savedUser, 'Rôles enregistrés.')}
             onStatusChanged={handleStatusChanged}
+            onAnonymized={handleAnonymized}
           />
         </div>
       </Drawer>

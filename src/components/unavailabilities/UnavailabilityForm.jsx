@@ -2,6 +2,7 @@ import { Bus, UserRound } from 'lucide-react'
 import { createUnavailability, updateUnavailability } from '../../api/unavailabilities'
 import { useForm } from '../../hooks/useForm'
 import { cx } from '../../lib/cx'
+import { withSensitiveHint } from '../../lib/privacy'
 import { driverOptions, unavailabilityFormValues, vehicleOptions } from '../../lib/unavailabilities'
 import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
@@ -122,14 +123,14 @@ export function UnavailabilityForm({ unavailability, driverList, vehicleList, on
         </Field>
       </div>
 
-      <Field label="Motif" hint="Facultatif. Par exemple : maladie, entretien, contrôle technique." error={form.errors.reason}>
+      <Field label="Motif" hint={withSensitiveHint('Facultatif. Par exemple : absent, congé, entretien, contrôle technique.')} error={form.errors.reason}>
         {(props) => <Textarea {...props} maxLength={500} value={form.values.reason} onChange={form.handle('reason')} />}
       </Field>
 
       {isEditing && (
         <Field
           label="Raison de la modification"
-          hint="Facultatif. Conservée dans l'historique de l'indisponibilité."
+          hint={withSensitiveHint("Facultatif. Conservée dans l'historique de l'indisponibilité.")}
           error={form.errors.change_reason}
         >
           {(props) => (

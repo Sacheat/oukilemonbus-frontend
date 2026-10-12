@@ -1,4 +1,5 @@
 import { formatDay } from '../../lib/dates'
+import { isAnonymized } from '../../lib/privacy'
 import { ROLE_TONES, sortedRoles } from '../../lib/users'
 import { OrganizationAvatar } from '../organizations/OrganizationAvatar'
 import { Badge } from '../ui/Badge'
@@ -20,8 +21,14 @@ export function UserSummary({ user }) {
               {role.label}
             </Badge>
           ))}
-          {!user.active && <Badge tone="neutral">Désactivé</Badge>}
-          {!user.email_verified_at && <Badge tone="warning">Email non vérifié</Badge>}
+          {isAnonymized(user) ? (
+            <Badge tone="neutral">Anonymisé</Badge>
+          ) : (
+            <>
+              {!user.active && <Badge tone="neutral">Désactivé</Badge>}
+              {!user.email_verified_at && <Badge tone="warning">Email non vérifié</Badge>}
+            </>
+          )}
         </div>
         {user.created_at && (
           <p className="text-xs text-muted">

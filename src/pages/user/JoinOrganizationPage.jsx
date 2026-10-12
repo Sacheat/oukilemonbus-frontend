@@ -19,6 +19,7 @@ import { useApi } from '../../hooks/useApi'
 import { useForm } from '../../hooks/useForm'
 import { ORGANIZATION_TYPE_LABELS } from '../../lib/labels'
 import { proofFileError, REQUESTABLE_ROLES } from '../../lib/organizations'
+import { withSensitiveHint } from '../../lib/privacy'
 import { sendProofAndNotice } from '../../lib/requestSubmission'
 
 function fetchAvailable(signal) {
@@ -132,7 +133,7 @@ export function JoinOrganizationPage() {
 
               <Field
                 label="Justification"
-                hint="Expliquez votre lien avec l’organisation (fonction, classe, activité…). Facultatif mais recommandé."
+                hint={withSensitiveHint('Expliquez votre lien avec l’organisation (fonction, classe, activité…). Facultatif mais recommandé.')}
                 error={form.errors.justification}
               >
                 {(props) => <Textarea {...props} value={form.values.justification} onChange={form.handle('justification')} />}
