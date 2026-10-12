@@ -76,7 +76,7 @@ export function DashboardPage() {
       {/* Erreur au premier chargement seulement : après, on garde les derniers chiffres reçus */}
       {dashboard.error && !data && <ErrorState error={dashboard.error} onRetry={dashboard.reload} />}
 
-      <section aria-labelledby="to-process-title">
+      <section aria-labelledby="to-process-title" data-tour="a-faire">
         <h2 id="to-process-title" className="mb-3 text-base font-bold">
           À faire
         </h2>

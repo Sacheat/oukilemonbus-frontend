@@ -57,6 +57,7 @@ export function NotificationBell({ className }) {
         aria-controls={panelId}
         aria-label={label}
         title="Notifications"
+        data-tour="notifications"
         className="relative grid size-11 place-items-center rounded-control hover:bg-black/5 dark:hover:bg-white/10"
       >
         <Bell className="size-5" aria-hidden="true" />

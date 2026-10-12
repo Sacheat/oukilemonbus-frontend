@@ -1,10 +1,11 @@
-import { BadgeCheck, Bell, Circle, CircleCheck, KeyRound, UserRound } from 'lucide-react'
+import { BadgeCheck, Bell, Circle, CircleCheck, Compass, KeyRound, UserRound } from 'lucide-react'
 import { useState } from 'react'
 import { updatePassword, updateProfile } from '../../api/users'
 import { useAuth } from '../../auth/useAuth'
 import { NotificationPreferencesCard } from '../../components/notifications/NotificationPreferencesCard'
 import { OrganizationAvatar } from '../../components/organizations/OrganizationAvatar'
 import { ResendVerificationButton } from '../../components/ResendVerificationButton'
+import { ToursCard } from '../../components/tour/ToursCard'
 import { Alert } from '../../components/ui/Alert'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
@@ -20,15 +21,16 @@ const SECTIONS = [
   { id: 'informations', label: 'Informations', icon: UserRound },
   { id: 'securite', label: 'Sécurité', icon: KeyRound },
   { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'tutoriels', label: 'Tutoriels', icon: Compass },
 ]
 
-// Mon compte : en-tête de profil, puis les sections Informations, Sécurité et Notifications,
+// Mon compte : en-tête de profil, puis les sections Informations, Sécurité, Notifications et Tutoriels,
 // avec un sommaire à gauche en grand écran qui suit la section visible
 export function AccountPage() {
   const active = useActiveSection(SECTIONS.map((section) => section.id))
   return (
     <>
-      <PageHeader eyebrow="Mon compte" title="Mon compte" description="Vos coordonnées, votre mot de passe et vos notifications." />
+      <PageHeader eyebrow="Mon compte" title="Mon compte" description="Vos coordonnées, votre mot de passe, vos notifications et les tutoriels." />
       <ProfileHeader />
       <div className="mt-6 grid items-start gap-6 lg:grid-cols-[200px_minmax(0,1fr)]">
         <nav aria-label="Sections du compte" className="hidden lg:sticky lg:top-6 lg:block">
@@ -53,6 +55,7 @@ export function AccountPage() {
           <ProfileForm />
           <PasswordForm />
           <NotificationPreferencesCard />
+          <ToursCard />
         </div>
       </div>
     </>
