@@ -77,7 +77,7 @@ export function UserHomePage() {
     <div className="grid gap-7">
       <HomeHero firstName={user.first_name} canBook={canBook} canRecur={canRecur} />
 
-      <section aria-labelledby="stats-title">
+      <section aria-labelledby="stats-title" data-tour="chiffres">
         <h2 id="stats-title" className="sr-only">
           En un coup d’œil
         </h2>

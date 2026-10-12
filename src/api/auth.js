@@ -54,3 +54,15 @@ export async function resetPassword({ token, email, password, password_confirmat
   const { data } = await api.post('/auth/reset-password', { token, email, password, password_confirmation })
   return data.message
 }
+
+// Tutoriel de première connexion (`usager`, `agent`, `chauffeur`) : renvoie les tutoriels vus { [tour]: date }
+export async function markTourSeen(tour) {
+  const { data } = await api.patch(`/auth/me/tours/${tour}`)
+  return data.data.tours_seen
+}
+
+// « Revoir le tutoriel » : il sera proposé à la prochaine visite de l'espace
+export async function resetTour(tour) {
+  const { data } = await api.delete(`/auth/me/tours/${tour}`)
+  return data.data.tours_seen
+}

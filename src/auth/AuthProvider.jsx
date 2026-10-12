@@ -85,6 +85,33 @@ export function AuthProvider({ children }) {
     return freshUser
   }, [])
 
+  // Tutoriels : mis à jour tout de suite (le tutoriel ne revient pas pendant l'appel), puis par la réponse.
+  // Un échec de markTourSeen est ignoré : le tutoriel sera simplement reproposé à la prochaine session.
+  const setToursSeen = useCallback((update) => {
+    setUser((current) => (current ? { ...current, tours_seen: update(current.tours_seen ?? {}) } : current))
+  }, [])
+
+  const markTourSeen = useCallback(
+    async (tour) => {
+      setToursSeen((seen) => ({ ...seen, [tour]: seen[tour] ?? new Date().toISOString() }))
+      try {
+        const seen = await authApi.markTourSeen(tour)
+        setToursSeen(() => seen)
+      } catch {
+        // voir plus haut
+      }
+    },
+    [setToursSeen],
+  )
+
+  const resetTour = useCallback(
+    async (tour) => {
+      const seen = await authApi.resetTour(tour)
+      setToursSeen(() => seen)
+    },
+    [setToursSeen],
+  )
+
   const value = useMemo(
     () => ({
       user,
@@ -95,12 +122,14 @@ export function AuthProvider({ children }) {
       logout,
       clearSession,
       refresh,
+      markTourSeen,
+      resetTour,
       can: (permission) => permissions.can(user, permission),
       hasRole: (...roles) => permissions.hasRole(user, ...roles),
       isInternal: () => permissions.isInternal(user),
       isManagerOf: (organizationId) => permissions.isManagerOf(user, organizationId),
     }),
-    [user, status, sessionNotice, login, register, logout, clearSession, refresh],
+    [user, status, sessionNotice, login, register, logout, clearSession, refresh, markTourSeen, resetTour],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

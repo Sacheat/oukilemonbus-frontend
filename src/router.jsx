@@ -103,7 +103,7 @@ export const router = createBrowserRouter([
             element: <RequireRole roles={['user']} />,
             children: [
               {
-                element: <TopNavLayout nav={USER_NAV} />,
+                element: <TopNavLayout nav={USER_NAV} tour="usager" />,
                 children: [
                   { index: true, element: <UserHomePage /> },
                   {
@@ -189,7 +189,7 @@ export const router = createBrowserRouter([
             element: <RequireRole roles={['chauffeur']} />,
             children: [
               {
-                element: <TopNavLayout nav={DRIVER_NAV} />,
+                element: <TopNavLayout nav={DRIVER_NAV} tour="chauffeur" />,
                 children: [
                   { index: true, element: <DriverMissionsPage /> },
                   { path: 'missions/:missionId', element: <DriverMissionPage /> },
@@ -228,7 +228,7 @@ export const router = createBrowserRouter([
             element: <RequireRole roles={['admin', 'agent_communal']} />,
             children: [
               {
-                element: <SidebarLayout sections={BACKOFFICE_NAV} />,
+                element: <SidebarLayout sections={BACKOFFICE_NAV} tour="agent" />,
                 children: [
                   {
                     index: true,

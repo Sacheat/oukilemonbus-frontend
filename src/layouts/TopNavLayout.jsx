@@ -6,12 +6,14 @@ import { Loader } from '../components/ui/Loader'
 import { Logo } from '../components/ui/Logo'
 import { NotificationBell } from '../components/notifications/NotificationBell'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
+import { TourLauncher } from '../components/tour/TourLauncher'
 import { cx } from '../lib/cx'
 import { isNavItemVisible } from '../navigation'
 import { UserMenu } from './UserMenu'
 
-// Disposition 01 de la DA : navigation en haut (espaces usager et chauffeur)
-export function TopNavLayout({ nav }) {
+// Disposition 01 de la DA : navigation en haut (espaces usager et chauffeur).
+// `tour` : tutoriel de première connexion de l'espace (absent pour les pages communes comme /compte)
+export function TopNavLayout({ nav, tour }) {
   const auth = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const items = nav.filter((item) => isNavItemVisible(item, auth))
@@ -31,6 +33,7 @@ export function TopNavLayout({ nav }) {
                   <NavLink
                     to={item.to}
                     end={item.end}
+                    data-tour={`nav:${item.to}`}
                     className={({ isActive }) =>
                       cx(
                         'block rounded-control px-3 py-2 text-sm whitespace-nowrap',
@@ -55,6 +58,7 @@ export function TopNavLayout({ nav }) {
               aria-expanded={menuOpen}
               aria-controls="mobile-nav"
               aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+              data-tour="menu"
               className="grid size-11 place-items-center rounded-control hover:bg-black/5 xl:hidden dark:hover:bg-white/10"
             >
               {menuOpen ? <X className="size-5" aria-hidden="true" /> : <Menu className="size-5" aria-hidden="true" />}
@@ -95,6 +99,8 @@ export function TopNavLayout({ nav }) {
           <Outlet />
         </Suspense>
       </main>
+
+      {tour && <TourLauncher tour={tour} />}
     </div>
   )
 }

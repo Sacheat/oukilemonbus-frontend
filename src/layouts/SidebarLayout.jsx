@@ -8,12 +8,14 @@ import { Loader } from '../components/ui/Loader'
 import { Logo } from '../components/ui/Logo'
 import { NotificationBell } from '../components/notifications/NotificationBell'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
+import { TourLauncher } from '../components/tour/TourLauncher'
 import { cx } from '../lib/cx'
 import { isNavItemVisible } from '../navigation'
 import { UserMenu } from './UserMenu'
 
-// Disposition 02 de la DA : barre latérale (back-office agent et admin)
-export function SidebarLayout({ sections }) {
+// Disposition 02 de la DA : barre latérale (back-office agent et admin).
+// `tour` : tutoriel de première connexion de l'espace (absent pour les pages communes comme /compte)
+export function SidebarLayout({ sections, tour }) {
   const auth = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const visibleSections = sections
@@ -59,6 +61,7 @@ export function SidebarLayout({ sections }) {
                       <NavLink
                         to={item.to}
                         end={item.end}
+                        data-tour={`nav:${item.to}`}
                         onClick={() => setMenuOpen(false)}
                         className={({ isActive }) =>
                           cx(
@@ -87,6 +90,7 @@ export function SidebarLayout({ sections }) {
               aria-expanded={menuOpen}
               aria-controls="sidebar-nav"
               aria-label="Ouvrir le menu"
+              data-tour="menu"
               className="grid size-11 place-items-center rounded-control hover:bg-black/5 lg:hidden dark:hover:bg-white/10"
             >
               <Menu className="size-5" aria-hidden="true" />
@@ -105,6 +109,8 @@ export function SidebarLayout({ sections }) {
             </Suspense>
           </main>
         </div>
+
+        {tour && <TourLauncher tour={tour} />}
       </div>
     </QueueCountProvider>
   )
