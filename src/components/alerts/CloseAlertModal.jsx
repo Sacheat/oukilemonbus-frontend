@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { closeDriverAlert } from '../../api/driverAlerts'
 import { getErrorMessage, getFieldErrors } from '../../lib/errors'
+import { withSensitiveHint } from '../../lib/privacy'
 import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
 import { Field, Textarea } from '../ui/Field'
@@ -38,7 +39,7 @@ function CloseForm({ alert, onCancel, onClosed }) {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="grid gap-4">
-      <Field label="Ce qui a été fait" hint="Par exemple : dépanneuse envoyée, bus de remplacement à 11:30, fausse alerte." error={fieldError} required>
+      <Field label="Ce qui a été fait" hint={withSensitiveHint('Par exemple : dépanneuse envoyée, bus de remplacement à 11:30, fausse alerte.')} error={fieldError} required>
         {(props) => <Textarea {...props} rows={4} maxLength={1000} value={note} onChange={(event) => setNote(event.target.value)} />}
       </Field>
       {error && <Alert tone="danger">{error}</Alert>}

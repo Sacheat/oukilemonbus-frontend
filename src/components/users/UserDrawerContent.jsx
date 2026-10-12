@@ -1,4 +1,6 @@
 import { Link } from 'react-router'
+import { formatDateTime } from '../../lib/dates'
+import { isAnonymized } from '../../lib/privacy'
 import { NEW_USER } from '../../lib/users'
 import { Alert } from '../ui/Alert'
 import { ErrorState } from '../ui/ErrorState'
@@ -7,6 +9,7 @@ import { UserContext } from './UserContext'
 import { UserCreateForm } from './UserCreateForm'
 import { UserInfoForm } from './UserInfoForm'
 import { UserPasswordControl } from './UserPasswordControl'
+import { UserPrivacyControl } from './UserPrivacyControl'
 import { UserRolesForm } from './UserRolesForm'
 import { UserStatusControl } from './UserStatusControl'
 import { UserSummary } from './UserSummary'
@@ -17,6 +20,8 @@ import { UserSummary } from './UserSummary'
 // `canSeeDrivers` / `canSeeOrganizations` : liens vers la fiche chauffeur et les organisations.
 // `canSendResetLink` : permission users.send-password-reset (section « Mot de passe »).
 // `canUseTools` : permission tooling.access (lien vers le diagnostic du compte dans Outils).
+// `canExportData` / `canAnonymize` : permissions users.export-data et users.anonymize (section RGPD).
+// Compte anonymisé : en-tête et explication seulement.
 export function UserDrawerContent({
   userParam,
   opened,
@@ -26,10 +31,13 @@ export function UserDrawerContent({
   canSeeOrganizations,
   canSendResetLink,
   canUseTools,
+  canExportData,
+  canAnonymize,
   onCreated,
   onInfoSaved,
   onRolesSaved,
   onStatusChanged,
+  onAnonymized,
 }) {
   if (userParam === NEW_USER) return <UserCreateForm onCreated={onCreated} />
 
@@ -37,6 +45,30 @@ export function UserDrawerContent({
   if (!opened.user) return opened.loading ? <Loader /> : <Alert tone="warning">Ce compte est introuvable.</Alert>
 
   const { user } = opened
+  const diagnosticLink = canUseTools && (
+    <p className="border-t border-line pt-5 text-sm">
+      <Link to={`/gestion/outils?onglet=comptes&utilisateur=${user.id}`} className="font-semibold text-link hover:underline">
+        Diagnostic du compte
+      </Link>
+      <span className="text-muted"> : permissions effectives et dernières actions.</span>
+    </p>
+  )
+
+  // Compte anonymisé (RGPD) : plus rien à modifier, ni à réactiver
+  if (isAnonymized(user)) {
+    return (
+      <>
+        {notice && <Alert tone="success">{notice}</Alert>}
+        <UserSummary user={user} />
+        <Alert tone="info">
+          Compte anonymisé le {formatDateTime(user.anonymized_at)} à la demande de la personne : son identité est effacée et
+          il ne peut plus être modifié ni réactivé. Ses réservations et documents officiels sont conservés.
+        </Alert>
+        {diagnosticLink}
+      </>
+    )
+  }
+
   return (
     <>
       {notice && <Alert tone="success">{notice}</Alert>}
@@ -65,14 +97,16 @@ export function UserDrawerContent({
 
       <UserStatusControl user={user} self={self} onChanged={onStatusChanged} />
 
-      {canUseTools && (
-        <p className="border-t border-line pt-5 text-sm">
-          <Link to={`/gestion/outils?onglet=comptes&utilisateur=${user.id}`} className="font-semibold text-link hover:underline">
-            Diagnostic du compte
-          </Link>
-          <span className="text-muted"> : permissions effectives et dernières actions.</span>
-        </p>
-      )}
+      <UserPrivacyControl
+        key={`privacy-${user.id}`}
+        user={user}
+        self={self}
+        canExport={canExportData}
+        canAnonymize={canAnonymize}
+        onAnonymized={onAnonymized}
+      />
+
+      {diagnosticLink}
     </>
   )
 }

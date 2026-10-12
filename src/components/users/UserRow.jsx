@@ -1,6 +1,7 @@
 import { ChevronRight } from 'lucide-react'
 import { ROLE_TONES, sortedRoles } from '../../lib/users'
 import { cx } from '../../lib/cx'
+import { isAnonymized } from '../../lib/privacy'
 import { OrganizationAvatar } from '../organizations/OrganizationAvatar'
 import { Badge } from '../ui/Badge'
 
@@ -31,9 +32,15 @@ export function UserRow({ user, selected, onOpen }) {
                 {role.label}
               </Badge>
             ))}
-            {user.roles?.length === 0 && <Badge tone="warning">Aucun rôle</Badge>}
-            {!user.active && <Badge tone="neutral">Désactivé</Badge>}
-            {!user.email_verified_at && <Badge tone="warning">Email non vérifié</Badge>}
+            {user.roles?.length === 0 && !isAnonymized(user) && <Badge tone="warning">Aucun rôle</Badge>}
+            {isAnonymized(user) ? (
+              <Badge tone="neutral">Anonymisé</Badge>
+            ) : (
+              <>
+                {!user.active && <Badge tone="neutral">Désactivé</Badge>}
+                {!user.email_verified_at && <Badge tone="warning">Email non vérifié</Badge>}
+              </>
+            )}
           </span>
         </span>
         <ChevronRight className="size-4 shrink-0 text-muted" aria-hidden="true" />

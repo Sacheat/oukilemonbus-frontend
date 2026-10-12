@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { cancelReservation } from '../../api/reservations'
 import { useForm } from '../../hooks/useForm'
+import { SENSITIVE_TEXT_HINT } from '../../lib/privacy'
 import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
 import { Field, Textarea } from '../ui/Field'
@@ -32,7 +33,7 @@ function CancelForm({ reservation, onClose, onCancelled }) {
         L’annulation est définitive. Elle doit intervenir au moins 24 heures avant le départ.
       </p>
       {form.error && <Alert tone="danger">{form.error}</Alert>}
-      <Field label="Motif de l’annulation" required error={form.errors.reason}>
+      <Field label="Motif de l’annulation" hint={SENSITIVE_TEXT_HINT} required error={form.errors.reason}>
         {(props) => <Textarea {...props} maxLength={1000} value={form.values.reason} onChange={form.handle('reason')} />}
       </Field>
       <div className="flex flex-wrap justify-end gap-2">

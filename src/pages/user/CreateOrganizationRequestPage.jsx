@@ -16,6 +16,7 @@ import { useForm } from '../../hooks/useForm'
 import { ORGANIZATION_TYPE_LABELS } from '../../lib/labels'
 import { proofFileError } from '../../lib/organizations'
 import { sendProofAndNotice } from '../../lib/requestSubmission'
+import { withSensitiveHint } from '../../lib/privacy'
 import { shortAddress } from '../../lib/reservations'
 
 const EMPTY_REQUEST = {
@@ -157,7 +158,7 @@ export function CreateOrganizationRequestPage() {
             <SectionTitle>Pour la commune</SectionTitle>
             <Field
               label="Commentaire"
-              hint="Toute information utile à la commune pour vérifier la demande. Facultatif."
+              hint={withSensitiveHint('Toute information utile à la commune pour vérifier la demande. Facultatif.')}
               error={errors.comment}
               className="sm:col-span-2"
             >

@@ -121,7 +121,10 @@ export function PrivacyPolicyPage() {
       <section className={SECTION}>
         <h2 className={TITLE}>Vos droits</h2>
         <ul className={`${TEXT} list-disc pl-5`}>
-          <li>Accès et portabilité : vous pouvez obtenir une copie de vos données (demandez-la à la commune).</li>
+          <li>
+            Accès et portabilité : téléchargez une copie de vos données dans « Mon compte », section « Mes données »
+            (ou demandez-la à la commune).
+          </li>
           <li>Rectification : modifiez vos informations dans « Mon compte », ou demandez-le au service.</li>
           <li>
             Effacement : la commune peut anonymiser votre compte, sauf si une réservation ou une mission à venir en

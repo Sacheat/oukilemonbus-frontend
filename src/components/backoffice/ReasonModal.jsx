@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useForm } from '../../hooks/useForm'
+import { SENSITIVE_TEXT_HINT } from '../../lib/privacy'
 import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
 import { Field, Textarea } from '../ui/Field'
@@ -7,7 +8,8 @@ import { Modal } from '../ui/Modal'
 
 // Action d'un agent avec motif obligatoire (refuser, annuler). `action(reason, idempotencyKey)` renvoie la
 // réservation mise à jour, passée à `onDone`. La clé d'idempotence est créée à l'ouverture : un double clic
-// ou une relance n'applique l'action qu'une fois.
+// ou une relance n'applique l'action qu'une fois. Le motif part au demandeur : consigne « pas d'information
+// médicale » sous le champ.
 export function ReasonModal({ open, onClose, title, intro, label, submitLabel, action, onDone }) {
   return (
     <Modal open={open} onClose={onClose} title={title}>
@@ -39,7 +41,7 @@ function ReasonForm({ intro, label, submitLabel, action, onClose, onDone }) {
     <form onSubmit={handleSubmit} noValidate className="grid gap-4">
       {intro && <p className="text-sm text-muted">{intro}</p>}
       {form.error && <Alert tone="danger">{form.error}</Alert>}
-      <Field label={label} required error={form.errors.reason}>
+      <Field label={label} hint={SENSITIVE_TEXT_HINT} required error={form.errors.reason}>
         {(props) => (
           <Textarea
             {...props}

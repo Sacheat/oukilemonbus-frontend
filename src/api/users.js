@@ -65,6 +65,19 @@ export async function deactivateUser(userId) {
   return getUserWithRoles(userId)
 }
 
+// Export RGPD des données d'un compte (admin, users.export-data) : fichier JSON reçu en Blob
+export async function downloadUserPersonalData(userId) {
+  const { data } = await api.get(`/users/${userId}/personal-data`, { responseType: 'blob' })
+  return data
+}
+
+// Anonymisation RGPD (admin, users.anonymize), irréversible : renvoie le compte anonymisé. Refus en 422 sur `user`
+// (une ligne par raison : réservation ou mission à venir, demande d'aide ouverte, dernier admin, déjà anonymisé).
+export async function anonymizeUser(userId) {
+  const { data } = await api.patch(`/users/${userId}/anonymize`)
+  return data.data
+}
+
 // Envoie au compte le lien « réinitialiser le mot de passe » (le même que « Mot de passe oublié », valable 60 min) :
 // 202 avec `message`. Compte désactivé ou lien envoyé il y a moins d'une minute : 422 (motif dans `message`).
 export async function sendPasswordResetLink(userId) {
