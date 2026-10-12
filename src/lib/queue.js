@@ -1,4 +1,4 @@
-import { getReservations } from '../api/reservations'
+import { getReservationCounts, getReservations } from '../api/reservations'
 import { formatDate } from './dates'
 import { mondayOf, periodLength } from './planning'
 import { keyLabel } from './shortcuts'
@@ -137,18 +137,30 @@ export function agentActions(reservation, can, decision = null, today) {
   }
 }
 
-// Paramètres de GET /reservations pour une file et des filtres (sans la page) : un seul appel avec statuses[],
-// trié par le backend (date puis heure de départ). `filters` : { period, organizationId, search }.
-function queueParams(queue, { period, organizationId, search }) {
+// Ce qui distingue une file des autres : ses statuts et ses filtres propres (Collège, affectation, passagers)
+function queueFilters(queue) {
   return {
-    ...periodParams(period),
     statuses: queue.statuses,
     ...(queue.council && { council: 'a_decider' }),
     ...(queue.unassigned && { unassigned: 1 }),
     ...(queue.passengersToConfirm && { passengers_to_confirm: 1 }),
+  }
+}
+
+// Filtres choisis par l'agent, communs à toutes les files : période, organisation, recherche (`filters` :
+// { period, organizationId, search }). `sort` ne sert qu'à la liste, le compteur l'ignore.
+function sharedParams({ period, organizationId, search }) {
+  return {
+    ...periodParams(period),
     ...(organizationId && { organization_id: organizationId }),
     ...(search && { q: search }),
   }
+}
+
+// Paramètres de GET /reservations pour une file et des filtres (sans la page) : un seul appel avec statuses[],
+// trié par le backend (date puis heure de départ).
+function queueParams(queue, filters) {
+  return { ...sharedParams(filters), ...queueFilters(queue) }
 }
 
 // Ce qui détermine la file chargée (file, sous-filtre, période, organisation, recherche), sous forme de texte :
@@ -170,18 +182,18 @@ export async function fetchQueuePages(requestKey, pageCount, { signal } = {}) {
   return { items: pages.flatMap((page) => page.data), total: meta.total, lastPage: meta.last_page }
 }
 
-// Nombre de réservations de chaque file et de chaque sous-filtre de « À traiter » pour les filtres courants
-// (une requête par compteur, lue dans meta.total), indexé par `key` (resolveQueue) : { 'a-traiter': 4,
-// 'a-traiter:en-attente': 3, … }
+// Nombre de réservations de chaque file et de chaque sous-filtre de « À traiter » pour les filtres courants,
+// en un seul appel (GET /reservations/counts, mêmes règles que la liste), indexé par `key` (resolveQueue) :
+// { 'a-traiter': 4, 'a-traiter:en-attente': 3, … }
 export async function fetchQueueCounts(filters, { signal } = {}) {
   const queues = [
     ...QUEUES.map((queue) => resolveQueue(queue.value)),
     ...TO_PROCESS_STATUSES.filter((sub) => sub.statuses).map((sub) => resolveQueue(DEFAULT_QUEUE, sub.value)),
   ]
-  const totals = await Promise.all(
-    queues.map((queue) => getReservations({ ...queueParams(queue, filters), page: 1 }, { signal })),
-  )
-  return Object.fromEntries(queues.map((queue, index) => [queue.key, totals[index].meta.total]))
+  const shared = sharedParams(filters)
+  delete shared.sort
+  const counters = Object.fromEntries(queues.map((queue) => [queue.key, queueFilters(queue)]))
+  return getReservationCounts(shared, counters, { signal })
 }
 
 // Nombre de demandes « à traiter » (en attente ou en conflit, trajet à venir) : même chiffre que la pastille

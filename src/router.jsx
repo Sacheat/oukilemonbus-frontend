@@ -4,8 +4,8 @@ import { PublicLayout } from './layouts/PublicLayout'
 import { RoleLayout } from './layouts/RoleLayout'
 import { SidebarLayout } from './layouts/SidebarLayout'
 import { TopNavLayout } from './layouts/TopNavLayout'
+import { lazyPage } from './lib/lazyPage'
 import { BACKOFFICE_NAV, DRIVER_NAV, USER_NAV } from './navigation'
-import { AccountPage } from './pages/account/AccountPage'
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage'
 import { LoginPage } from './pages/auth/LoginPage'
 import { RegisterPage } from './pages/auth/RegisterPage'
@@ -13,41 +13,45 @@ import { ResetPasswordPage } from './pages/auth/ResetPasswordPage'
 import { VerifyEmailPage } from './pages/auth/VerifyEmailPage'
 import { NotFoundPage } from './pages/errors/NotFoundPage'
 import { RouteErrorPage } from './pages/errors/RouteErrorPage'
-import { NotificationsPage } from './pages/NotificationsPage'
-import { CreateOrganizationRequestPage } from './pages/user/CreateOrganizationRequestPage'
-import { DocumentsPage as BackofficeDocumentsPage } from './pages/backoffice/DocumentsPage'
-import { DocumentsPage } from './pages/user/DocumentsPage'
-import { EditReservationPage } from './pages/user/EditReservationPage'
-import { JoinOrganizationPage } from './pages/user/JoinOrganizationPage'
-import { NewRecurrencePage } from './pages/user/NewRecurrencePage'
-import { NewReservationPage } from './pages/user/NewReservationPage'
-import { OrganizationDetailPage } from './pages/user/OrganizationDetailPage'
-import { OrganizationsPage } from './pages/user/OrganizationsPage'
-import { RecurrenceDetailPage } from './pages/user/RecurrenceDetailPage'
-import { RecurrencesPage } from './pages/user/RecurrencesPage'
-import { TripDetailPage } from './pages/user/TripDetailPage'
-import { TripsPage } from './pages/user/TripsPage'
-import { UserHomePage } from './pages/user/UserHomePage'
-import { CollegePage } from './pages/backoffice/CollegePage'
-import { DashboardPage } from './pages/backoffice/DashboardPage'
-import { MunicipalitiesPage } from './pages/backoffice/MunicipalitiesPage'
-import { RequestsPage } from './pages/backoffice/RequestsPage'
-import { ToolsPage } from './pages/backoffice/ToolsPage'
-import { UsersPage } from './pages/backoffice/UsersPage'
-import { DriverJourneyPage } from './pages/driver/DriverJourneyPage'
-import { DriverMissionPage } from './pages/driver/DriverMissionPage'
-import { DriverMissionsPage } from './pages/driver/DriverMissionsPage'
-import { DriverRouteSheetsPage } from './pages/driver/DriverRouteSheetsPage'
-import { DriverUnavailabilitiesPage } from './pages/driver/DriverUnavailabilitiesPage'
-import { DriversPage } from './pages/backoffice/DriversPage'
-import { PlanningPage } from './pages/backoffice/PlanningPage'
-import { ReservationEditPage } from './pages/backoffice/ReservationEditPage'
-import { ReservationsQueuePage } from './pages/backoffice/ReservationsQueuePage'
-import { AlertDetailPage } from './pages/backoffice/AlertDetailPage'
-import { AlertsPage } from './pages/backoffice/AlertsPage'
-import { OrganizationsManagementPage } from './pages/backoffice/OrganizationsManagementPage'
-import { UnavailabilitiesPage } from './pages/backoffice/UnavailabilitiesPage'
-import { VehiclesPage } from './pages/backoffice/VehiclesPage'
+
+// Pages connectées chargées à la demande (un fichier par page) ; connexion, inscription et erreurs restent dans le
+// fichier de départ, puisque c'est par elles qu'on arrive.
+const NotificationsPage = lazyPage(() => import('./pages/NotificationsPage'), 'NotificationsPage')
+const AccountPage = lazyPage(() => import('./pages/account/AccountPage'), 'AccountPage')
+const AlertDetailPage = lazyPage(() => import('./pages/backoffice/AlertDetailPage'), 'AlertDetailPage')
+const AlertsPage = lazyPage(() => import('./pages/backoffice/AlertsPage'), 'AlertsPage')
+const CollegePage = lazyPage(() => import('./pages/backoffice/CollegePage'), 'CollegePage')
+const DashboardPage = lazyPage(() => import('./pages/backoffice/DashboardPage'), 'DashboardPage')
+const BackofficeDocumentsPage = lazyPage(() => import('./pages/backoffice/DocumentsPage'), 'DocumentsPage')
+const DriversPage = lazyPage(() => import('./pages/backoffice/DriversPage'), 'DriversPage')
+const MunicipalitiesPage = lazyPage(() => import('./pages/backoffice/MunicipalitiesPage'), 'MunicipalitiesPage')
+const OrganizationsManagementPage = lazyPage(() => import('./pages/backoffice/OrganizationsManagementPage'), 'OrganizationsManagementPage')
+const PlanningPage = lazyPage(() => import('./pages/backoffice/PlanningPage'), 'PlanningPage')
+const RequestsPage = lazyPage(() => import('./pages/backoffice/RequestsPage'), 'RequestsPage')
+const ReservationEditPage = lazyPage(() => import('./pages/backoffice/ReservationEditPage'), 'ReservationEditPage')
+const ReservationsQueuePage = lazyPage(() => import('./pages/backoffice/ReservationsQueuePage'), 'ReservationsQueuePage')
+const ToolsPage = lazyPage(() => import('./pages/backoffice/ToolsPage'), 'ToolsPage')
+const UnavailabilitiesPage = lazyPage(() => import('./pages/backoffice/UnavailabilitiesPage'), 'UnavailabilitiesPage')
+const UsersPage = lazyPage(() => import('./pages/backoffice/UsersPage'), 'UsersPage')
+const VehiclesPage = lazyPage(() => import('./pages/backoffice/VehiclesPage'), 'VehiclesPage')
+const DriverJourneyPage = lazyPage(() => import('./pages/driver/DriverJourneyPage'), 'DriverJourneyPage')
+const DriverMissionPage = lazyPage(() => import('./pages/driver/DriverMissionPage'), 'DriverMissionPage')
+const DriverMissionsPage = lazyPage(() => import('./pages/driver/DriverMissionsPage'), 'DriverMissionsPage')
+const DriverRouteSheetsPage = lazyPage(() => import('./pages/driver/DriverRouteSheetsPage'), 'DriverRouteSheetsPage')
+const DriverUnavailabilitiesPage = lazyPage(() => import('./pages/driver/DriverUnavailabilitiesPage'), 'DriverUnavailabilitiesPage')
+const CreateOrganizationRequestPage = lazyPage(() => import('./pages/user/CreateOrganizationRequestPage'), 'CreateOrganizationRequestPage')
+const DocumentsPage = lazyPage(() => import('./pages/user/DocumentsPage'), 'DocumentsPage')
+const EditReservationPage = lazyPage(() => import('./pages/user/EditReservationPage'), 'EditReservationPage')
+const JoinOrganizationPage = lazyPage(() => import('./pages/user/JoinOrganizationPage'), 'JoinOrganizationPage')
+const NewRecurrencePage = lazyPage(() => import('./pages/user/NewRecurrencePage'), 'NewRecurrencePage')
+const NewReservationPage = lazyPage(() => import('./pages/user/NewReservationPage'), 'NewReservationPage')
+const OrganizationDetailPage = lazyPage(() => import('./pages/user/OrganizationDetailPage'), 'OrganizationDetailPage')
+const OrganizationsPage = lazyPage(() => import('./pages/user/OrganizationsPage'), 'OrganizationsPage')
+const RecurrenceDetailPage = lazyPage(() => import('./pages/user/RecurrenceDetailPage'), 'RecurrenceDetailPage')
+const RecurrencesPage = lazyPage(() => import('./pages/user/RecurrencesPage'), 'RecurrencesPage')
+const TripDetailPage = lazyPage(() => import('./pages/user/TripDetailPage'), 'TripDetailPage')
+const TripsPage = lazyPage(() => import('./pages/user/TripsPage'), 'TripsPage')
+const UserHomePage = lazyPage(() => import('./pages/user/UserHomePage'), 'UserHomePage')
 
 // Chemins en français, sauf /verify-email et /reset-password imposés par les liens
 // des emails du backend.

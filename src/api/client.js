@@ -27,6 +27,28 @@ export function onSessionLost(handler) {
 
 const DISABLED_ACCOUNT_MESSAGE = 'Ce compte a été désactivé.'
 
+// 429 sur une lecture : attente maximale avant de la rejouer (au-delà, l'erreur s'affiche tout de suite)
+const MAX_RETRY_WAIT_SECONDS = 5
+const DEFAULT_RETRY_WAIT_SECONDS = 2
+
+// Secondes à attendre d'après Retry-After (exposé par le CORS du backend), ou null s'il ne sert à rien de réessayer
+function retryWaitSeconds(response) {
+  const announced = Number(response.headers?.['retry-after'])
+  if (!Number.isFinite(announced)) return DEFAULT_RETRY_WAIT_SECONDS
+  return announced > MAX_RETRY_WAIT_SECONDS ? null : Math.max(announced, 1)
+}
+
+// Attente interrompue si la requête est annulée entre-temps (page quittée, nouvelle recherche)
+function wait(seconds, signal) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, seconds * 1000)
+    signal?.addEventListener('abort', () => {
+      clearTimeout(timer)
+      reject(new axios.CanceledError())
+    }, { once: true })
+  })
+}
+
 api.interceptors.response.use(undefined, async (error) => {
   const { response, config } = error
   if (!response) return Promise.reject(error)
@@ -36,6 +58,17 @@ api.interceptors.response.use(undefined, async (error) => {
     config._csrfRetried = true
     await csrf()
     return api(config)
+  }
+
+  // 429 (trop de requêtes) sur une lecture : on attend le délai annoncé puis on la rejoue une fois.
+  // Jamais une action (POST, PATCH…) : la rejouer pourrait l'envoyer deux fois.
+  if (response.status === 429 && config?.method === 'get' && !config._rateRetried) {
+    const seconds = retryWaitSeconds(response)
+    if (seconds !== null) {
+      config._rateRetried = true
+      await wait(seconds, config.signal)
+      return api(config)
+    }
   }
 
   if (response.status === 401) {

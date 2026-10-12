@@ -1,9 +1,10 @@
 import { Menu, X } from 'lucide-react'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router'
 import { useAuth } from '../auth/useAuth'
 import { QueueCountProvider } from '../backoffice/QueueCountProvider'
 import { NavCountBadge } from '../components/backoffice/NavCountBadge'
+import { Loader } from '../components/ui/Loader'
 import { Logo } from '../components/ui/Logo'
 import { NotificationBell } from '../components/notifications/NotificationBell'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
@@ -98,7 +99,10 @@ export function SidebarLayout({ sections }) {
           </header>
 
           <main className="px-5 py-8 sm:px-8 sm:py-9">
-            <Outlet />
+            {/* Page chargée à la demande (lazyPage) : Loader le temps de son premier téléchargement */}
+            <Suspense fallback={<Loader />}>
+              <Outlet />
+            </Suspense>
           </main>
         </div>
       </div>
