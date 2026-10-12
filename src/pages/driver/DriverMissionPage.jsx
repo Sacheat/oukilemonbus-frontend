@@ -5,6 +5,7 @@ import { getTripRoute } from '../../api/driverJourney'
 import { getReservation } from '../../api/reservations'
 import { RouteButtons } from '../../components/driver/RouteButtons'
 import { RouteSteps } from '../../components/driver/RouteSteps'
+import { PassengerListCard } from '../../components/documents/PassengerListCard'
 import { TripReportSection } from '../../components/driver/TripReportSection'
 import { TripMap } from '../../components/reservations/TripMap'
 import { Alert } from '../../components/ui/Alert'
@@ -133,6 +134,8 @@ export function DriverMissionPage() {
           {!cancelled && <RouteSteps route={route.data} />}
         </div>
       </div>
+
+      {!cancelled && <PassengerListCard reservationId={trip.id} audience="driver" />}
 
       {!started && <TripReportSection mission={trip} />}
     </div>

@@ -4,6 +4,8 @@ import { useSearchParams } from 'react-router'
 import { getAllMunicipalities } from '../../api/municipalities'
 import { useAuth } from '../../auth/useAuth'
 import { hasRole } from '../../auth/permissions'
+import { CalendarPanel } from '../../components/municipalities/CalendarPanel'
+import { CouncilPanel } from '../../components/municipalities/CouncilPanel'
 import { DriverJourneyPanel } from '../../components/municipalities/DriverJourneyPanel'
 import { LocalitiesPanel } from '../../components/municipalities/LocalitiesPanel'
 import { MunicipalitySettings } from '../../components/municipalities/MunicipalitySettings'
@@ -116,6 +118,15 @@ export function MunicipalitiesPage() {
               municipality={active}
               notice={noticeOf('planning')}
               onSaved={(saved) => finish('planning', `Planning hebdomadaire de ${saved.name} enregistré.`)}
+            />
+          )}
+          {tab === 'calendrier' && <CalendarPanel key={active.id} municipality={active} />}
+          {tab === 'college' && (
+            <CouncilPanel
+              key={`college-${versionKey}`}
+              municipality={active}
+              notice={noticeOf('college')}
+              onSaved={(saved) => finish('college', `Composition du Collège de ${saved.name} enregistrée.`)}
             />
           )}
           {tab === 'communes' && (
