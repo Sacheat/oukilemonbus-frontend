@@ -1,7 +1,7 @@
 import { Bus, Plus } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { getVehicles } from '../../api/vehicles'
+import { getVehicle, getVehicles } from '../../api/vehicles'
 import { useAuth } from '../../auth/useAuth'
 import { Alert } from '../../components/ui/Alert'
 import { Button } from '../../components/ui/Button'
@@ -16,7 +16,8 @@ import { VehicleDrawerContent } from '../../components/vehicles/VehicleDrawerCon
 import { useApi } from '../../hooks/useApi'
 import { useFleetToday } from '../../hooks/useFleetToday'
 import { useNow } from '../../hooks/useNow'
-import { NEW_VEHICLE, findVehicle, sortActiveFirst } from '../../lib/vehicles'
+import { useOpenedItem } from '../../hooks/useOpenedItem'
+import { NEW_VEHICLE, sortActiveFirst } from '../../lib/vehicles'
 import { fleetDayState, fleetPlanningLink } from '../../lib/fleetToday'
 
 // Flotte : véhicules en cartes (en service d'abord), paginés par 15.
@@ -37,7 +38,9 @@ export function VehiclesPage() {
   const canCreate = can('vehicles.create')
 
   const isCreating = openedVehicleParam === NEW_VEHICLE
-  const openedVehicle = findVehicle(vehicleList, openedVehicleParam)
+  // Pris dans la page affichée, sinon relu par GET /vehicles/{id}
+  const opened = useOpenedItem(vehicleList, openedVehicleParam, getVehicle)
+  const openedVehicle = opened.item
 
   function updateSearch(name, value) {
     const next = new URLSearchParams(searchParams)
@@ -124,7 +127,7 @@ export function VehiclesPage() {
         <div className="grid gap-6 p-5">
           <VehicleDrawerContent
             vehicleParam={openedVehicleParam}
-            vehicleList={vehicleList}
+            opened={opened}
             canCreate={canCreate}
             onSaved={handleSaved}
             onStatusChanged={handleStatusChanged}

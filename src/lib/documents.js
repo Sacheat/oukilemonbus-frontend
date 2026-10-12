@@ -70,6 +70,18 @@ export function fileKind(mimeType = '') {
   return { label: 'DOC', colors: 'bg-neutral-soft text-neutral' }
 }
 
+// Types des pastilles de « Mes documents » (/espace), dans l'ordre d'affichage ; une pastille sans document est masquée
+export const USER_DOCUMENT_TYPES = ['deliberation', 'attestation', 'justificatif', 'planning', 'feuille_route']
+
+// Lit l'URL de « Mes documents » : type (valeur inconnue ignorée) et page
+export function readUserDocumentsSearch(searchParams) {
+  const type = searchParams.get('type')
+  return {
+    type: USER_DOCUMENT_TYPES.includes(type) ? type : null,
+    page: Math.max(1, Number(searchParams.get('page')) || 1),
+  }
+}
+
 // Documents groupés par mois de création (heure de Bruxelles), les plus récents d'abord :
 // [{ key: '2026-06', label: 'juin 2026', items }]
 export function groupByMonth(documents) {

@@ -13,22 +13,20 @@ export function useDocuments(requestKey) {
 // Nombre de documents par type pour les pastilles, avec la même recherche et la même période que la liste.
 // `countKey` : JSON des paramètres sans type ni page. Un appel par type plus un pour « Tous » (meta.total, en
 // parallèle) ; renvoie useApi ({ data: { all, deliberation, feuille_route, … } }).
-export function useDocumentCounts(countKey) {
+// `types` : types des pastilles (ceux de /gestion par défaut), tableau stable (constante de module).
+export function useDocumentCounts(countKey, types = ADMIN_DOCUMENT_TYPES) {
   const fetchCounts = useCallback(
     async (signal) => {
       const params = JSON.parse(countKey)
-      const types = [null, ...ADMIN_DOCUMENT_TYPES]
+      const chipTypes = [null, ...types]
       const pages = await Promise.all(
-        types.map((type) =>
-          getDocumentsPage(
-            { ...params, page: 1, per_page: 1, document_type: type ? [type] : ADMIN_DOCUMENT_TYPES },
-            { signal },
-          ),
+        chipTypes.map((type) =>
+          getDocumentsPage({ ...params, page: 1, per_page: 1, document_type: type ? [type] : types }, { signal }),
         ),
       )
-      return Object.fromEntries(types.map((type, index) => [type ?? 'all', pages[index].meta?.total ?? null]))
+      return Object.fromEntries(chipTypes.map((type, index) => [type ?? 'all', pages[index].meta?.total ?? null]))
     },
-    [countKey],
+    [countKey, types],
   )
   return useApi(fetchCounts)
 }

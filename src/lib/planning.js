@@ -79,6 +79,7 @@ export function readPlanningSearch(searchParams, now = new Date()) {
     showAllStatuses: searchParams.get('statuts') === 'tous',
     vehicleId: searchParams.get('vehicule') ?? '',
     driverId: searchParams.get('chauffeur') ?? '',
+    organizationId: /^\d+$/.test(searchParams.get('organisation') ?? '') ? searchParams.get('organisation') : '',
     openedTripId: searchParams.get('trajet'),
     dayParam: searchParams.get('jour'),
   }
@@ -111,19 +112,20 @@ export function periodProblem({ start, end }) {
 // Sous forme de texte, pour ne recharger que si l'une de ces valeurs change.
 export function planningRequestKey(planningSearch) {
   const { start, end } = requestedPeriod(planningSearch)
-  const { showAllStatuses, vehicleId, driverId } = planningSearch
-  return JSON.stringify({ start, end, showAllStatuses, vehicleId, driverId })
+  const { showAllStatuses, vehicleId, driverId, organizationId } = planningSearch
+  return JSON.stringify({ start, end, showAllStatuses, vehicleId, driverId, organizationId })
 }
 
 // Paramètres envoyés à GET /planning et à POST /planning/exports (mêmes filtres), à partir de cette clé
 export function planningApiParams(requestKey, { withAvailability = false } = {}) {
-  const { start, end, showAllStatuses, vehicleId, driverId } = JSON.parse(requestKey)
+  const { start, end, showAllStatuses, vehicleId, driverId, organizationId } = JSON.parse(requestKey)
   return {
     start_date: start,
     end_date: end,
     statuses: showAllStatuses ? ALL_STATUSES : ACTIVE_STATUSES,
     ...(vehicleId && { vehicle_id: Number(vehicleId) }),
     ...(driverId && { driver_id: Number(driverId) }),
+    ...(organizationId && { organization_id: Number(organizationId) }),
     ...(withAvailability && { include_availability: 1 }),
   }
 }

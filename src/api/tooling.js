@@ -69,11 +69,6 @@ export async function getApiCatalog({ signal } = {}) {
   return (await read('/toolbox/api-catalog', { signal })).data
 }
 
-// Fiche d'un flow métier (404 si la clé est inconnue)
-export async function getInspectorFlow(flowKey, { signal } = {}) {
-  return (await read(`/inspector/flows/${encodeURIComponent(flowKey)}`, { signal })).data
-}
-
 // ----- Jobs en échec de la file d'attente -----
 
 // Liste paginée (15 par défaut), plus récents d'abord : id, uuid, queue, connection, job (classe complète),

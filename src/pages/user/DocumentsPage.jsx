@@ -1,44 +1,45 @@
 import { FileText } from 'lucide-react'
 import { useSearchParams } from 'react-router'
-import { getDocuments } from '../../api/documents'
 import { DocumentRow } from '../../components/documents/DocumentRow'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { FilterChips } from '../../components/ui/FilterChips'
 import { PageHeader } from '../../components/ui/PageHeader'
+import { Pagination } from '../../components/ui/Pagination'
 import { Skeleton } from '../../components/ui/Skeleton'
-import { useApi } from '../../hooks/useApi'
-import { groupByMonth } from '../../lib/documents'
+import { useDocumentCounts, useDocuments } from '../../hooks/useDocuments'
+import { groupByMonth, readUserDocumentsSearch, USER_DOCUMENT_TYPES } from '../../lib/documents'
 import { DOCUMENT_TYPE_LABELS } from '../../lib/labels'
 
-function fetchDocuments(signal) {
-  return getDocuments({ signal })
-}
+// Paramètres sans filtre pour les compteurs des pastilles
+const COUNT_KEY = JSON.stringify({})
 
 // Documents des réservations de mes organisations (délibérations…) et mes justificatifs.
-// Liste non paginée, groupée par mois ; filtre par type en pastilles avec compteur, dans l'URL (?type=deliberation),
-// limité aux types présents.
+// Liste paginée par le backend (15 par page), groupée par mois ; filtre par type en pastilles avec compteur
+// (meta.total d'un appel par type), dans l'URL (?type=deliberation&page=2) ; pastilles sans document masquées.
 export function DocumentsPage() {
-  const documents = useApi(fetchDocuments)
   const [searchParams, setSearchParams] = useSearchParams()
-  const type = searchParams.get('type') ?? ''
+  const { type, page } = readUserDocumentsSearch(searchParams)
+  const documents = useDocuments(JSON.stringify({ page, ...(type && { document_type: [type] }) }))
+  const counts = useDocumentCounts(COUNT_KEY, USER_DOCUMENT_TYPES)
 
-  function setType(value) {
+  function updateSearch(changes) {
     const next = new URLSearchParams(searchParams)
-    if (value) next.set('type', value)
-    else next.delete('type')
+    for (const [name, value] of Object.entries(changes)) {
+      if (value) next.set(name, value)
+      else next.delete(name)
+    }
     setSearchParams(next, { replace: true })
   }
 
-  const all = documents.data ?? []
-  const types = [...new Set(all.map((doc) => doc.document_type))]
-  const visible = type ? all.filter((doc) => doc.document_type === type) : all
+  const visible = documents.data?.data ?? []
+  const totals = counts.data
   const chips = [
-    { value: null, label: 'Tous', count: documents.data ? all.length : null },
-    ...types.map((value) => ({
+    { value: null, label: 'Tous', count: totals ? totals.all : null },
+    ...USER_DOCUMENT_TYPES.filter((value) => value === type || (totals && totals[value] > 0)).map((value) => ({
       value,
       label: DOCUMENT_TYPE_LABELS[value] ?? value,
-      count: all.filter((doc) => doc.document_type === value).length,
+      count: totals ? totals[value] : null,
     })),
   ]
 
@@ -51,7 +52,9 @@ export function DocumentsPage() {
         className="pb-5"
       />
 
-      {all.length > 0 && <FilterChips label="Type de document" chips={chips} value={type || null} onChange={(value) => setType(value ?? '')} />}
+      {(type || totals?.all > 0) && (
+        <FilterChips label="Type de document" chips={chips} value={type} onChange={(value) => updateSearch({ type: value, page: null })} />
+      )}
 
       <section aria-label="Liste des documents" aria-busy={documents.loading} className="mt-6">
         {documents.error ? (
@@ -84,6 +87,7 @@ export function DocumentsPage() {
                 </ul>
               </section>
             ))}
+            <Pagination meta={documents.data.meta} onPageChange={(nextPage) => updateSearch({ page: nextPage > 1 ? String(nextPage) : null })} />
           </div>
         )}
       </section>

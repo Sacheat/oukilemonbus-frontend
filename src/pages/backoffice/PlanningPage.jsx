@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router'
 import { getAllDrivers } from '../../api/drivers'
 import { getAllVehicles } from '../../api/vehicles'
 import { useAuth } from '../../auth/useAuth'
+import { OrganizationFilter } from '../../components/backoffice/OrganizationFilter'
 import { PlanningExportButton } from '../../components/planning/PlanningExportButton'
 import { PlanningResults } from '../../components/planning/PlanningResults'
 import { PlanningTripDetails } from '../../components/planning/PlanningTripDetails'
@@ -187,6 +188,16 @@ export function PlanningPage() {
             </Select>
           )}
         </Field>
+        <div className="text-sm font-bold">
+          <span aria-hidden="true">Organisation</span>
+          <div className="mt-1.5 font-normal">
+            <OrganizationFilter
+              value={planningSearch.organizationId}
+              onChange={(id) => updateSearch({ organisation: id })}
+              className="w-full sm:w-64"
+            />
+          </div>
+        </div>
         <Checkbox
           label="Afficher aussi les trajets refusés et annulés"
           checked={planningSearch.showAllStatuses}

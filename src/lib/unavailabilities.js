@@ -1,4 +1,4 @@
-import { brusselsNow, toLocalMinute } from './dates'
+import { brusselsNow, formatLocalPeriod, toLocalMinute } from './dates'
 import { periodLength } from './planning'
 
 // Valeur de ?indisponibilite= pour ouvrir le formulaire de déclaration
@@ -144,4 +144,31 @@ export function unavailabilityDuration({ start_datetime: start, end_datetime: en
     return `${Math.floor(minutes / 60)} h${rest ? ` ${String(rest).padStart(2, '0')}` : ''}`
   }
   return `${periodLength(start.slice(0, 10), end.slice(0, 10))} jours`
+}
+
+// Ce qui a changé dans une entrée de l'historique : [{ label, before, after }] (type, période, motif), vide pour une
+// annulation ou un enregistrement sans changement. Les heures sont comparées à la minute (toLocalMinute).
+export function historyChanges(entry) {
+  const changes = []
+  if (entry.old_reason_type !== entry.new_reason_type) {
+    changes.push({
+      label: 'Concerne',
+      before: REASON_TYPE_LABELS[entry.old_reason_type] ?? '—',
+      after: REASON_TYPE_LABELS[entry.new_reason_type] ?? '—',
+    })
+  }
+  const periodChanged =
+    toLocalMinute(entry.old_start_datetime) !== toLocalMinute(entry.new_start_datetime) ||
+    toLocalMinute(entry.old_end_datetime) !== toLocalMinute(entry.new_end_datetime)
+  if (periodChanged) {
+    changes.push({
+      label: 'Période',
+      before: formatLocalPeriod(entry.old_start_datetime, entry.old_end_datetime) || '—',
+      after: formatLocalPeriod(entry.new_start_datetime, entry.new_end_datetime) || '—',
+    })
+  }
+  if ((entry.old_reason ?? '') !== (entry.new_reason ?? '')) {
+    changes.push({ label: 'Motif', before: entry.old_reason || '—', after: entry.new_reason || '—' })
+  }
+  return changes
 }

@@ -7,11 +7,6 @@ export const NEW_DRIVER = 'nouveau'
 // Délai à partir duquel on prévient que le permis expire bientôt
 export const LICENCE_WARNING_DAYS = 30
 
-// Chauffeur de la liste dont l'id correspond à ?chauffeur= (l'URL donne une chaîne)
-export function findDriver(driverList, driverParam) {
-  return driverList?.find((driver) => String(driver.id) === driverParam)
-}
-
 // Chauffeurs actifs d'abord ; le tri est stable, l'ordre du backend est gardé dans chaque groupe
 export function sortActiveFirst(driverList) {
   return [...driverList].sort((first, second) => Number(second.is_active) - Number(first.is_active))
