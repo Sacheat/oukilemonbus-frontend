@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { deleteFailedJob, deleteFailedJobs, retryAllFailedJobs, retryFailedJob } from '../../api/tooling'
 import { useFailedJob, useFailedJobs } from '../../hooks/useFailedJobs'
+import { cx } from '../../lib/cx'
 import { getErrorMessage } from '../../lib/errors'
 import { failedJobsApiParams, QUEUE_FILTERS, readQueueSearch, shortClassName } from '../../lib/tooling'
 import { Alert } from '../ui/Alert'
@@ -24,7 +25,7 @@ function jobsLabel(count, verb) {
 }
 
 // Onglet File d'attente : jobs en échec (souvent des emails non partis), filtrés par file (?queue=), paginés,
-// job ouvert dans un panneau (?job=uuid). Relancer un job : direct ; tout relancer et toute suppression : confirmés.
+// job ouvert dans un panneau (?job=uuid, mis en évidence dans la liste). Relancer un job : direct ; tout relancer et toute suppression : confirmés.
 // Après une action : message temporaire avec le nombre renvoyé, liste et badge de l'onglet rechargés (`onChanged`).
 export function QueueTab({ onChanged }) {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -149,12 +150,19 @@ export function QueueTab({ onChanged }) {
           <p className="text-sm text-muted" aria-live="polite">
             {total} {total > 1 ? 'jobs en échec' : 'job en échec'}
           </p>
-          <ul aria-busy={jobs.loading} className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface shadow-soft">
+          <ul
+            aria-busy={jobs.loading}
+            className={cx(
+              'divide-y divide-line overflow-hidden rounded-card border border-line bg-surface shadow-soft transition-opacity',
+              jobs.loading && 'opacity-60',
+            )}
+          >
             {list.map((job) => (
               <FailedJobRow
                 key={job.uuid}
                 job={job}
                 busy={busy?.uuid === job.uuid ? busy.kind : null}
+                selected={job.uuid === search.openedUuid}
                 onOpen={() => update({ job: job.uuid })}
                 onRetry={retryOne}
                 onDelete={() => setConfirm({ kind: 'delete-one', job })}

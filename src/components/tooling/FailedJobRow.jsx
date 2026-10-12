@@ -1,15 +1,19 @@
 import { Eye, RotateCcw, Trash2 } from 'lucide-react'
+import { cx } from '../../lib/cx'
 import { formatDateTime } from '../../lib/dates'
 import { exceptionParts, shortClassName } from '../../lib/tooling'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 
 // Une ligne de job en échec : file, job (nom court, nom complet en infobulle), exception résumée, date,
-// et ses actions. `busy` : action en cours sur cette ligne.
-export function FailedJobRow({ job, busy, onOpen, onRetry, onDelete }) {
+// et ses actions. `busy` : action en cours sur cette ligne ; `selected` : job ouvert dans le panneau.
+export function FailedJobRow({ job, busy, selected, onOpen, onRetry, onDelete }) {
   const exception = exceptionParts(job.exception_summary)
   return (
-    <li className="grid gap-2 px-4 py-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-5">
+    <li
+      aria-current={selected ? 'true' : undefined}
+      className={cx('grid gap-2 px-4 py-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-5', selected && 'bg-surface-muted')}
+    >
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-semibold break-all" title={job.job}>

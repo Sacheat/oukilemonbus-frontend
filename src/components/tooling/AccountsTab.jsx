@@ -1,12 +1,14 @@
+import { UserSearch } from 'lucide-react'
 import { useSearchParams } from 'react-router'
 import { useInspectorUser } from '../../hooks/useInspectorUser'
+import { EmptyState } from '../ui/EmptyState'
 import { ErrorState } from '../ui/ErrorState'
 import { Loader } from '../ui/Loader'
 import { AccountSearch } from './AccountSearch'
 import { AccountSheet } from './AccountSheet'
 
 // Onglet Comptes : recherche d'un compte puis sa fiche de diagnostic (?utilisateur=id, aussi ouvert depuis le
-// panneau de la page Utilisateurs ou depuis une entrée du journal)
+// panneau de la page Utilisateurs ou depuis une entrée du journal) ; sans compte choisi, un message dit quoi faire
 export function AccountsTab() {
   const [searchParams, setSearchParams] = useSearchParams()
   const userId = /^\d+$/.test(searchParams.get('utilisateur') ?? '') ? searchParams.get('utilisateur') : null
@@ -27,14 +29,17 @@ export function AccountsTab() {
         </p>
         <AccountSearch onSelect={select} />
       </div>
-      {userId &&
-        (account.error ? (
-          <ErrorState error={account.error} onRetry={account.reload} />
-        ) : account.sheet ? (
-          <AccountSheet sheet={account.sheet} />
-        ) : (
-          <Loader />
-        ))}
+      {!userId ? (
+        <EmptyState icon={UserSearch} title="Aucun compte choisi">
+          Cherchez un compte ci-dessus, ou ouvrez « Diagnostic du compte » depuis la page Utilisateurs.
+        </EmptyState>
+      ) : account.error ? (
+        <ErrorState error={account.error} onRetry={account.reload} />
+      ) : account.sheet ? (
+        <AccountSheet sheet={account.sheet} />
+      ) : (
+        <Loader />
+      )}
     </div>
   )
 }

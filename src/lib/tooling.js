@@ -1,4 +1,4 @@
-import { addDays, isValidDay } from './planning'
+import { addDays, isValidDay, todayInBrussels } from './planning'
 
 // Onglets de la page Outils (?onglet=), santé par défaut
 export const TOOL_TABS = [
@@ -121,6 +121,30 @@ export function isJournalFiltered(search) {
   return Boolean(search.email || search.userId || search.outcome || search.method || search.status || search.flow || search.from || search.to)
 }
 
+// Raccourcis de période du journal (?du= & ?au=), jours à Bruxelles ; `all` : toutes les dates
+export function journalPeriods(now = new Date()) {
+  const today = todayInBrussels(now)
+  return [
+    { value: 'all', label: 'Toutes', from: null, to: null },
+    { value: 'today', label: 'Aujourd’hui', from: today, to: today },
+    { value: '7', label: '7 jours', from: addDays(today, -6), to: today },
+    { value: '30', label: '30 jours', from: addDays(today, -29), to: today },
+  ]
+}
+
+// Raccourci correspondant aux dates choisies, ou null pour des dates libres
+export function activeJournalPeriod({ from, to }, now = new Date()) {
+  return journalPeriods(now).find((period) => period.from === from && period.to === to)?.value ?? null
+}
+
+// Filtres repliés sur petit écran (méthode, code, dates) : combien sont actifs
+export function moreJournalFilterCount(search) {
+  return [search.method, search.status, search.from || search.to].filter(Boolean).length
+}
+
+// Paramètres d'URL vidés par « Effacer les filtres » (l'entrée ouverte reste)
+export const JOURNAL_FILTER_PARAMS = ['email', 'compte', 'resultat', 'methode', 'code', 'du', 'au', 'flow', 'page']
+
 // Entrées supprimées par une purge « antérieures au jour J » (J exclu) : celles jusqu'à la veille incluse
 export function purgeCountParams(before) {
   return before ? { per_page: 1, to: addDays(before, -1) } : { per_page: 1 }
@@ -193,4 +217,29 @@ export function exceptionParts(summary) {
   const index = text.indexOf(': ')
   if (index === -1) return { type: null, message: text }
   return { type: shortClassName(text.slice(0, index)), message: text.slice(index + 2) }
+}
+
+// ----- Système -----
+
+// Sections de l'onglet Système, pour le sommaire (ancres)
+export const SYSTEM_SECTIONS = [
+  { id: 'systeme-base', label: 'Base de données' },
+  { id: 'systeme-regles', label: 'Règles et architecture' },
+  { id: 'systeme-permissions', label: 'Permissions' },
+  { id: 'systeme-flows', label: 'Flows métier' },
+  { id: 'systeme-api', label: 'Catalogue de l’API' },
+]
+
+// Routes internes du catalogue filtrées par un texte (méthode, chemin, permission ou domaine, sans tenir compte des
+// majuscules) : [[domaine, routes]] sans les domaines vides
+export function filterRouteCatalog(internal = {}, query = '') {
+  const needle = query.trim().toLowerCase()
+  return Object.entries(internal)
+    .map(([domain, routes]) => [
+      domain,
+      needle && !domain.toLowerCase().includes(needle)
+        ? routes.filter((route) => [route.method, route.uri, route.permission].some((value) => value?.toLowerCase().includes(needle)))
+        : routes,
+    ])
+    .filter(([, routes]) => routes.length > 0)
 }
