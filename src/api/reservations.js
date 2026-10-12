@@ -9,6 +9,13 @@ export async function getReservations(params = {}, { signal } = {}) {
   return data
 }
 
+// Plusieurs compteurs en un appel : `filters` communs (date_from, date_to, organization_id, q) et `counters`
+// { nom: { statuses, council, unassigned, passengers_to_confirm } } (12 au plus) → { nom: nombre }
+export async function getReservationCounts(filters, counters, { signal } = {}) {
+  const { data } = await api.get('/reservations/counts', { params: { ...filters, counts: counters }, signal })
+  return data.data
+}
+
 export async function getReservation(id, { signal } = {}) {
   const { data } = await api.get(`/reservations/${id}`, { signal })
   return data.data

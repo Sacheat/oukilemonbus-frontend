@@ -1,7 +1,8 @@
 import { Menu, X } from 'lucide-react'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router'
 import { useAuth } from '../auth/useAuth'
+import { Loader } from '../components/ui/Loader'
 import { Logo } from '../components/ui/Logo'
 import { NotificationBell } from '../components/notifications/NotificationBell'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
@@ -89,7 +90,10 @@ export function TopNavLayout({ nav }) {
       </header>
 
       <main className="mx-auto max-w-[1050px] px-5 py-8 sm:px-10 sm:py-9">
-        <Outlet />
+        {/* Page chargée à la demande (lazyPage) : Loader le temps de son premier téléchargement */}
+        <Suspense fallback={<Loader />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   )
