@@ -1,5 +1,6 @@
 import { updateMunicipality } from '../../api/municipalities'
 import { useForm } from '../../hooks/useForm'
+import { onCallChanges, onCallFormValues } from '../../lib/municipalities'
 import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
 import { Field, Input } from '../ui/Field'
@@ -7,23 +8,17 @@ import { Panel } from '../ui/Panel'
 
 // Contact de garde de la commune active (facultatif, réglé par un admin) : il reçoit par email les demandes d'aide des
 // chauffeurs, en plus des agents et admins. Il n'a pas besoin de compte. Champs vides : personne d'autre n'est prévenu.
-// `onSaved(municipalité)` après l'enregistrement.
-export function OnCallContactPanel({ municipality, onSaved }) {
-  const form = useForm({
-    on_call_name: municipality.on_call_name ?? '',
-    on_call_email: municipality.on_call_email ?? '',
-    on_call_phone: municipality.on_call_phone ?? '',
-  })
+// Seuls les champs modifiés sont envoyés ; bouton désactivé sans changement. `notice` : message après l'enregistrement,
+// masqué dès la modification suivante. `onSaved(municipalité)` après l'enregistrement.
+export function OnCallContactPanel({ municipality, notice, onSaved }) {
+  const form = useForm(onCallFormValues(municipality))
+  const changes = onCallChanges(municipality, form.values)
+  const dirty = Object.keys(changes).length > 0
 
   async function handleSubmit(event) {
     event.preventDefault()
-    const result = await form.submit((values) =>
-      updateMunicipality(municipality.id, {
-        on_call_name: values.on_call_name.trim() || null,
-        on_call_email: values.on_call_email.trim() || null,
-        on_call_phone: values.on_call_phone.trim() || null,
-      }),
-    )
+    if (!dirty) return
+    const result = await form.submit(() => updateMunicipality(municipality.id, changes))
     if (result.ok) onSaved(result.data)
   }
 
@@ -34,6 +29,7 @@ export function OnCallContactPanel({ municipality, onSaved }) {
           Facultatif. Quand un chauffeur appuie sur « Aide », ce contact reçoit l’email avec la carte, en plus des agents
           et des administrateurs. Par exemple : le chef du service technique, ou un numéro de garde.
         </p>
+        {notice && !dirty && <Alert tone="success">{notice}</Alert>}
         {form.error && <Alert tone="danger">{form.error}</Alert>}
         <div className="grid gap-4 md:grid-cols-3">
           <Field label="Nom" error={form.errors.on_call_name}>
@@ -49,7 +45,7 @@ export function OnCallContactPanel({ municipality, onSaved }) {
           </Field>
         </div>
         <div>
-          <Button type="submit" loading={form.submitting}>
+          <Button type="submit" loading={form.submitting} disabled={!dirty}>
             Enregistrer le contact de garde
           </Button>
         </div>
