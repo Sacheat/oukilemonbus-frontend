@@ -46,6 +46,16 @@ const TEXTS = {
       3: 'Relisez les changements avant de les enregistrer.',
     },
   },
+  // Création par un agent (espace gestion) : demande téléphonée, au nom d'un membre de l'organisation
+  agentCreate: {
+    eyebrow: 'Nouvelle réservation (gestion)',
+    titles: { 1: 'Trajet et horaires', 2: 'Passagers et motif', 3: 'Vérifiez la réservation' },
+    intros: {
+      1: 'Renseignez les lieux et les horaires demandés. Le préavis de 15 jours ne s’applique pas.',
+      2: 'Indiquez le nombre de passagers et la raison du déplacement.',
+      3: 'Relisez la réservation avant de la créer.',
+    },
+  },
   // Modification par un agent (espace gestion), pour régler un conflit
   agentEdit: {
     eyebrow: 'Modifier la réservation',
@@ -66,8 +76,21 @@ const IDLE_PREVIEW = { status: 'idle', result: null, error: null }
 // Assistant de réservation (maquette 03), en création ou en modification.
 // - create : `draft` = { name, userId } pour le brouillon, `onDone(réservation créée)`
 // - edit : `reservation` d'origine (organisation figée, changements avant → après), `onDone(réservation modifiée)`
-export function ReservationWizard({ mode, initial, organizations, reservation = null, draft = null, onDone, onCancel, onRestart, agent = false }) {
-  const texts = agent ? TEXTS.agentEdit : TEXTS[mode]
+// `agent` : espace gestion ; en création, sans préavis et au nom de `requestedByUserId` (null = l'agent lui-même)
+export function ReservationWizard({
+  mode,
+  initial,
+  organizations,
+  reservation = null,
+  draft = null,
+  onDone,
+  onCancel,
+  onRestart,
+  agent = false,
+  requestedByUserId = null,
+}) {
+  const agentCreate = agent && mode === 'create'
+  const texts = agentCreate ? TEXTS.agentCreate : agent ? TEXTS.agentEdit : TEXTS[mode]
   const reservationId = reservation?.id ?? null
   const [values, setValues] = useState(initial.values)
   const [step, setStep] = useState(initial.step ?? 1)
@@ -169,7 +192,7 @@ export function ReservationWizard({ mode, initial, organizations, reservation = 
 
   async function save() {
     if (mode === 'edit') return updateReservation(reservationId, toUpdatePayload(values))
-    const payload = toReservationPayload(values)
+    const payload = { ...toReservationPayload(values), ...(requestedByUserId && { requested_by_user_id: Number(requestedByUserId) }) }
     const hash = JSON.stringify(payload)
     const key = idempotency?.hash === hash ? idempotency.key : crypto.randomUUID()
     setIdempotency({ hash, key })
@@ -246,6 +269,7 @@ export function ReservationWizard({ mode, initial, organizations, reservation = 
               errors={errors}
               organizations={organizations}
               lockOrganization={mode === 'edit'}
+              noticeWaived={agentCreate}
               tripCheck={tripCheck}
               onUseSlot={applySlot}
             />
@@ -271,7 +295,8 @@ export function ReservationWizard({ mode, initial, organizations, reservation = 
               onUseSlot={applySlot}
               acknowledged={acknowledged}
               setAcknowledged={setAcknowledged}
-              agent={agent}
+              // Textes « modification par un agent » ; une création par un agent garde l'aperçu de la demande
+              agent={agent && mode === 'edit'}
               currentStatus={reservation?.status}
             />
           )}
@@ -289,7 +314,7 @@ export function ReservationWizard({ mode, initial, organizations, reservation = 
             )}
             {step < 3 ? (
               <Button onClick={handleContinue}>
-                {step === 1 ? 'Continuer vers les passagers' : mode === 'edit' ? 'Vérifier les changements' : 'Vérifier la demande'}
+                {step === 1 ? 'Continuer vers les passagers' : mode === 'edit' ? 'Vérifier les changements' : agentCreate ? 'Vérifier la réservation' : 'Vérifier la demande'}
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Button>
             ) : mode === 'edit' ? (
@@ -298,7 +323,7 @@ export function ReservationWizard({ mode, initial, organizations, reservation = 
               </Button>
             ) : (
               <Button onClick={handleSend} loading={sending} disabled={!canSend}>
-                <Send className="size-4" aria-hidden="true" /> Envoyer la demande
+                <Send className="size-4" aria-hidden="true" /> {agentCreate ? 'Créer la réservation' : 'Envoyer la demande'}
               </Button>
             )}
           </div>

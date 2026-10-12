@@ -12,8 +12,8 @@ const MIN_LENGTH = 2
 // Filtre « Organisation » de la file : recherche côté backend (GET /organizations?q=), 300 ms après la dernière
 // frappe, à partir de 2 lettres, requête précédente annulée ; on ne charge jamais toutes les organisations.
 // `value` : id choisi (texte de l'URL) ou '' ; `onChange(id | null)`. Au retour sur la page, le nom de l'organisation
-// choisie est relu par GET /organizations/{id}.
-export function OrganizationFilter({ value, onChange, className }) {
+// choisie est relu par GET /organizations/{id}. `ariaLabel` : nom du champ pour un lecteur d'écran (autre usage qu'un filtre).
+export function OrganizationFilter({ value, onChange, className, ariaLabel = 'Filtrer par organisation' }) {
   const listboxId = useId()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
@@ -107,7 +107,7 @@ export function OrganizationFilter({ value, onChange, className }) {
       <input
         type="text"
         role="combobox"
-        aria-label="Filtrer par organisation"
+        aria-label={ariaLabel}
         autoComplete="off"
         aria-autocomplete="list"
         aria-expanded={showList}

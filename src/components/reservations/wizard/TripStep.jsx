@@ -2,6 +2,7 @@ import { LoaderCircle } from 'lucide-react'
 import { formatDate } from '../../../lib/dates'
 import { countdown } from '../../../lib/home'
 import { mapApiErrors, minTripDate, PRIORITY_ORGANIZATION_TYPES } from '../../../lib/reservationForm'
+import { todayApiDate } from '../../../lib/reservations'
 import { getErrorMessage } from '../../../lib/errors'
 import { Alert } from '../../ui/Alert'
 import { Field, Input, Select } from '../../ui/Field'
@@ -19,6 +20,7 @@ export function TripStep({
   errors,
   organizations,
   lockOrganization = false,
+  noticeWaived = false,
   withDate = true,
   tripCheck = null,
   onUseSlot,
@@ -64,12 +66,14 @@ export function TripStep({
           hint={
             values.trip_date
               ? `${formatDate(values.trip_date)}, ${countdown(values.trip_date)}.`
-              : 'Au moins 15 jours à l’avance, du lundi au vendredi.'
+              : noticeWaived
+                ? 'Du lundi au vendredi. En tant qu’agent, le préavis de 15 jours ne s’applique pas (noté dans l’historique).'
+                : 'Au moins 15 jours à l’avance, du lundi au vendredi.'
           }
           error={fieldErrors.trip_date}
         >
           {(props) => (
-            <Input {...props} type="date" min={minTripDate()} value={values.trip_date} onChange={(event) => setField('trip_date', event.target.value)} />
+            <Input {...props} type="date" min={noticeWaived ? todayApiDate() : minTripDate()} value={values.trip_date} onChange={(event) => setField('trip_date', event.target.value)} />
           )}
         </Field>
       )}

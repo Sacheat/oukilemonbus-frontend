@@ -4,13 +4,16 @@ import { getErrorMessage } from '../../../lib/errors'
 import { RECURRENCE_FREQUENCY_LABELS } from '../../../lib/labels'
 import { mapRecurrenceErrors, WEEK_DAYS } from '../../../lib/recurrences'
 import { minTripDate } from '../../../lib/reservationForm'
+import { todayApiDate } from '../../../lib/reservations'
 import { Alert } from '../../ui/Alert'
 import { ChoicePills } from '../../ui/ChoicePills'
 import { Field, Input } from '../../ui/Field'
 import { SeriesCalendar } from './SeriesCalendar'
 
 // Étape 2 : fréquence, jours et période, avec l'aperçu de la série en direct (useRecurrencePreview)
-export function CalendarStep({ values, setField, errors, preview }) {
+export function CalendarStep({ values, setField, errors, preview, noticeWaived = false }) {
+  // Agent ou admin : pas de préavis, la série peut commencer aujourd'hui
+  const firstDay = noticeWaived ? todayApiDate() : minTripDate()
   // Erreurs saisies prioritaires sur l'aperçu en direct
   const fieldErrors = { ...mapRecurrenceErrors(preview.fieldErrors), ...errors }
   const globalError =
@@ -74,9 +77,9 @@ export function CalendarStep({ values, setField, errors, preview }) {
         </fieldset>
       )}
 
-      <Field label="Début" required hint="Les trajets à moins de 15 jours sont ignorés." error={fieldErrors.start_date}>
+      <Field label="Début" required hint={noticeWaived ? 'En tant qu’agent, le préavis de 15 jours ne s’applique pas.' : 'Les trajets à moins de 15 jours sont ignorés.'} error={fieldErrors.start_date}>
         {(props) => (
-          <Input {...props} type="date" min={minTripDate()} value={values.start_date} onChange={(event) => setField('start_date', event.target.value)} />
+          <Input {...props} type="date" min={firstDay} value={values.start_date} onChange={(event) => setField('start_date', event.target.value)} />
         )}
       </Field>
       <Field label="Fin" required error={fieldErrors.end_date}>
@@ -84,7 +87,7 @@ export function CalendarStep({ values, setField, errors, preview }) {
           <Input
             {...props}
             type="date"
-            min={values.start_date || minTripDate()}
+            min={values.start_date || firstDay}
             value={values.end_date}
             onChange={(event) => setField('end_date', event.target.value)}
           />

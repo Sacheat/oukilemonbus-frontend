@@ -1,4 +1,4 @@
-import { Inbox, Keyboard, Search } from 'lucide-react'
+import { Inbox, Keyboard, Plus, Repeat, Search } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { getReservationDecision } from '../../api/documents'
@@ -343,15 +343,28 @@ export function ReservationsQueuePage() {
         title="Réservations"
         description="Validez, affectez et suivez les demandes de trajet."
         actions={
-          // Raccourcis clavier : grand écran seulement (inutiles sur un écran tactile)
-          wide && (
-            <Button variant="secondary" onClick={() => setDialog('help')}>
-              <Keyboard className="size-4" aria-hidden="true" /> Raccourcis
-              <kbd aria-hidden="true" className="rounded border border-line-strong px-1 text-xs">
-                {keyLabel(settings.keys.help)}
-              </kbd>
-            </Button>
-          )
+          <>
+            {/* Demande reçue par téléphone ou par email : l'agent l'encode au nom d'un membre de l'organisation */}
+            {can('reservations.create') && (
+              <>
+                <Button to="/gestion/reservations/nouvelle">
+                  <Plus className="size-4" aria-hidden="true" /> Nouvelle réservation
+                </Button>
+                <Button variant="secondary" to="/gestion/series/nouvelle">
+                  <Repeat className="size-4" aria-hidden="true" /> Nouvelle série
+                </Button>
+              </>
+            )}
+            {/* Raccourcis clavier : grand écran seulement (inutiles sur un écran tactile) */}
+            {wide && (
+              <Button variant="secondary" onClick={() => setDialog('help')}>
+                <Keyboard className="size-4" aria-hidden="true" /> Raccourcis
+                <kbd aria-hidden="true" className="rounded border border-line-strong px-1 text-xs">
+                  {keyLabel(settings.keys.help)}
+                </kbd>
+              </Button>
+            )}
+          </>
         }
         className="pb-4"
       />
