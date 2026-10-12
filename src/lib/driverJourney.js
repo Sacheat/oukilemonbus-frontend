@@ -1,5 +1,4 @@
-import { MISSION_STATUSES } from './driverMissions'
-import { addDays, isValidDay, todayInBrussels } from './planning'
+import { isValidDay, todayInBrussels } from './planning'
 import { routeDistanceText } from './navigation'
 
 // « Ma journée » du chauffeur : une page par jour, une carte par trajet, quatre étapes par trajet.
@@ -27,18 +26,6 @@ export const PROGRESS_BADGES = {
 export function readJourneyDay(searchParams, now = new Date()) {
   const day = searchParams.get('jour')
   return isValidDay(day) ? day : todayInBrussels(now)
-}
-
-// Missions du jour : approuvées (en attente de confirmation par l'agent) et confirmées, dans l'ordre de la journée
-export function dayMissionsParams(day) {
-  return { date_from: day, date_to: day, statuses: MISSION_STATUSES, sort: 'asc' }
-}
-
-// Prochain jour (ou jour précédent) qui a des missions : la première mission après (ou avant) le jour affiché
-export function neighbourDayParams(day, direction) {
-  return direction === 'next'
-    ? { date_from: addDays(day, 1), statuses: MISSION_STATUSES, sort: 'asc' }
-    : { date_to: addDays(day, -1), statuses: MISSION_STATUSES, sort: 'desc' }
 }
 
 // Index { reservation_id: avancement } à partir de la liste du backend

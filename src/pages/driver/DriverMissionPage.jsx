@@ -1,4 +1,4 @@
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { useCallback } from 'react'
 import { useParams } from 'react-router'
 import { getTripRoute } from '../../api/driverJourney'
@@ -17,12 +17,16 @@ import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useApi } from '../../hooks/useApi'
 import { useNavigationEngine } from '../../hooks/useNavigationEngine'
 import { formatDate, formatDateTime, formatTime } from '../../lib/dates'
-import { isCancelledMission, roundTripKmText } from '../../lib/driverMissions'
+import { isCancelledMission, roundTripKmText, showsMissionStatus } from '../../lib/driverMissions'
+import { todayInBrussels } from '../../lib/planning'
 import { estimatedArrivals, totalPassengers } from '../../lib/reservations'
+import { hasTripStarted } from '../../lib/tripReports'
 
 // Détail d'une mission du chauffeur (/chauffeur/missions/:id), page à part pour le téléphone :
 // horaires et adresses complètes, itinéraires (application de la commune), carte avec la route réelle et ses
-// instructions, passagers, véhicule, et compte rendu du trajet (cahier des charges §3).
+// instructions, passagers, véhicule, et compte rendu du trajet (cahier des charges §3) : en tête une fois l'heure de
+// départ passée (il est attendu), en bas avant (« vous pourrez confirmer à partir de… »). Mission du jour : bouton
+// « Ma journée ». Statut seulement s'il n'est pas « Confirmé ».
 // La route est calculée par le backend à la première ouverture puis gardée ; en cas d'échec, la carte garde la ligne
 // à vol d'oiseau (aucun message : la mission reste lisible).
 // Le backend n'autorise que le chauffeur affecté (403 sinon).
@@ -54,6 +58,8 @@ export function DriverMissionPage() {
   const trip = mission.data
   const arrivals = estimatedArrivals(trip)
   const cancelled = isCancelledMission(trip)
+  const started = hasTripStarted(trip)
+  const isToday = trip.trip_date.slice(0, 10) === todayInBrussels()
 
   return (
     <div className="grid gap-6">
@@ -61,7 +67,16 @@ export function DriverMissionPage() {
       <PageHeader
         eyebrow={<span className="first-letter:uppercase">{formatDate(trip.trip_date)}</span>}
         title={trip.organization?.name ?? `Mission n° ${trip.id}`}
-        actions={<StatusBadge status={trip.status} label={trip.status_label} />}
+        actions={
+          <>
+            {showsMissionStatus(trip) && <StatusBadge status={trip.status} label={trip.status_label} />}
+            {isToday && !cancelled && (
+              <Button variant="accent" to="/chauffeur/journee">
+                Ma journée <ArrowRight className="size-4" aria-hidden="true" />
+              </Button>
+            )}
+          </>
+        }
       />
 
       {cancelled && (
@@ -70,13 +85,14 @@ export function DriverMissionPage() {
         </Alert>
       )}
 
-      <TripReportSection mission={trip} />
+      {started && <TripReportSection mission={trip} />}
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="grid gap-6">
           <section aria-labelledby="mission-horaires" className="grid gap-2">
             <h2 id="mission-horaires" className="text-lg font-bold">Horaires et trajet</h2>
             <DetailList
+              sideBySideFrom="sm"
               items={[
                 ['Départ', `${formatTime(trip.departure_time)} · ${trip.pickup_location?.formatted_address ?? ''}`],
                 ['Destination', trip.destination_location?.formatted_address],
@@ -95,6 +111,7 @@ export function DriverMissionPage() {
           <section aria-labelledby="mission-groupe" className="grid gap-2">
             <h2 id="mission-groupe" className="text-lg font-bold">Groupe et véhicule</h2>
             <DetailList
+              sideBySideFrom="sm"
               items={[
                 ['Passagers', `${totalPassengers(trip)} (${trip.nb_children} enfant${trip.nb_children > 1 ? 's' : ''}, ${trip.nb_adults} adulte${trip.nb_adults > 1 ? 's' : ''})`],
                 trip.passengers_confirmed_at && ['Nombre définitif', `confirmé le ${formatDateTime(trip.passengers_confirmed_at)}`],
@@ -116,6 +133,8 @@ export function DriverMissionPage() {
           {!cancelled && <RouteSteps route={route.data} />}
         </div>
       </div>
+
+      {!started && <TripReportSection mission={trip} />}
     </div>
   )
 }

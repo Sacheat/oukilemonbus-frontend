@@ -2,13 +2,13 @@ import { ArrowRight, Bus, Users } from 'lucide-react'
 import { Link } from 'react-router'
 import { cx } from '../../lib/cx'
 import { formatTime } from '../../lib/dates'
-import { isCancelledMission } from '../../lib/driverMissions'
+import { isCancelledMission, showsMissionStatus } from '../../lib/driverMissions'
 import { estimatedArrivals, shortAddress, totalPassengers } from '../../lib/reservations'
 import { StatusBadge } from '../ui/StatusBadge'
 import { TripReportBadge } from './TripReportBadge'
 
 // Une mission du chauffeur, cliquable en entier vers son détail. Lisible d'un coup d'œil sur téléphone :
-// horaires en grand, puis départ → destination, passagers et véhicule. Une mission annulée reste visible,
+// horaires en grand, puis départ → destination, passagers et véhicule ; statut seulement s'il n'est pas « Confirmé ». Une mission annulée reste visible,
 // estompée, avec son motif, pour que le chauffeur ne se déplace pas pour rien.
 // `large` : mise en avant (missions du jour) ; `report` : compte rendu (badge Réalisé / À confirmer…), null s'il n'y en
 // a pas, undefined s'il n'est pas connu (pas de badge).
@@ -32,7 +32,7 @@ export function MissionCard({ mission, large = false, report }) {
         </span>
         <span className="flex flex-wrap gap-1.5">
           <TripReportBadge report={report} mission={mission} />
-          <StatusBadge status={mission.status} label={mission.status_label} />
+          {showsMissionStatus(mission) && <StatusBadge status={mission.status} label={mission.status_label} />}
         </span>
       </span>
 

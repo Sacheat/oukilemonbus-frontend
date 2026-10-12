@@ -1,6 +1,14 @@
 import { api } from './client'
 
-// « Ma journée », partie 2 (backend feature/journee-chauffeur-2) : réglages de la commune et tracé réel d'un trajet.
+// « Ma journée » : journée du chauffeur en un appel, réglages de la commune et tracé réel d'un trajet.
+
+// Tout « Ma journée » pour un jour (AAAA-MM-JJ), en un appel (backend feature/chauffeur-journee-un-appel) :
+// { date, missions (format de GET /reservations), progress (format de GET /trip-progress), previous_day, next_day,
+//   settings (format de GET /driver-journey/settings) }
+export async function getDriverDay(date, { signal } = {}) {
+  const { data } = await api.get('/driver-journey/day', { params: { date }, signal })
+  return data.data
+}
 
 // { navigation_engine: { key, label, android, web, web_from }, departure_window_minutes, step_distance_warning_meters }
 export async function getDriverJourneySettings({ signal } = {}) {
