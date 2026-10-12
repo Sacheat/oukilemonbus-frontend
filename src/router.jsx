@@ -18,6 +18,8 @@ import { RouteErrorPage } from './pages/errors/RouteErrorPage'
 // fichier de départ, puisque c'est par elles qu'on arrive.
 const NotificationsPage = lazyPage(() => import('./pages/NotificationsPage'), 'NotificationsPage')
 const AccountPage = lazyPage(() => import('./pages/account/AccountPage'), 'AccountPage')
+const AgentNewRecurrencePage = lazyPage(() => import('./pages/backoffice/AgentNewRecurrencePage'), 'AgentNewRecurrencePage')
+const AgentNewReservationPage = lazyPage(() => import('./pages/backoffice/AgentNewReservationPage'), 'AgentNewReservationPage')
 const AlertDetailPage = lazyPage(() => import('./pages/backoffice/AlertDetailPage'), 'AlertDetailPage')
 const AlertsPage = lazyPage(() => import('./pages/backoffice/AlertsPage'), 'AlertsPage')
 const CollegePage = lazyPage(() => import('./pages/backoffice/CollegePage'), 'CollegePage')
@@ -243,6 +245,22 @@ export const router = createBrowserRouter([
                     element: (
                       <RequirePermission permission="reservations.approve">
                         <ReservationsQueuePage />
+                      </RequirePermission>
+                    ),
+                  },
+                  {
+                    path: 'reservations/nouvelle',
+                    element: (
+                      <RequirePermission permission="reservations.create">
+                        <AgentNewReservationPage />
+                      </RequirePermission>
+                    ),
+                  },
+                  {
+                    path: 'series/nouvelle',
+                    element: (
+                      <RequirePermission permission="reservations.create">
+                        <AgentNewRecurrencePage />
                       </RequirePermission>
                     ),
                   },

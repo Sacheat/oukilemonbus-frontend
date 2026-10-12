@@ -39,8 +39,9 @@ const CALENDAR_FIELDS = ['frequency', 'days_of_week', 'start_date', 'end_date']
 const IDLE_PREVIEW = { status: 'idle', result: null, error: null }
 
 // Assistant de création d'une série (écoles et personnel communal), sur le modèle de la maquette 03.
-// `draft` = { name, userId } pour le brouillon, `onDone({ recurrence, report })` après la création.
-export function RecurrenceWizard({ initial, organizations, draft, onDone, onCancel, onRestart }) {
+// `draft` = { name, userId } pour le brouillon (absent pour un agent), `onDone({ recurrence, report })` après la création.
+// `agent` : série encodée par un agent ou un admin (sans préavis), au nom de `requestedByUserId` (null = l'agent).
+export function RecurrenceWizard({ initial, organizations, draft = null, onDone, onCancel, onRestart, agent = false, requestedByUserId = null }) {
   const [values, setValues] = useState(initial.values)
   const [step, setStep] = useState(initial.step ?? 1)
   const [restored, setRestored] = useState(Boolean(initial.restored))
@@ -65,7 +66,7 @@ export function RecurrenceWizard({ initial, organizations, draft, onDone, onCanc
   // (sinon un formulaire vide serait « repris » au retour)
   const untouched = values === initial.values && step === (initial.step ?? 1)
   useEffect(() => {
-    if (!untouched) saveDraft(draft.name, draft.userId, { values, step, idempotency })
+    if (draft && !untouched) saveDraft(draft.name, draft.userId, { values, step, idempotency })
   }, [draft, untouched, values, step, idempotency])
 
   // Accessibilité : le focus suit le changement d'étape
@@ -137,12 +138,12 @@ export function RecurrenceWizard({ initial, organizations, draft, onDone, onCanc
     setSending(true)
     setSendError(null)
     try {
-      const payload = toRecurrencePayload(values)
+      const payload = { ...toRecurrencePayload(values), ...(requestedByUserId && { requested_by_user_id: Number(requestedByUserId) }) }
       const hash = JSON.stringify(payload)
       const key = idempotency?.hash === hash ? idempotency.key : crypto.randomUUID()
       setIdempotency({ hash, key })
       const created = await createRecurrence(payload, key)
-      clearDraft(draft.name)
+      if (draft) clearDraft(draft.name)
       onDone(created)
     } catch (error) {
       if (!showApiErrors(error)) setSendError(getErrorMessage(error))
@@ -210,7 +211,7 @@ export function RecurrenceWizard({ initial, organizations, draft, onDone, onCanc
               tripCheck={tripCheck}
             />
           )}
-          {step === 2 && <CalendarStep values={values} setField={setField} errors={errors} preview={livePreview} />}
+          {step === 2 && <CalendarStep values={values} setField={setField} errors={errors} preview={livePreview} noticeWaived={agent} />}
           {step === 3 && (
             <PassengersStep
               values={values}
