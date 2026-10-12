@@ -18,30 +18,35 @@ import { Pagination } from '../../components/ui/Pagination'
 import { useApi } from '../../hooks/useApi'
 import { useRoleCounts } from '../../hooks/useRoleCounts'
 import { useUsers } from '../../hooks/useUsers'
+import { cx } from '../../lib/cx'
 import { findUser, isSelf, NEW_USER, readUsersSearch, ROLE_FILTERS, STATUS_FILTERS, usersApiParams } from '../../lib/users'
 
 const SEARCH_DELAY_MS = 300
 
 // Administration des comptes (admin) : liste paginée filtrée par le backend (recherche ?q=, ?role=, ?statut=),
-// compte ouvert dans un panneau (?utilisateur=id), création (?utilisateur=nouveau). Après une modification :
-// panneau fermé, liste rechargée et message en haut de la page ; après une création, le panneau s'ouvre sur le
-// nouveau compte pour ajuster ses rôles.
+// compte ouvert dans un panneau (?utilisateur=id), création (?utilisateur=nouveau). Après la création ou
+// l'enregistrement des informations ou des rôles : le panneau reste ouvert sur le compte relu, avec un message, et la
+// liste se recharge derrière. Désactiver ou réactiver : panneau fermé et message en haut de la page.
+// Compteurs des pastilles : `meta.role_counts` de la liste (repli : un appel par rôle si le backend ne le renvoie pas).
 export function UsersPage() {
   const { user: currentUser, can, refresh } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const { search, role, status, page, openedParam } = readUsersSearch(searchParams)
   const [notice, setNotice] = useState(null)
-  const [createdNotice, setCreatedNotice] = useState(null) // { id, message } : affiché dans le panneau du compte créé
+  const [panelNotice, setPanelNotice] = useState(null) // { id, message } : affiché dans le panneau de ce compte
   const [searchInput, setSearchInput] = useState(search)
   const searchTimer = useRef(null)
 
   // Paramètres de la liste sous forme de texte : ne recharger que si l'un d'eux change
   const requestKey = JSON.stringify(usersApiParams({ search, role, status, page }))
   const users = useUsers(requestKey)
-  // Compteurs des pastilles : même recherche et même statut, sans le rôle ni la page
-  const roleCounts = useRoleCounts(JSON.stringify(usersApiParams({ search, role: null, status, page: 1 })))
-  const counts = roleCounts.data
   const userList = users.data?.data // undefined tant que rien n'est reçu
+  // Compteurs des pastilles (même recherche et même statut, sans le rôle) : renvoyés avec la liste ; repli sur un appel
+  // par rôle seulement si la liste reçue ne les contient pas
+  const listCounts = users.data?.meta?.role_counts
+  const fallbackKey = users.data && !listCounts ? JSON.stringify(usersApiParams({ search, role: null, status, page: 1 })) : null
+  const roleCounts = useRoleCounts(fallbackKey)
+  const counts = listCounts ?? roleCounts.data
 
   // Compte ouvert : toujours relu par son id (rôles, organisations et profil chauffeur, absents de la liste) ;
   // en attendant, la ligne de la liste s'affiche si le compte y est (lien direct ou autre page : chargement)
@@ -78,7 +83,7 @@ export function UsersPage() {
   }
 
   function closeDrawer() {
-    setCreatedNotice(null)
+    setPanelNotice(null)
     updateSearch({ utilisateur: null })
   }
 
@@ -93,7 +98,7 @@ export function UsersPage() {
   }
 
   function handleCreated(createdUser) {
-    setCreatedNotice({
+    setPanelNotice({
       id: createdUser.id,
       message: `Compte créé : ${createdUser.full_name}. Transmettez le mot de passe provisoire à la personne, puis ajustez ses rôles ci-dessous.`,
     })
@@ -102,12 +107,14 @@ export function UsersPage() {
     updateSearch({ utilisateur: String(createdUser.id) })
   }
 
-  function handleSaved(savedUser) {
-    if (!savedUser) {
-      closeDrawer()
-      return
-    }
-    finishAction(`Compte enregistré : ${savedUser.full_name}.`, savedUser)
+  // Informations ou rôles enregistrés : le panneau reste ouvert sur le compte relu (organisations et profil chauffeur
+  // compris), la liste et les compteurs se rechargent derrière
+  function handleSaved(savedUser, message) {
+    setPanelNotice({ id: savedUser.id, message })
+    fetched.reload()
+    users.reload()
+    roleCounts.reload()
+    if (isSelf(savedUser, currentUser)) refresh()
   }
 
   function handleStatusChanged(updatedUser) {
@@ -118,6 +125,7 @@ export function UsersPage() {
   }
 
   const filtered = Boolean(search || role || status)
+  const roleChips = ROLE_FILTERS.map((filter) => ({ ...filter, count: counts ? (counts[filter.value ?? 'all'] ?? null) : null }))
   const addButton = can('users.create') && (
     <Button onClick={() => openDrawer(NEW_USER)}>
       <Plus className="size-4" aria-hidden="true" />
@@ -153,7 +161,7 @@ export function UsersPage() {
             aria-label="Statut des comptes"
             value={status ?? ''}
             onChange={(event) => updateSearch({ statut: event.target.value, page: null })}
-            className="max-w-xs py-2 text-sm"
+            className="py-2 text-sm sm:max-w-xs"
           >
             {STATUS_FILTERS.map((filter) => (
               <option key={filter.label} value={filter.value ?? ''}>
@@ -162,12 +170,22 @@ export function UsersPage() {
             ))}
           </Select>
         </div>
-        <FilterChips
-          label="Rôle"
-          chips={ROLE_FILTERS.map((filter) => ({ ...filter, count: counts ? counts[filter.value ?? 'all'] : null }))}
-          value={role}
-          onChange={(value) => updateSearch({ role: value, page: null })}
-        />
+        <Select
+          aria-label="Rôle"
+          value={role ?? ''}
+          onChange={(event) => updateSearch({ role: event.target.value, page: null })}
+          className="py-2 text-sm font-semibold sm:hidden"
+        >
+          {roleChips.map((chip) => (
+            <option key={chip.label} value={chip.value ?? ''}>
+              {chip.label}
+              {chip.count == null ? '' : ` (${chip.count})`}
+            </option>
+          ))}
+        </Select>
+        <div className="hidden sm:block">
+          <FilterChips label="Rôle" chips={roleChips} value={role} onChange={(value) => updateSearch({ role: value, page: null })} />
+        </div>
       </div>
 
       {users.error ? (
@@ -183,9 +201,20 @@ export function UsersPage() {
           <p className="text-sm text-muted" aria-live="polite">
             {users.data.meta.total} {users.data.meta.total > 1 ? 'comptes' : 'compte'}
           </p>
-          <ul aria-busy={users.loading} className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface shadow-soft">
+          <ul
+            aria-busy={users.loading}
+            className={cx(
+              'divide-y divide-line overflow-hidden rounded-card border border-line bg-surface shadow-soft transition-opacity',
+              users.loading && 'opacity-60',
+            )}
+          >
             {userList.map((user) => (
-              <UserRow key={user.id} user={user} onOpen={() => openDrawer(String(user.id))} />
+              <UserRow
+                key={user.id}
+                user={user}
+                selected={String(user.id) === openedParam}
+                onOpen={() => openDrawer(String(user.id))}
+              />
             ))}
           </ul>
           <Pagination meta={users.data.meta} onPageChange={(nextPage) => updateSearch({ page: nextPage > 1 ? String(nextPage) : null })} />
@@ -202,12 +231,14 @@ export function UsersPage() {
             userParam={openedParam}
             opened={opened}
             self={Boolean(openedUser) && isSelf(openedUser, currentUser)}
-            notice={createdNotice && openedUser && createdNotice.id === openedUser.id ? createdNotice.message : null}
+            notice={panelNotice && openedUser && panelNotice.id === openedUser.id ? panelNotice.message : null}
             canSeeDrivers={can('drivers.update')}
+            canSeeOrganizations={can('organizations.update')}
             canSendResetLink={can('users.send-password-reset')}
             canUseTools={can('tooling.access')}
             onCreated={handleCreated}
-            onSaved={handleSaved}
+            onInfoSaved={(savedUser) => handleSaved(savedUser, 'Informations enregistrées.')}
+            onRolesSaved={(savedUser) => handleSaved(savedUser, 'Rôles enregistrés.')}
             onStatusChanged={handleStatusChanged}
           />
         </div>

@@ -1,8 +1,9 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { updateUserRoles } from '../../api/users'
 import { ROLE_LABELS } from '../../lib/labels'
 import { getErrorMessage, getFieldErrors } from '../../lib/errors'
-import { GLOBAL_ROLES, sameRoles } from '../../lib/users'
+import { driverRoleWarning, GLOBAL_ROLES, sameRoles } from '../../lib/users'
 import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
 import { Checkbox } from '../ui/Field'
@@ -16,11 +17,13 @@ const ROLE_HINTS = {
 
 // Rôles globaux d'un compte, en cases à cocher (au moins un). `self` : son propre compte, le rôle admin reste coché
 // pour ne pas perdre l'accès à l'administration. Le backend refuse de retirer le rôle du dernier admin actif.
-export function UserRolesForm({ user, self, onSaved }) {
+// Rôle « Chauffeur » et profil chauffeur en désaccord : avertissement seulement (lien vers Chauffeurs si `canSeeDrivers`).
+export function UserRolesForm({ user, self, canSeeDrivers, onSaved }) {
   const [roles, setRoles] = useState(user.roles)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const unchanged = sameRoles(roles, user.roles)
+  const driverWarning = driverRoleWarning(roles, user.driver)
 
   function toggle(role, checked) {
     setRoles((current) => (checked ? [...current, role] : current.filter((item) => item !== role)))
@@ -61,6 +64,32 @@ export function UserRolesForm({ user, self, onSaved }) {
         })}
       </fieldset>
       {roles.length === 0 && <p className="text-sm text-danger">Cochez au moins un rôle.</p>}
+      {driverWarning === 'sans-profil' && (
+        <Alert tone="warning">
+          Ce compte n’a pas de profil chauffeur : il ne peut pas recevoir de missions.
+          {canSeeDrivers && (
+            <>
+              {' '}
+              <Link to="/gestion/chauffeurs?chauffeur=nouveau" className="font-semibold text-link hover:underline">
+                Ajouter un chauffeur
+              </Link>
+            </>
+          )}
+        </Alert>
+      )}
+      {driverWarning === 'profil-actif' && (
+        <Alert tone="warning">
+          Son profil chauffeur reste actif : il peut encore être affecté à des trajets.
+          {canSeeDrivers && (
+            <>
+              {' '}
+              <Link to={`/gestion/chauffeurs?chauffeur=${user.driver.id}`} className="font-semibold text-link hover:underline">
+                Ouvrir la fiche chauffeur
+              </Link>
+            </>
+          )}
+        </Alert>
+      )}
       <div className="flex justify-end">
         <Button type="submit" variant="secondary" loading={saving} disabled={unchanged || roles.length === 0}>
           Enregistrer les rôles
