@@ -38,7 +38,7 @@ function isDriverDeadlinePassed(mission, now) {
   return brusselsNow(now) > `${nextDay(mission.trip_date.slice(0, 10))}T12:00`
 }
 
-// Compte rendu d'une réservation dans un index chargé par useTripReports :
+// Compte rendu d'une réservation dans un index (useTripReports ou reportsFromMissions) :
 //   index pas encore connu → undefined (aucun badge) ; chargé, pas de compte rendu → null
 export function reportOf(reports, reservationId) {
   return reports ? (reports[reservationId] ?? null) : undefined
@@ -78,6 +78,14 @@ export function remarksForOutcome(report, outcome) {
 function nextDay(day) {
   const [year, month, date] = day.split('-').map(Number)
   return new Date(Date.UTC(year, month - 1, date + 1)).toISOString().slice(0, 10)
+}
+
+// Index { reservation_id: compte rendu } à partir de missions reçues avec include=trip_report (`trip_report` : compte
+// rendu ou null). undefined si la liste n'est pas chargée ou si le backend n'a pas joint les comptes rendus : pas de
+// badge plutôt qu'un faux « À confirmer ».
+export function reportsFromMissions(missionList) {
+  if (!missionList || missionList.some((mission) => !('trip_report' in mission))) return undefined
+  return Object.fromEntries(missionList.map((mission) => [mission.id, mission.trip_report]))
 }
 
 // Index { reservation_id: compte rendu } à partir d'une liste

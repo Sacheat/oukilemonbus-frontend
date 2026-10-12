@@ -1,6 +1,6 @@
 import { ClipboardCheck } from 'lucide-react'
 import { usePendingReports } from '../../hooks/usePendingReports'
-import { MissionCard } from './MissionCard'
+import { MissionRow } from './MissionRow'
 
 // En tête de « Mes missions » : les trajets dont le compte rendu est attendu (aujourd'hui, ou hier jusqu'à 12:00).
 // Rien n'est affiché s'il n'y en a pas (ni pendant le chargement, ni en cas d'erreur : la liste reste utilisable).
@@ -18,11 +18,11 @@ export function PendingReports() {
         Indiquez pour chaque trajet s'il a été réalisé, le jour même de préférence et au plus tard le lendemain à 12:00.
         Ensuite, seul un agent pourra le faire.
       </p>
-      <div className="grid gap-3 md:grid-cols-2">
+      <ul className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
         {pending.data.map((mission) => (
-          <MissionCard key={mission.id} mission={mission} report={null} />
+          <MissionRow key={mission.id} mission={mission} report={null} />
         ))}
-      </div>
+      </ul>
     </section>
   )
 }

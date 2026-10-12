@@ -16,9 +16,9 @@ export function weekEndOf(weekStart) {
   return addDays(weekStart, 6)
 }
 
-// Missions de la semaine qui figurent sur la feuille : confirmées seulement, comme le PDF
+// Missions de la semaine qui figurent sur la feuille : confirmées seulement, comme le PDF ; compte rendu joint (badges)
 export function weekMissionsParams(weekStart) {
-  return { date_from: weekStart, date_to: weekEndOf(weekStart), statuses: ['confirme'], sort: 'asc' }
+  return { date_from: weekStart, date_to: weekEndOf(weekStart), statuses: ['confirme'], sort: 'asc', include: 'trip_report' }
 }
 
 // Nom du PDF enregistré (le backend en propose un, mais le header n'est pas lisible depuis le navigateur)

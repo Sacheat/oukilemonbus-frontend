@@ -26,10 +26,13 @@ export const MISSION_STATUSES = ['approuve', 'confirme']
 // Paramètres de GET /reservations : le backend ne renvoie au chauffeur que ses missions, filtrées par statut.
 //   à venir → à partir d'aujourd'hui, la plus proche d'abord
 //   passées → jusqu'à hier, la plus récente d'abord
-// `today` : jour à Bruxelles (AAAA-MM-JJ)
+// `today` : jour à Bruxelles (AAAA-MM-JJ). Compte rendu joint à chaque mission (include=trip_report) : badges sans
+// second appel.
 export function missionListParams(period, page, today) {
-  if (period === 'passees') return { date_to: addDays(today, -1), statuses: MISSION_STATUSES, sort: 'desc', page }
-  return { date_from: today, statuses: MISSION_STATUSES, sort: 'asc', page }
+  if (period === 'passees') {
+    return { date_to: addDays(today, -1), statuses: MISSION_STATUSES, sort: 'desc', include: 'trip_report', page }
+  }
+  return { date_from: today, statuses: MISSION_STATUSES, sort: 'asc', include: 'trip_report', page }
 }
 
 // Missions rangées par jour, dans l'ordre reçu : [{ day, missions }]
@@ -52,4 +55,10 @@ export function isCancelledMission(mission) {
 // le bus revient ensuite au lieu de départ (même règle que les feuilles de route : round_trip_km).
 export function roundTripKmText(mission) {
   return `${(Number(mission.distance_km) * 2).toLocaleString('fr-BE', { maximumFractionDigits: 1 })} km`
+}
+
+// Statut affiché sur une mission seulement s'il apprend quelque chose : « Confirmé » est le cas normal
+// (même règle que les cartes du Planning) ; « Approuvé » dit que l'agent n'a pas encore confirmé
+export function showsMissionStatus(mission) {
+  return mission.status !== 'confirme'
 }

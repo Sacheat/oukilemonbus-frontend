@@ -9,8 +9,8 @@ import { ErrorState } from '../../components/ui/ErrorState'
 import { Loader } from '../../components/ui/Loader'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Pagination } from '../../components/ui/Pagination'
+import { SegmentedControl } from '../../components/ui/SegmentedControl'
 import { useApi } from '../../hooks/useApi'
-import { cx } from '../../lib/cx'
 import { periodCounts, readUnavailabilitySearch, unavailabilityListParams } from '../../lib/unavailabilities'
 
 // Onglets du chauffeur : les annulées n'ont plus d'effet pour lui, elles ne sont pas affichées
@@ -77,23 +77,13 @@ export function DriverUnavailabilitiesPage() {
 
       <Alert>Pour signaler une indisponibilité (maladie, absence…), contactez votre responsable.</Alert>
 
-      <div role="group" aria-label="Période" className="flex w-fit flex-wrap rounded-control border border-line-strong bg-surface p-1">
-        {DRIVER_PERIODS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={period === option.value}
-            onClick={() => showPeriod(option.value)}
-            className={cx(
-              'min-h-11 rounded-md px-4 text-sm font-semibold',
-              period === option.value ? 'bg-primary text-on-primary' : 'text-muted hover:text-ink',
-            )}
-          >
-            {option.label}
-            {counts && ` (${counts[option.value]})`}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        label="Période"
+        options={DRIVER_PERIODS.map((option) => ({ ...option, count: counts ? counts[option.value] : null }))}
+        value={period}
+        onChange={showPeriod}
+        className="w-fit max-w-full overflow-x-auto"
+      />
 
       {content}
     </div>

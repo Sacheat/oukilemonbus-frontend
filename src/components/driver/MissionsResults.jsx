@@ -9,9 +9,9 @@ import { MissionDays } from './MissionDays'
 
 // Zone des missions selon la situation :
 //   erreur ou chargement           → message ou indicateur
-//   « À venir », première page     → « Aujourd'hui » mis en avant (colonne de gauche sur grand écran),
-//                                     puis les prochains jours (colonne de droite)
-//   autre page ou « Passées »      → missions groupées par jour
+//   « À venir », première page     → « Aujourd'hui » en grandes cartes (colonne de gauche sur grand écran),
+//                                     puis les prochains jours en lignes compactes (colonne de droite)
+//   autre page ou « Passées »      → missions groupées par jour, en lignes compactes
 // `reports` : comptes rendus indexés par mission (badges), absent tant qu'ils ne sont pas chargés
 export function MissionsResults({ missions, reports, period, page, today, onPageChange }) {
   if (missions.error) return <ErrorState error={missions.error} onRetry={missions.reload} />
@@ -26,7 +26,7 @@ export function MissionsResults({ missions, reports, period, page, today, onPage
     }
     return (
       <div className="grid gap-6">
-        <MissionDays missions={missionList} columns reports={reports} />
+        <MissionDays missions={missionList} reports={reports} />
         {pagination}
       </div>
     )

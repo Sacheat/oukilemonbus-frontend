@@ -3,27 +3,35 @@ import { Link } from 'react-router'
 import { cx } from '../../../lib/cx'
 import { formatTime } from '../../../lib/dates'
 import { PROGRESS_BADGES } from '../../../lib/driverJourney'
-import { ROUTE_TAB_NAME } from '../../../lib/driverMissions'
+import { ROUTE_TAB_NAME, showsMissionStatus } from '../../../lib/driverMissions'
 import { navigationLink } from '../../../lib/navigation'
 import { estimatedArrivals, shortAddress, totalPassengers } from '../../../lib/reservations'
 import { Badge } from '../../ui/Badge'
 import { StatusBadge } from '../../ui/StatusBadge'
-import { HelpButton } from './HelpButton'
 import { JourneyStepButtons } from './JourneyStepButtons'
+
+const ACTION_LINK =
+  'inline-flex min-h-12 items-center justify-center gap-2 rounded-control border border-line-strong bg-surface px-3 text-center font-bold hover:bg-surface-muted'
 
 // Où mène « Itinéraire » selon l'avancement : vers le lieu de départ (avant le départ), vers la destination (aller),
 // puis de nouveau vers le lieu de départ (retour). Depuis la position du téléphone, avec l'application de la commune. Rien une fois le trajet terminé.
+// `short` : libellé du bouton (côte à côte avec « Appeler » sur téléphone) ; `label` : libellé complet (lecteurs d'écran).
 function routeTarget(mission, state) {
   if (state === 'termine') return null
-  if (state === 'en_route_aller') return { location: mission.destination_location, label: 'Itinéraire vers la destination' }
-  if (state === 'sur_place' || state === 'en_route_retour') return { location: mission.pickup_location, label: 'Itinéraire du retour' }
-  return { location: mission.pickup_location, label: 'Itinéraire vers le départ' }
+  if (state === 'en_route_aller') {
+    return { location: mission.destination_location, short: 'Vers la destination', label: 'Itinéraire vers la destination' }
+  }
+  if (state === 'sur_place' || state === 'en_route_retour') {
+    return { location: mission.pickup_location, short: 'Retour', label: 'Itinéraire du retour' }
+  }
+  return { location: mission.pickup_location, short: 'Vers le départ', label: 'Itinéraire vers le départ' }
 }
 
-// Un trajet de « Ma journée » : horaires, organisation (appel direct), trajet, passagers, bus, itinéraire,
-// les quatre étapes et « Aide ». `engine` : application de navigation de la commune. `current` : trajet en cours, mis en avant. Une mission seulement approuvée
-// (pas encore confirmée par un agent) garde ses boutons éteints.
-export function JourneyTripCard({ mission, progress, current, engine, onRecorded, onUndone, onAlertSent }) {
+// Un trajet de « Ma journée » : horaires, organisation (appel direct), trajet, passagers, bus, itinéraire et les quatre
+// étapes (« Aide » est en bas de la page). `engine` : application de navigation de la commune. `current` : trajet en
+// cours, mis en avant. Statut seulement s'il n'est pas « Confirmé » : une mission seulement approuvée (pas encore
+// confirmée par un agent) garde ses boutons éteints.
+export function JourneyTripCard({ mission, progress, current, engine, onRecorded, onUndone }) {
   const state = progress?.state ?? 'a_venir'
   const arrivals = estimatedArrivals(mission)
   const passengerCount = totalPassengers(mission)
@@ -51,7 +59,7 @@ export function JourneyTripCard({ mission, progress, current, engine, onRecorded
         </div>
         <div className="flex flex-wrap gap-1.5">
           {progressBadge && <Badge tone={progressBadge.tone}>{progressBadge.label}</Badge>}
-          <StatusBadge status={mission.status} label={mission.status_label} />
+          {showsMissionStatus(mission) && <StatusBadge status={mission.status} label={mission.status_label} />}
         </div>
       </header>
 
@@ -77,27 +85,27 @@ export function JourneyTripCard({ mission, progress, current, engine, onRecorded
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {route && (
-          <a
-            href={route.href}
-            target={route.external ? undefined : ROUTE_TAB_NAME}
-            className="inline-flex min-h-12 items-center gap-2 rounded-control border border-line-strong bg-surface px-4 font-bold hover:bg-surface-muted"
-          >
-            <Navigation className="size-5" aria-hidden="true" />
-            {target.label}
-          </a>
-        )}
-        {phone && (
-          <a
-            href={`tel:${phone.replace(/\s+/g, '')}`}
-            className="inline-flex min-h-12 items-center gap-2 rounded-control border border-line-strong bg-surface px-4 font-bold hover:bg-surface-muted"
-          >
-            <Phone className="size-5" aria-hidden="true" />
-            Appeler l’organisation
-          </a>
-        )}
-      </div>
+      {(route || phone) && (
+        <div className="grid grid-cols-2 gap-2">
+          {route && (
+            <a
+              href={route.href}
+              target={route.external ? undefined : ROUTE_TAB_NAME}
+              aria-label={target.label}
+              className={cx(ACTION_LINK, !phone && 'col-span-2')}
+            >
+              <Navigation className="size-5 shrink-0" aria-hidden="true" />
+              {target.short}
+            </a>
+          )}
+          {phone && (
+            <a href={`tel:${phone.replace(/\s+/g, '')}`} aria-label="Appeler l’organisation" className={cx(ACTION_LINK, !route && 'col-span-2')}>
+              <Phone className="size-5 shrink-0" aria-hidden="true" />
+              Appeler
+            </a>
+          )}
+        </div>
+      )}
 
       {confirmed ? (
         <JourneyStepButtons mission={mission} progress={progress} onRecorded={onRecorded} onUndone={onUndone} />
@@ -107,8 +115,7 @@ export function JourneyTripCard({ mission, progress, current, engine, onRecorded
         </p>
       )}
 
-      <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
-        <HelpButton mission={mission} onSent={onAlertSent} />
+      <footer className="flex justify-end border-t border-line pt-3">
         <Link to={`/chauffeur/missions/${mission.id}`} className="inline-flex min-h-11 items-center gap-1 font-semibold text-link">
           Détail de la mission
           <ArrowRight className="size-4" aria-hidden="true" />
