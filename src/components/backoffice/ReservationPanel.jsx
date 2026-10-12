@@ -13,6 +13,7 @@ import { estimatedArrivals, shortAddress, totalPassengers } from '../../lib/rese
 import { keyLabel } from '../../lib/shortcuts'
 import { RegenerateDeliberation } from '../college/RegenerateDeliberation'
 import { TripDocumentsCard } from '../documents/TripDocumentsCard'
+import { PassengerListCard } from '../documents/PassengerListCard'
 import { TripLeg } from '../reservations/TripLeg'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
@@ -263,6 +264,8 @@ export function ReservationPanel({ reservation, decision, actions, onAction, bus
             ['Demande envoyée', formatDateTime(reservation.created_at)],
           ]}
         />
+
+        <PassengerListCard key={`liste-${reservation.id}`} reservationId={reservation.id} audience="agent" />
 
         <TripDocumentsCard key={`${reservation.id}-${documentsVersion}`} reservationId={reservation.id} withDecision={false} />
 

@@ -55,7 +55,7 @@ export async function getBlobErrorMessage(error) {
   return getErrorMessage(error)
 }
 
-const SPREADSHEET_TYPES = ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+const SPREADSHEET_TYPES = ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv']
 
 // Le navigateur sait afficher le fichier dans un onglet (PDF, image) ; sinon on ne propose que le téléchargement
 export function canOpenInBrowser(mimeType = '') {
@@ -71,7 +71,7 @@ export function fileKind(mimeType = '') {
 }
 
 // Types des pastilles de « Mes documents » (/espace), dans l'ordre d'affichage ; une pastille sans document est masquée
-export const USER_DOCUMENT_TYPES = ['deliberation', 'attestation', 'justificatif', 'planning', 'feuille_route']
+export const USER_DOCUMENT_TYPES = ['deliberation', 'liste_passagers', 'attestation', 'justificatif', 'planning', 'feuille_route']
 
 // Lit l'URL de « Mes documents » : type (valeur inconnue ignorée) et page
 export function readUserDocumentsSearch(searchParams) {
