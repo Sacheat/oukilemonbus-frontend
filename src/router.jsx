@@ -13,6 +13,7 @@ import { ResetPasswordPage } from './pages/auth/ResetPasswordPage'
 import { VerifyEmailPage } from './pages/auth/VerifyEmailPage'
 import { NotFoundPage } from './pages/errors/NotFoundPage'
 import { RouteErrorPage } from './pages/errors/RouteErrorPage'
+import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage'
 
 // Pages connectées chargées à la demande (un fichier par page) ; connexion, inscription et erreurs restent dans le
 // fichier de départ, puisque c'est par elles qu'on arrive.
@@ -76,6 +77,12 @@ export const router = createBrowserRouter([
             ],
           },
         ],
+      },
+
+      // Politique de confidentialité : publique, connecté ou non (lien du formulaire d'inscription et du bandeau)
+      {
+        element: <PublicLayout wide />,
+        children: [{ path: 'confidentialite', element: <PrivacyPolicyPage /> }],
       },
 
       // Liens reçus par email : accessibles connecté ou non

@@ -17,7 +17,8 @@ export async function fetchMe({ signal } = {}) {
 }
 
 // Crée le compte (rôle user), ouvre la session et envoie l'email de vérification
-export async function register({ first_name, last_name, email, phone, password, password_confirmation }) {
+// `privacy_policy_accepted` : la case « J'ai lu la politique de confidentialité » (obligatoire, 422 sinon)
+export async function register({ first_name, last_name, email, phone, password, password_confirmation, privacy_policy_accepted }) {
   await csrf()
   const { data } = await api.post('/auth/register', {
     first_name,
@@ -26,8 +27,21 @@ export async function register({ first_name, last_name, email, phone, password, 
     phone: phone || null,
     password,
     password_confirmation,
+    privacy_policy_accepted: Boolean(privacy_policy_accepted),
   })
   return data.data
+}
+
+// Politique de confidentialité en vigueur (public) : { version, url }
+export async function getPrivacyPolicy({ signal } = {}) {
+  const { data } = await api.get('/privacy-policy', { signal })
+  return data.data ?? data
+}
+
+// Le compte connecté a lu la version en vigueur (422 sur `version` si la page est périmée)
+export async function acceptPrivacyPolicy(version) {
+  const { data } = await api.post('/auth/me/privacy-policy', { version })
+  return data.data ?? data
 }
 
 export async function resendVerificationEmail() {
