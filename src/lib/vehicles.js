@@ -1,11 +1,6 @@
 // Valeur de ?vehicule= pour ouvrir le formulaire d'ajout
 export const NEW_VEHICLE = 'nouveau'
 
-// Véhicule de la liste dont l'id correspond à ?vehicule= (l'URL donne une chaîne)
-export function findVehicle(vehicleList, vehicleParam) {
-  return vehicleList?.find((vehicle) => String(vehicle.id) === vehicleParam)
-}
-
 // `capacity` compte le siège du chauffeur : il reste capacity - 1 places passagers
 export function getPassengerSeats(vehicle) {
   return vehicle.capacity - 1

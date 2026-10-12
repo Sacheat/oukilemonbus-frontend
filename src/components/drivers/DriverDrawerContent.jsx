@@ -1,4 +1,5 @@
-import { findDriver, NEW_DRIVER } from '../../lib/drivers'
+import { NEW_DRIVER } from '../../lib/drivers'
+import { getErrorMessage } from '../../lib/errors'
 import { Alert } from '../ui/Alert'
 import { DetailList } from '../ui/DetailList'
 import { Loader } from '../ui/Loader'
@@ -8,17 +9,23 @@ import { DriverStatusControl } from './DriverStatusControl'
 import { LicenceBadge } from './LicenceBadge'
 
 // Contenu du panneau latéral selon ?chauffeur= :
-// ajout, compte + permis + activité, chargement ou chauffeur introuvable
-export function DriverDrawerContent({ driverParam, driverList, canCreate, onSaved, onStatusChanged }) {
+// ajout, compte + permis + activité, chargement ou chauffeur introuvable.
+// `opened` : { item, loading, error } de useOpenedItem (page affichée, sinon GET /drivers/{id})
+export function DriverDrawerContent({ driverParam, opened, canCreate, onSaved, onStatusChanged }) {
   if (driverParam === NEW_DRIVER) {
     if (!canCreate) return <Alert tone="danger">Vous n'avez pas le droit d'ajouter un chauffeur.</Alert>
     return <DriverCreateForm onSaved={onSaved} />
   }
 
-  if (!driverList) return <Loader />
+  if (opened.loading) return <Loader />
 
-  const openedDriver = findDriver(driverList, driverParam)
-  if (!openedDriver) return <Alert tone="warning">Ce chauffeur est introuvable sur cette page de la liste.</Alert>
+  const openedDriver = opened.item
+  if (!openedDriver) {
+    if (opened.error && opened.error.response?.status !== 404) {
+      return <Alert tone="danger">{getErrorMessage(opened.error)}</Alert>
+    }
+    return <Alert tone="warning">Ce chauffeur est introuvable.</Alert>
+  }
 
   return (
     <>

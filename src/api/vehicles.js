@@ -6,6 +6,11 @@ export async function getVehicles(params = {}, { signal } = {}) {
   return data
 }
 
+export async function getVehicle(vehicleId, { signal } = {}) {
+  const { data } = await api.get(`/vehicles/${vehicleId}`, { signal })
+  return data.data
+}
+
 // Tous les véhicules, toutes pages confondues (pour les listes de choix)
 export function getAllVehicles({ signal } = {}) {
   return fetchAllPages((page, options) => getVehicles({ page }, options), { signal })

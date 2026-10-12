@@ -1,14 +1,9 @@
 import { api } from './client'
 
-// Documents visibles (non paginé, plus récents d'abord) : ceux des réservations de mes organisations
-// et mes justificatifs. Chaque document inclut sa réservation (`reservation`) quand il y en a une.
-export async function getDocuments({ signal } = {}) {
-  const { data } = await api.get('/documents', { signal })
-  return data.data
-}
-
-// Page de documents (agent et admin), enveloppe { data, meta } : filtres `document_type[]`, `date_from`, `date_to`,
-// `q`, `reservation_id`, `page`, `per_page` (contrat de la PR backend « documents paginés »)
+// Page de documents visibles par le compte, plus récents d'abord (toujours paginé, 15 par défaut, `per_page` 100 au
+// plus), enveloppe { data, meta } : filtres `document_type[]`, `date_from`, `date_to`, `q`, `reservation_id`
+// (documents de la réservation, et feuilles de route qui la contiennent), `page`, `per_page`.
+// Usager : documents des réservations de ses organisations et ses justificatifs ; chacun inclut sa réservation.
 export async function getDocumentsPage(params = {}, { signal } = {}) {
   const { data } = await api.get('/documents', { params, signal })
   return data

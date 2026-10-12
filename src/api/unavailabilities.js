@@ -19,6 +19,13 @@ export async function getUnavailability(unavailabilityId, { signal } = {}) {
   return data.data
 }
 
+// Historique des modifications et de l'annulation, plus récentes d'abord (15 par page) : old_* / new_* (heures locales
+// sans fuseau), change_reason, changed_by { id, name } (null si le compte n'existe plus), created_at (UTC)
+export async function getUnavailabilityHistory(unavailabilityId, { page = 1 } = {}, { signal } = {}) {
+  const { data } = await api.get(`/unavailabilities/${unavailabilityId}/history`, { params: { page }, signal })
+  return data
+}
+
 // Corps commun à la création et à la modification.
 // Début et fin : heure de Bruxelles envoyée telle quelle, sans fuseau ("2026-07-10T08:00:00"), comme le backend
 // les stocke et les compare aux réservations. Selon le type, seul driver_id ou vehicle_id est rempli (jamais les deux).

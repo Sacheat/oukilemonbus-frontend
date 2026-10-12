@@ -1,7 +1,7 @@
 import { Plus, Users } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { getDrivers } from '../../api/drivers'
+import { getDriver, getDrivers } from '../../api/drivers'
 import { useAuth } from '../../auth/useAuth'
 import { DriverCard } from '../../components/drivers/DriverCard'
 import { DriverDrawerContent } from '../../components/drivers/DriverDrawerContent'
@@ -16,7 +16,8 @@ import { Pagination } from '../../components/ui/Pagination'
 import { useApi } from '../../hooks/useApi'
 import { useFleetToday } from '../../hooks/useFleetToday'
 import { useNow } from '../../hooks/useNow'
-import { NEW_DRIVER, findDriver, sortActiveFirst } from '../../lib/drivers'
+import { useOpenedItem } from '../../hooks/useOpenedItem'
+import { NEW_DRIVER, sortActiveFirst } from '../../lib/drivers'
 import { fleetDayState, fleetPlanningLink } from '../../lib/fleetToday'
 
 // Flotte : chauffeurs en cartes (actifs d'abord), paginés par 15.
@@ -37,7 +38,9 @@ export function DriversPage() {
   const canCreate = can('drivers.create')
 
   const isCreating = openedDriverParam === NEW_DRIVER
-  const openedDriver = findDriver(driverList, openedDriverParam)
+  // Pris dans la page affichée, sinon relu par GET /drivers/{id} (lien « permis » du tableau de bord…)
+  const opened = useOpenedItem(driverList, openedDriverParam, getDriver)
+  const openedDriver = opened.item
 
   function updateSearch(name, value) {
     const next = new URLSearchParams(searchParams)
@@ -127,7 +130,7 @@ export function DriversPage() {
         <div className="grid gap-6 p-5">
           <DriverDrawerContent
             driverParam={openedDriverParam}
-            driverList={driverList}
+            opened={opened}
             canCreate={canCreate}
             onSaved={handleSaved}
             onStatusChanged={handleStatusChanged}

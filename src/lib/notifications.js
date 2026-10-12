@@ -9,6 +9,35 @@ export function notificationCategories(user) {
   return ['reservation_updates', 'last_minute_cancellation', 'admin_workflow']
 }
 
+// État des pastilles de /notifications (?etat=) : toutes, non lues, ou urgentes (priorité haute)
+export const NOTIFICATION_STATES = ['non-lues', 'urgentes']
+
+// Le backend refuse une recherche de moins de 2 caractères
+export const NOTIFICATION_SEARCH_MIN_LENGTH = 2
+
+// Lit l'URL de /notifications (?etat=non-lues|urgentes&categorie=…&q=…&page=…), valeurs inconnues ignorées
+export function readNotificationsSearch(searchParams) {
+  const state = searchParams.get('etat')
+  return {
+    state: NOTIFICATION_STATES.includes(state) ? state : null,
+    category: searchParams.get('categorie') || null,
+    search: searchParams.get('q') ?? '',
+    page: Math.max(1, Number(searchParams.get('page')) || 1),
+  }
+}
+
+// Filtres de l'API (liste, résumé et « marquer comme lues » reçoivent les mêmes) ; `without` : filtres à ignorer
+// (ex. 'category' pour compter chaque catégorie avec les autres filtres)
+export function notificationFilterParams({ state, category, search }, without = []) {
+  const term = search.trim()
+  return {
+    ...(state === 'non-lues' && !without.includes('state') && { unread: 1 }),
+    ...(state === 'urgentes' && !without.includes('state') && { priority: 'high' }),
+    ...(category && !without.includes('category') && { category }),
+    ...(term.length >= NOTIFICATION_SEARCH_MIN_LENGTH && { search: term }),
+  }
+}
+
 export function categoryLabel(category, user) {
   if (category === 'admin_workflow' && !isInternal(user)) return 'Réponses à mes demandes'
   return NOTIFICATION_CATEGORY_LABELS[category] ?? category

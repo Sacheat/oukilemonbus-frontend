@@ -6,6 +6,12 @@ export async function getDrivers(params = {}, { signal } = {}) {
   return data
 }
 
+// Un chauffeur, avec son compte (`user`)
+export async function getDriver(driverId, { signal } = {}) {
+  const { data } = await api.get(`/drivers/${driverId}`, { signal })
+  return data.data
+}
+
 // Tous les chauffeurs, toutes pages confondues (pour savoir quels comptes sont déjà chauffeurs)
 export function getAllDrivers({ signal } = {}) {
   return fetchAllPages((page, options) => getDrivers({ page }, options), { signal })

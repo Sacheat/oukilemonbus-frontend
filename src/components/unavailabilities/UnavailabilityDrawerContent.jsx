@@ -15,6 +15,7 @@ import { Loader } from '../ui/Loader'
 import { UnavailabilityCancelControl } from './UnavailabilityCancelControl'
 import { UnavailabilityDetails } from './UnavailabilityDetails'
 import { UnavailabilityForm } from './UnavailabilityForm'
+import { UnavailabilityHistory } from './UnavailabilityHistory'
 
 // Contenu du panneau latéral selon ?indisponibilite= :
 //   'nouvelle'                          → formulaire de déclaration
@@ -61,6 +62,7 @@ function OpenedUnavailability({ unavailabilityId, fleet, onSaved, onCancelled })
             : 'Cette indisponibilité est terminée : elle ne peut plus être modifiée.'}
         </Alert>
         <UnavailabilityDetails unavailability={unavailability} subject={subject} />
+        <UnavailabilityHistory unavailabilityId={unavailability.id} />
       </>
     )
   }
@@ -79,6 +81,7 @@ function OpenedUnavailability({ unavailabilityId, fleet, onSaved, onCancelled })
         <UnavailabilityDetails unavailability={unavailability} subject={subject} />
       )}
       <UnavailabilityCancelControl unavailability={unavailability} subject={subject} onCancelled={onCancelled} />
+      <UnavailabilityHistory unavailabilityId={unavailability.id} />
     </>
   )
 }

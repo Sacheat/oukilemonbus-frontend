@@ -132,11 +132,6 @@ export async function retryAssignReservation(id) {
   return data.data
 }
 
-export async function getReservationConflicts(id, { signal } = {}) {
-  const { data } = await api.get(`/reservations/${id}/conflicts`, { signal })
-  return data.data
-}
-
 export async function resolveReservationConflict(reservationId, conflictId) {
   const { data } = await api.patch(`/reservations/${reservationId}/conflicts/${conflictId}/resolve`)
   return data.data

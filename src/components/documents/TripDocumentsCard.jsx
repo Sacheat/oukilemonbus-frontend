@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { getCouncilDecisions, getDocuments } from '../../api/documents'
+import { getCouncilDecisions, getDocumentsPage } from '../../api/documents'
 import { useApi } from '../../hooks/useApi'
 import { formatDate } from '../../lib/dates'
 import { DECISION_STATUS } from '../../lib/documents'
@@ -16,11 +16,13 @@ export function TripDocumentsCard({ reservationId, withDecision = true }) {
     async (signal) => {
       const [decisions, documents] = await Promise.all([
         getCouncilDecisions({ reservation_id: reservationId }, { signal }),
-        getDocuments({ signal }),
+        getDocumentsPage({ reservation_id: reservationId, per_page: 100 }, { signal }),
       ])
       return {
         decision: decisions.data.find((item) => item.reservation_id === reservationId) ?? null,
-        documents: documents.filter((doc) => doc.reservation_id === reservationId),
+        // Le filtre du backend renvoie aussi les feuilles de route qui contiennent le trajet : on ne garde que les
+        // documents de la réservation elle-même
+        documents: documents.data.filter((doc) => doc.reservation_id === reservationId),
       }
     },
     [reservationId],
