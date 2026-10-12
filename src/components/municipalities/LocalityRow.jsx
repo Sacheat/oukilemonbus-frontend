@@ -67,31 +67,39 @@ export function LocalityRow({ locality, onChanged }) {
         </form>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
-          <span className={cx('min-w-0 flex-1 font-semibold break-words', !locality.is_active && 'text-muted line-through')}>
+          {/* Petit écran : le nom sur sa propre ligne, badges et boutons en dessous */}
+          <span
+            className={cx(
+              'min-w-0 basis-full font-semibold break-words sm:basis-0 sm:flex-1',
+              !locality.is_active && 'text-muted line-through',
+            )}
+          >
             {locality.name}
           </span>
           <Badge tone="neutral">{localitySourceLabel(locality.source)}</Badge>
           {!locality.is_active && <Badge tone="warning">Désactivée</Badge>}
-          <Button variant="secondary" onClick={() => setEditing(true)} aria-label={`Renommer ${locality.name}`} className="px-3">
-            <Pencil className="size-4" aria-hidden="true" />
-          </Button>
-          {locality.is_active ? (
-            <Button
-              variant="secondary"
-              loading={busy}
-              onClick={() => run(() => deactivateLocality(locality.id), `Localité désactivée : ${locality.name}.`)}
-            >
-              Désactiver
+          <span className="ml-auto flex gap-2">
+            <Button variant="secondary" onClick={() => setEditing(true)} aria-label={`Renommer ${locality.name}`} className="px-3">
+              <Pencil className="size-4" aria-hidden="true" />
             </Button>
-          ) : (
-            <Button
-              variant="secondary"
-              loading={busy}
-              onClick={() => run(() => updateLocality(locality.id, { is_active: true }), `Localité réactivée : ${locality.name}.`)}
-            >
-              Réactiver
-            </Button>
-          )}
+            {locality.is_active ? (
+              <Button
+                variant="secondary"
+                loading={busy}
+                onClick={() => run(() => deactivateLocality(locality.id), `Localité désactivée : ${locality.name}.`)}
+              >
+                Désactiver
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                loading={busy}
+                onClick={() => run(() => updateLocality(locality.id, { is_active: true }), `Localité réactivée : ${locality.name}.`)}
+              >
+                Réactiver
+              </Button>
+            )}
+          </span>
         </div>
       )}
       {error && <p className="text-xs font-semibold text-danger">{error}</p>}

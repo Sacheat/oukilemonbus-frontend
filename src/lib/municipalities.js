@@ -93,15 +93,93 @@ export function normalizeName(value) {
     .trim()
 }
 
-// Localités filtrées par nom, les actives d'abord puis par ordre alphabétique
-export function visibleLocalities(localities = [], search = '') {
+// Filtre par état des localités (pastilles du panneau)
+export const LOCALITY_STATES = [
+  { value: 'toutes', label: 'Toutes' },
+  { value: 'actives', label: 'Actives' },
+  { value: 'desactivees', label: 'Désactivées' },
+]
+
+function matchesState(locality, state) {
+  if (state === 'actives') return locality.is_active
+  if (state === 'desactivees') return !locality.is_active
+  return true
+}
+
+// Nombre de localités par état, pour les pastilles
+export function localityStateCounts(localities = []) {
+  return Object.fromEntries(LOCALITY_STATES.map(({ value }) => [value, localities.filter((locality) => matchesState(locality, value)).length]))
+}
+
+// Localités filtrées par nom et par état, les actives d'abord puis par ordre alphabétique
+export function visibleLocalities(localities = [], search = '', state = 'toutes') {
   const query = normalizeName(search)
   return localities
-    .filter((locality) => !query || normalizeName(locality.name).includes(query))
+    .filter((locality) => matchesState(locality, state) && (!query || normalizeName(locality.name).includes(query)))
     .sort((first, second) => Number(second.is_active) - Number(first.is_active) || first.name.localeCompare(second.name, 'fr'))
 }
 
 // Origine d'une localité, pour le badge
 export function localitySourceLabel(source) {
   return source === 'geonames' ? 'GeoNames' : 'Ajoutée à la main'
+}
+
+// Onglets de la page Communes (?onglet=). `admin` : réservé à l'admin (le backend refuse ces champs à un agent) ;
+// `needsActive` : n'a de sens qu'avec une commune active.
+export const MUNICIPALITY_TABS = [
+  { value: 'regles', label: 'Règles', needsActive: true },
+  { value: 'localites', label: 'Localités', needsActive: true },
+  { value: 'chauffeurs', label: 'Espace chauffeur', needsActive: true, admin: true },
+  { value: 'planning', label: 'Planning hebdomadaire', needsActive: true, admin: true },
+  { value: 'communes', label: 'Autres communes', admin: true },
+]
+
+// Onglets proposés selon le rôle et la présence d'une commune active
+export function municipalityTabs({ isAdmin, hasActive }) {
+  return MUNICIPALITY_TABS.filter((tab) => (isAdmin || !tab.admin) && (hasActive || !tab.needsActive))
+}
+
+// Onglet affiché : celui de l'URL s'il est proposé, sinon le premier
+export function readMunicipalityTab(searchParams, tabs) {
+  const value = searchParams.get('onglet')
+  return tabs.some((tab) => tab.value === value) ? value : tabs[0]?.value ?? null
+}
+
+// Contact de garde : valeurs du formulaire et champs modifiés (vide → null)
+const ON_CALL_FIELDS = ['on_call_name', 'on_call_email', 'on_call_phone']
+
+export function onCallFormValues(municipality) {
+  return Object.fromEntries(ON_CALL_FIELDS.map((field) => [field, municipality[field] ?? '']))
+}
+
+export function onCallChanges(municipality, values) {
+  const changes = {}
+  for (const field of ON_CALL_FIELDS) {
+    const next = values[field].trim() || null
+    if (next !== (municipality[field] ?? null)) changes[field] = next
+  }
+  return changes
+}
+
+// Espace chauffeur : application de navigation ('' = par défaut) et délai du premier départ, avec un mode comme les
+// distances ('defaut' → null, 'perso' → minutes de 0 à 240)
+export const MIN_DEPARTURE_WINDOW = 0
+export const MAX_DEPARTURE_WINDOW = 240
+
+export function driverJourneyFormValues(municipality) {
+  const stored = municipality.driver_departure_window_min
+  return {
+    navigation_engine: municipality.navigation_engine ?? '',
+    departure_mode: stored == null ? 'defaut' : 'perso',
+    driver_departure_window_min: stored == null ? '' : String(stored),
+  }
+}
+
+export function driverJourneyChanges(municipality, values) {
+  const changes = {}
+  const engine = values.navigation_engine || null
+  if (engine !== (municipality.navigation_engine ?? null)) changes.navigation_engine = engine
+  const window = values.departure_mode === 'defaut' ? null : Number(values.driver_departure_window_min)
+  if (window !== (municipality.driver_departure_window_min ?? null)) changes.driver_departure_window_min = window
+  return changes
 }

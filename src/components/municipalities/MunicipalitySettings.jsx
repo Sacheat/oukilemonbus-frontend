@@ -11,22 +11,20 @@ import { DistanceField } from './DistanceField'
 import { PickupZoneMap } from './PickupZoneMap'
 
 // Réglages de la commune active appliqués aux réservations : identité, dépôt du bus et limites de distance,
-// avec la carte de la zone de prise en charge qui suit la saisie. Seuls les champs modifiés sont envoyés.
-export function MunicipalitySettings({ municipality, onSaved }) {
+// avec la carte de la zone de prise en charge qui suit la saisie. Seuls les champs modifiés sont envoyés ; bouton
+// désactivé sans changement. `notice` : message après l'enregistrement, masqué dès la modification suivante.
+export function MunicipalitySettings({ municipality, notice, onSaved }) {
   const form = useForm(settingsFormValues(municipality))
   const [depot, setDepot] = useState(municipality.depot_location ?? null)
   const point = referencePoint(municipality, depot)
   const pickupKm = distanceInKm(form.values, 'max_pickup_distance_km')
-
-  async function save(values) {
-    const changes = settingsChanges(municipality, values, depot)
-    if (Object.keys(changes).length === 0) return null // rien n'a changé : pas de requête
-    return updateMunicipality(municipality.id, changes)
-  }
+  const changes = settingsChanges(municipality, form.values, depot)
+  const dirty = Object.keys(changes).length > 0
 
   async function handleSubmit(event) {
     event.preventDefault()
-    const result = await form.submit(save)
+    if (!dirty) return
+    const result = await form.submit(() => updateMunicipality(municipality.id, changes))
     if (result.ok) onSaved(result.data)
   }
 
@@ -34,6 +32,7 @@ export function MunicipalitySettings({ municipality, onSaved }) {
     <div className="grid items-start gap-7 lg:grid-cols-2">
       <Panel title="Règles des réservations">
         <form onSubmit={handleSubmit} noValidate className="grid gap-5 p-5">
+          {notice && !dirty && <Alert tone="success">{notice}</Alert>}
           {form.error && <Alert tone="danger">{form.error}</Alert>}
 
           <div className="grid gap-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
@@ -73,7 +72,7 @@ export function MunicipalitySettings({ municipality, onSaved }) {
           ))}
 
           <div className="flex justify-end">
-            <Button type="submit" loading={form.submitting}>
+            <Button type="submit" loading={form.submitting} disabled={!dirty}>
               Enregistrer les règles
             </Button>
           </div>

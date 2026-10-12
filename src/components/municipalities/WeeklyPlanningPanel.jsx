@@ -28,22 +28,21 @@ function ownerAccount(municipality) {
 
 // Planning hebdomadaire envoyé automatiquement (admin seulement ; le backend refuse ces champs à un agent) :
 // envoi activé, jour et heure, responsable du planning. Changer le responsable passe par une confirmation qui annonce
-// l'effet (lui seul le reçoit par défaut ; sans responsable, tout le monde). `onSaved(municipalité)` après
-// l'enregistrement, `onUnchanged()` si rien n'a changé.
-export function WeeklyPlanningPanel({ municipality, onSaved, onUnchanged }) {
+// l'effet (lui seul le reçoit par défaut ; sans responsable, tout le monde). Bouton désactivé sans changement.
+// `notice` : message après l'enregistrement, masqué dès la modification suivante. `onSaved(municipalité)` après
+// l'enregistrement.
+export function WeeklyPlanningPanel({ municipality, notice, onSaved }) {
   const form = useForm(weeklyPlanningFormValues(municipality))
   const [owner, setOwner] = useState(() => ownerAccount(municipality))
   const [confirmOwner, setConfirmOwner] = useState(false)
   const { values } = form
   const ownerChanged = ownerHasChanged(municipality, owner)
+  const changes = weeklyPlanningChanges(municipality, values, owner)
+  const dirty = Object.keys(changes).length > 0
 
   async function save() {
     setConfirmOwner(false)
-    const changes = weeklyPlanningChanges(municipality, values, owner)
-    if (Object.keys(changes).length === 0) {
-      onUnchanged()
-      return
-    }
+    if (!dirty) return
     const result = await form.submit(() => updateMunicipality(municipality.id, changes))
     if (result.ok) onSaved(result.data)
   }
@@ -62,6 +61,7 @@ export function WeeklyPlanningPanel({ municipality, onSaved, onUnchanged }) {
           aux administrateurs. Si un trajet change ensuite, une version corrigée part au plus une fois par heure, jusqu’à
           la fin de la semaine concernée.
         </p>
+        {notice && !dirty && <Alert tone="success">{notice}</Alert>}
         {form.error && <Alert tone="danger">{form.error}</Alert>}
 
         <Switch
@@ -132,7 +132,7 @@ export function WeeklyPlanningPanel({ municipality, onSaved, onUnchanged }) {
         )}
 
         <div>
-          <Button type="submit" loading={form.submitting}>
+          <Button type="submit" loading={form.submitting} disabled={!dirty}>
             Enregistrer le planning hebdomadaire
           </Button>
         </div>
