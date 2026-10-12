@@ -2,9 +2,10 @@ import { Link } from 'react-router'
 import { RELATIONSHIP_TYPE_LABELS } from '../../lib/labels'
 import { Badge } from '../ui/Badge'
 
-// Organisations du compte et profil chauffeur, en lecture seule, utiles avant de changer un rôle.
+// Organisations du compte et profil chauffeur, en lecture seule, utiles avant de changer un rôle ; liens vers
+// l'organisation et la fiche chauffeur selon la permission de la page visée.
 // Affichés seulement si le backend les renvoie (`organizations`, `driver` chargés) ; rien sinon.
-export function UserContext({ user, canSeeDrivers }) {
+export function UserContext({ user, canSeeDrivers, canSeeOrganizations }) {
   const organizations = user.organizations
   const hasDriver = user.driver !== undefined
   if (organizations === undefined && !hasDriver) return null
@@ -19,7 +20,13 @@ export function UserContext({ user, canSeeDrivers }) {
           <ul className="grid gap-1.5 text-sm">
             {organizations.map((organization) => (
               <li key={organization.id} className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-semibold">{organization.name}</span>
+                {canSeeOrganizations ? (
+                  <Link to={`/gestion/organisations?organisation=${organization.id}`} className="font-semibold text-link hover:underline">
+                    {organization.name}
+                  </Link>
+                ) : (
+                  <span className="font-semibold">{organization.name}</span>
+                )}
                 <Badge tone="neutral">
                   {RELATIONSHIP_TYPE_LABELS[organization.membership?.relationship_type] ?? 'Membre'}
                 </Badge>
@@ -34,8 +41,8 @@ export function UserContext({ user, canSeeDrivers }) {
           {canSeeDrivers && (
             <>
               {' · '}
-              <Link to="/gestion/chauffeurs" className="font-semibold text-link hover:underline">
-                Voir les chauffeurs
+              <Link to={`/gestion/chauffeurs?chauffeur=${user.driver.id}`} className="font-semibold text-link hover:underline">
+                Voir la fiche chauffeur
               </Link>
             </>
           )}

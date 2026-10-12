@@ -9,10 +9,12 @@ import { UserInfoForm } from './UserInfoForm'
 import { UserPasswordControl } from './UserPasswordControl'
 import { UserRolesForm } from './UserRolesForm'
 import { UserStatusControl } from './UserStatusControl'
+import { UserSummary } from './UserSummary'
 
 // Contenu du panneau latéral selon ?utilisateur= : création, ou compte (informations, rôles, rattachements, accès).
 // `opened` : { user, loading, error, reload } — le compte vient de la liste, sinon de GET /users/{id}.
-// `notice` : message à afficher en tête (ex. après la création). `self` : compte de l'admin connecté.
+// `notice` : message à afficher en tête (après la création ou un enregistrement). `self` : compte de l'admin connecté.
+// `canSeeDrivers` / `canSeeOrganizations` : liens vers la fiche chauffeur et les organisations.
 // `canSendResetLink` : permission users.send-password-reset (section « Mot de passe »).
 // `canUseTools` : permission tooling.access (lien vers le diagnostic du compte dans Outils).
 export function UserDrawerContent({
@@ -21,10 +23,12 @@ export function UserDrawerContent({
   self,
   notice,
   canSeeDrivers,
+  canSeeOrganizations,
   canSendResetLink,
   canUseTools,
   onCreated,
-  onSaved,
+  onInfoSaved,
+  onRolesSaved,
   onStatusChanged,
 }) {
   if (userParam === NEW_USER) return <UserCreateForm onCreated={onCreated} />
@@ -37,17 +41,25 @@ export function UserDrawerContent({
     <>
       {notice && <Alert tone="success">{notice}</Alert>}
 
+      <UserSummary user={user} />
+
       <section className="grid gap-3">
         <h3 className="font-bold">Informations</h3>
-        <UserInfoForm key={`info-${user.id}-${user.updated_at}`} user={user} onSaved={onSaved} />
+        <UserInfoForm key={`info-${user.id}-${user.updated_at}`} user={user} onSaved={onInfoSaved} />
       </section>
 
       <section className="grid gap-3 border-t border-line pt-5">
         <h3 className="font-bold">Rôles</h3>
-        <UserRolesForm key={`roles-${user.id}-${user.roles.join()}`} user={user} self={self} onSaved={onSaved} />
+        <UserRolesForm
+          key={`roles-${user.id}-${user.roles.join()}`}
+          user={user}
+          self={self}
+          canSeeDrivers={canSeeDrivers}
+          onSaved={onRolesSaved}
+        />
       </section>
 
-      <UserContext user={user} canSeeDrivers={canSeeDrivers} />
+      <UserContext user={user} canSeeDrivers={canSeeDrivers} canSeeOrganizations={canSeeOrganizations} />
 
       {canSendResetLink && <UserPasswordControl key={`password-${user.id}`} user={user} self={self} />}
 

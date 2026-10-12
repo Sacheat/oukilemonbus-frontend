@@ -4,15 +4,18 @@ import { cx } from '../../lib/cx'
 import { OrganizationAvatar } from '../organizations/OrganizationAvatar'
 import { Badge } from '../ui/Badge'
 
-// Ligne d'un compte, cliquable en entière pour ouvrir le panneau : initiales, nom, email, rôles et état
-export function UserRow({ user, onOpen }) {
+// Ligne d'un compte, cliquable en entière pour ouvrir le panneau : initiales, nom, email, rôles et état ;
+// `selected` : compte ouvert dans le panneau
+export function UserRow({ user, selected, onOpen }) {
   return (
     <li>
       <button
         type="button"
         onClick={() => onOpen(user)}
+        aria-current={selected ? 'true' : undefined}
         className={cx(
           'flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-surface-muted sm:px-5',
+          selected && 'bg-surface-muted',
           !user.active && 'opacity-70',
         )}
       >

@@ -84,6 +84,15 @@ export function sameRoles(first = [], second = []) {
   return first.length === second.length && first.every((role) => second.includes(role))
 }
 
+// Rôle « Chauffeur » coché et profil chauffeur en désaccord (`driver` : undefined tant que non chargé, null = aucun) :
+// 'sans-profil' (rôle sans profil : aucune mission possible), 'profil-actif' (rôle retiré, profil encore affectable)
+export function driverRoleWarning(roles, driver) {
+  if (driver === undefined) return null
+  if (roles.includes('chauffeur') && !driver) return 'sans-profil'
+  if (!roles.includes('chauffeur') && driver?.is_active) return 'profil-actif'
+  return null
+}
+
 // Un admin ne peut ni retirer son propre rôle admin ni désactiver son compte (il perdrait l'accès à cette page).
 // Le backend refuse en plus de retirer ou désactiver le dernier admin actif.
 export function isSelf(user, currentUser) {

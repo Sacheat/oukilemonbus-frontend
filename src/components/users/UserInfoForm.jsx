@@ -5,15 +5,15 @@ import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
 import { Field, Input } from '../ui/Field'
 
-// Informations d'un compte (nom, email, téléphone) ; seuls les champs modifiés sont envoyés.
+// Informations d'un compte (nom, email, téléphone) ; seuls les champs modifiés sont envoyés (bouton désactivé tant que
+// rien ne change).
 // Les erreurs 422 (email déjà utilisé…) s'affichent sous le champ concerné.
 export function UserInfoForm({ user, onSaved }) {
   const form = useForm(userFormValues(user))
+  const unchanged = Object.keys(changedUserFields(user, form.values)).length === 0
 
-  async function save(values) {
-    const changes = changedUserFields(user, values)
-    if (Object.keys(changes).length === 0) return null // rien n'a changé : pas de requête
-    return updateProfile(user.id, { ...userFormValues(user), ...changes })
+  function save(values) {
+    return updateProfile(user.id, { ...userFormValues(user), ...changedUserFields(user, values) })
   }
 
   async function handleSubmit(event) {
@@ -46,7 +46,7 @@ export function UserInfoForm({ user, onSaved }) {
         {(props) => <Input {...props} type="tel" value={form.values.phone} onChange={form.handle('phone')} maxLength={20} autoComplete="off" />}
       </Field>
       <div className="flex justify-end">
-        <Button type="submit" variant="secondary" loading={form.submitting}>
+        <Button type="submit" variant="secondary" loading={form.submitting} disabled={unchanged}>
           Enregistrer les informations
         </Button>
       </div>
