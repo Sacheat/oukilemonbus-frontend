@@ -131,6 +131,8 @@ export const MUNICIPALITY_TABS = [
   { value: 'localites', label: 'Localités', needsActive: true },
   { value: 'chauffeurs', label: 'Espace chauffeur', needsActive: true, admin: true },
   { value: 'planning', label: 'Planning hebdomadaire', needsActive: true, admin: true },
+  { value: 'calendrier', label: 'Calendrier', needsActive: true },
+  { value: 'college', label: 'Collège', needsActive: true, admin: true },
   { value: 'communes', label: 'Autres communes', admin: true },
 ]
 
@@ -181,5 +183,31 @@ export function driverJourneyChanges(municipality, values) {
   if (engine !== (municipality.navigation_engine ?? null)) changes.navigation_engine = engine
   const window = values.departure_mode === 'defaut' ? null : Number(values.driver_departure_window_min)
   if (window !== (municipality.driver_departure_window_min ?? null)) changes.driver_departure_window_min = window
+  return changes
+}
+
+// Composition du Collège imprimée sur les délibérations (onglet « Collège », admin). Champ vide : valeur par défaut du
+// backend (`effective_council_*`, montrée en exemple). Seuls les champs modifiés sont envoyés (vide → null).
+export const COUNCIL_FIELDS = [
+  'council_present_text',
+  'council_director_title',
+  'council_director_name',
+  'council_president_title',
+  'council_president_name',
+  'council_mayor_title',
+  'council_mayor_name',
+  'council_schools_recipient',
+]
+
+export function councilFormValues(municipality) {
+  return Object.fromEntries(COUNCIL_FIELDS.map((field) => [field, municipality[field] ?? '']))
+}
+
+export function councilChanges(municipality, values) {
+  const changes = {}
+  for (const field of COUNCIL_FIELDS) {
+    const next = values[field].trim() || null
+    if (next !== (municipality[field] ?? null)) changes[field] = next
+  }
   return changes
 }

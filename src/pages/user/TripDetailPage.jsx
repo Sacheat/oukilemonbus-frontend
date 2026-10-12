@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { getReservation } from '../../api/reservations'
 import { useAuth } from '../../auth/useAuth'
 import { TripDocumentsCard } from '../../components/documents/TripDocumentsCard'
+import { PassengerListCard } from '../../components/documents/PassengerListCard'
 import { CancelReservationModal } from '../../components/reservations/CancelReservationModal'
 import { ConfirmPassengersModal } from '../../components/reservations/ConfirmPassengersModal'
 import { KeyFacts } from '../../components/reservations/KeyFacts'
@@ -181,6 +182,8 @@ export function TripDetailPage() {
           <TripMap pickup={reservation.pickup_location} destination={reservation.destination_location} />
         </Panel>
       )}
+
+      {!['refuse', 'annule'].includes(reservation.status) && <PassengerListCard reservationId={reservation.id} audience="user" />}
 
       <TripDocumentsCard reservationId={reservation.id} />
 

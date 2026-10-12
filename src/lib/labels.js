@@ -74,6 +74,7 @@ export const DOCUMENT_TYPE_LABELS = {
   justificatif: 'Justificatif',
   planning: 'Planning',
   attestation: 'Attestation',
+  liste_passagers: 'Liste des passagers',
 }
 
 export const RECURRENCE_FREQUENCY_LABELS = {

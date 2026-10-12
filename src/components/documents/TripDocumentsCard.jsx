@@ -22,7 +22,8 @@ export function TripDocumentsCard({ reservationId, withDecision = true }) {
         decision: decisions.data.find((item) => item.reservation_id === reservationId) ?? null,
         // Le filtre du backend renvoie aussi les feuilles de route qui contiennent le trajet : on ne garde que les
         // documents de la réservation elle-même
-        documents: documents.data.filter((doc) => doc.reservation_id === reservationId),
+        // La liste des passagers a sa propre carte (PassengerListCard)
+        documents: documents.data.filter((doc) => doc.reservation_id === reservationId && doc.document_type !== 'liste_passagers'),
       }
     },
     [reservationId],
