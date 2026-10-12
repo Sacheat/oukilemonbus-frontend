@@ -43,33 +43,59 @@ export function isOngoing(unavailability, now = new Date()) {
   )
 }
 
-// Indisponibilités d'un onglet, triées : la plus proche d'abord pour « à venir »,
-// la plus récente d'abord pour « passées » et « annulées »
-export function unavailabilitiesForPeriod(unavailabilityList, period, now = new Date()) {
-  const byStart = (first, second) =>
-    toLocalMinute(first.start_datetime).localeCompare(toLocalMinute(second.start_datetime))
-  const inPeriod = unavailabilityList.filter((unavailability) => getUnavailabilityPeriod(unavailability, now) === period)
-  return period === 'a-venir' ? inPeriod.sort(byStart) : inPeriod.sort((first, second) => byStart(second, first))
-}
-
-// Nombre d'indisponibilités par onglet : { 'a-venir': 2, passees: 5, annulees: 1 }
-export function countByPeriod(unavailabilityList, now = new Date()) {
-  const counts = Object.fromEntries(UNAVAILABILITY_PERIODS.map((period) => [period.value, 0]))
-  unavailabilityList.forEach((unavailability) => {
-    counts[getUnavailabilityPeriod(unavailability, now)] += 1
-  })
-  return counts
-}
-
-// Ce qui est indisponible, en toutes lettres : nom du chauffeur ou plaque du véhicule.
-// Le backend ne renvoie que les id : on cherche dans les listes chargées par la page.
-export function unavailabilitySubject(unavailability, driverList, vehicleList) {
+// Ce qui est indisponible, en toutes lettres : nom du chauffeur ou plaque du véhicule, envoyés par le backend avec
+// chaque indisponibilité (aussi pour un chauffeur ou un bus désactivé depuis)
+export function unavailabilitySubject(unavailability) {
   if (unavailability.reason_type === 'driver') {
-    const driver = driverList.find((item) => item.id === unavailability.driver_id)
-    return driver?.user?.full_name ?? `Chauffeur n° ${unavailability.driver_id}`
+    return unavailability.driver?.name || `Chauffeur n° ${unavailability.driver_id}`
   }
-  const vehicle = vehicleList.find((item) => item.id === unavailability.vehicle_id)
-  return vehicle?.licence_plate ?? `Véhicule n° ${unavailability.vehicle_id}`
+  return unavailability.vehicle?.licence_plate || `Véhicule n° ${unavailability.vehicle_id}`
+}
+
+// Onglet de l'URL (?periode=a-venir) → valeur de l'API (period=a_venir)
+const PERIOD_API = { 'a-venir': 'a_venir', passees: 'passees', annulees: 'annulees' }
+
+// Filtres de la page lus dans l'URL : ?periode=&chauffeur=&vehicule=&page= (valeurs inconnues → par défaut)
+export function readUnavailabilitySearch(searchParams, periods = UNAVAILABILITY_PERIODS) {
+  const asked = searchParams.get('periode')
+  const id = (name) => (/^\d+$/.test(searchParams.get(name) ?? '') ? searchParams.get(name) : '')
+  return {
+    period: periods.some((option) => option.value === asked) ? asked : DEFAULT_PERIOD,
+    driverId: id('chauffeur'),
+    vehicleId: id('vehicule'),
+    page: Math.max(1, Number(searchParams.get('page')) || 1),
+  }
+}
+
+// Paramètres de GET /unavailabilities : un onglet, une page, les filtres choisis
+export function unavailabilityListParams({ period, driverId, vehicleId, page }) {
+  return {
+    period: PERIOD_API[period] ?? PERIOD_API[DEFAULT_PERIOD],
+    ...(driverId ? { driver_id: Number(driverId) } : {}),
+    ...(vehicleId ? { vehicle_id: Number(vehicleId) } : {}),
+    page,
+  }
+}
+
+// Nombres des onglets renvoyés par le backend (meta.period_counts), aux clés de l'URL : { 'a-venir': 2, passees: 5… }
+export function periodCounts(meta) {
+  if (!meta?.period_counts) return null
+  return Object.fromEntries(Object.entries(PERIOD_API).map(([value, apiValue]) => [value, meta.period_counts[apiValue] ?? 0]))
+}
+
+// Listes de choix : seulement les chauffeurs et véhicules actifs sont chargés. Si l'indisponibilité ouverte concerne
+// un chauffeur ou un bus désactivé depuis, on l'ajoute à partir de ce que renvoie le backend, pour qu'il reste choisi.
+export function withOpenedDriver(driverList, unavailability) {
+  const driver = unavailability?.driver
+  if (!driver || driverList.some((item) => item.id === driver.id)) return driverList
+  const [firstName = '', ...rest] = (driver.name ?? '').split(' ')
+  return [...driverList, { id: driver.id, is_active: false, user: { full_name: driver.name, first_name: firstName, last_name: rest.join(' ') } }]
+}
+
+export function withOpenedVehicle(vehicleList, unavailability) {
+  const vehicle = unavailability?.vehicle
+  if (!vehicle || vehicleList.some((item) => item.id === vehicle.id)) return vehicleList
+  return [...vehicleList, { id: vehicle.id, is_active: false, licence_plate: vehicle.licence_plate }]
 }
 
 // Chauffeurs proposés : les actifs, triés par nom, plus celui déjà choisi s'il a été désactivé depuis

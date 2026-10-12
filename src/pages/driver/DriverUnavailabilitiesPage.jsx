@@ -1,15 +1,17 @@
 import { CalendarOff } from 'lucide-react'
+import { useCallback } from 'react'
 import { useSearchParams } from 'react-router'
-import { getAllUnavailabilities } from '../../api/unavailabilities'
+import { getUnavailabilityPage } from '../../api/unavailabilities'
 import { DriverUnavailabilityRow } from '../../components/driver/DriverUnavailabilityRow'
 import { Alert } from '../../components/ui/Alert'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { Loader } from '../../components/ui/Loader'
 import { PageHeader } from '../../components/ui/PageHeader'
+import { Pagination } from '../../components/ui/Pagination'
 import { useApi } from '../../hooks/useApi'
 import { cx } from '../../lib/cx'
-import { countByPeriod, unavailabilitiesForPeriod } from '../../lib/unavailabilities'
+import { periodCounts, readUnavailabilitySearch, unavailabilityListParams } from '../../lib/unavailabilities'
 
 // Onglets du chauffeur : les annulées n'ont plus d'effet pour lui, elles ne sont pas affichées
 const DRIVER_PERIODS = [
@@ -22,25 +24,31 @@ const EMPTY_TITLES = {
   passees: 'Aucune indisponibilité passée',
 }
 
-// Le backend ne renvoie au chauffeur que ses indisponibilités ; il ne filtre pas : on range côté front
-// avec les mêmes règles que la page des agents (lib/unavailabilities.js). Défini hors du composant : fetcher stable.
-function fetchUnavailabilities(signal) {
-  return getAllUnavailabilities({ signal })
-}
-
-// Mes indisponibilités (lecture seule : seuls les agents en déclarent). Onglet dans l'URL (?periode=passees).
+// Mes indisponibilités (lecture seule : seuls les agents en déclarent). Onglet et page dans l'URL
+// (?periode=passees&page=2). Le backend ne renvoie au chauffeur que les siennes, déjà rangées par onglet, triées et
+// découpées en pages, avec les nombres des onglets (même règle que la page des agents).
 export function DriverUnavailabilitiesPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const period = searchParams.get('periode') === 'passees' ? 'passees' : 'a-venir'
-  const unavailabilities = useApi(fetchUnavailabilities)
-  const unavailabilityList = unavailabilities.data
-  const counts = unavailabilityList ? countByPeriod(unavailabilityList) : null
-  const visibleList = unavailabilityList ? unavailabilitiesForPeriod(unavailabilityList, period) : []
+  const { period, page } = readUnavailabilitySearch(searchParams, DRIVER_PERIODS)
+  const listKey = JSON.stringify(unavailabilityListParams({ period, page }))
+  const fetchList = useCallback((signal) => getUnavailabilityPage(JSON.parse(listKey), { signal }), [listKey])
+  const unavailabilities = useApi(fetchList)
+  const unavailabilityList = unavailabilities.data?.data
+  const counts = periodCounts(unavailabilities.data?.meta)
+  const visibleList = unavailabilityList ?? []
 
   function showPeriod(value) {
     const next = new URLSearchParams(searchParams)
     if (value === 'a-venir') next.delete('periode')
     else next.set('periode', value)
+    next.delete('page')
+    setSearchParams(next)
+  }
+
+  function showPage(value) {
+    const next = new URLSearchParams(searchParams)
+    if (value > 1) next.set('page', String(value))
+    else next.delete('page')
     setSearchParams(next)
   }
 
@@ -50,13 +58,16 @@ export function DriverUnavailabilitiesPage() {
   else if (visibleList.length === 0) content = <EmptyState icon={CalendarOff} title={EMPTY_TITLES[period]} />
   else {
     content = (
-      <ul className="grid gap-3 md:grid-cols-2">
-        {visibleList.map((unavailability) => (
-          <li key={unavailability.id}>
-            <DriverUnavailabilityRow unavailability={unavailability} />
-          </li>
-        ))}
-      </ul>
+      <>
+        <ul className="grid gap-3 md:grid-cols-2">
+          {visibleList.map((unavailability) => (
+            <li key={unavailability.id}>
+              <DriverUnavailabilityRow unavailability={unavailability} />
+            </li>
+          ))}
+        </ul>
+        <Pagination meta={unavailabilities.data.meta} onPageChange={showPage} />
+      </>
     )
   }
 

@@ -1,5 +1,5 @@
 import { api } from './client'
-import { fetchAllPages } from './pagination'
+import { fetchAllPages, fetchPages } from './pagination'
 
 export async function getDrivers(params = {}, { signal } = {}) {
   const { data } = await api.get('/drivers', { params, signal })
@@ -9,6 +9,12 @@ export async function getDrivers(params = {}, { signal } = {}) {
 // Tous les chauffeurs, toutes pages confondues (pour savoir quels comptes sont déjà chauffeurs)
 export function getAllDrivers({ signal } = {}) {
   return fetchAllPages((page, options) => getDrivers({ page }, options), { signal })
+}
+
+// Chauffeurs actifs (`active=1`), pour les listes de choix : { items, complete } (complete = false si la limite de
+// 10 pages a coupé la liste). Les chauffeurs partis restent dans la base pour l'historique, sans encombrer les menus.
+export function getActiveDrivers({ signal } = {}) {
+  return fetchPages((page, options) => getDrivers({ page, active: 1 }, options), { signal })
 }
 
 // Crée le profil chauffeur d'un compte existant ; le backend lui donne le rôle chauffeur.
