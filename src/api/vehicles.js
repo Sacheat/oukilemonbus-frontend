@@ -1,5 +1,5 @@
 import { api } from './client'
-import { fetchAllPages } from './pagination'
+import { fetchAllPages, fetchPages } from './pagination'
 
 export async function getVehicles(params = {}, { signal } = {}) {
   const { data } = await api.get('/vehicles', { params, signal })
@@ -12,6 +12,11 @@ export function getAllVehicles({ signal } = {}) {
 }
 
 // `capacity` inclut le siège du chauffeur
+// Véhicules actifs (`active=1`), pour les listes de choix : { items, complete } (voir getActiveDrivers)
+export function getActiveVehicles({ signal } = {}) {
+  return fetchPages((page, options) => getVehicles({ page, active: 1 }, options), { signal })
+}
+
 export async function createVehicle({ licence_plate, capacity }) {
   const { data } = await api.post('/vehicles', { licence_plate, capacity: Number(capacity) })
   return data.data

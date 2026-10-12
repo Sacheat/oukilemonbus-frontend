@@ -1,21 +1,22 @@
 import { toLocalApiDateTime } from '../lib/dates'
 import { api } from './client'
-import { fetchAllPages } from './pagination'
-
-// Les indisponibilités s'accumulent avec le temps : jusqu'à 50 pages (750 éléments)
-const MAX_UNAVAILABILITY_PAGES = 50
 
 export async function getUnavailabilities(params = {}, { signal } = {}) {
   const { data } = await api.get('/unavailabilities', { params, signal })
   return data
 }
 
-// Toutes les indisponibilités : le backend ne filtre pas, le rangement en onglets se fait côté front
-export function getAllUnavailabilities({ signal } = {}) {
-  return fetchAllPages((page, options) => getUnavailabilities({ page }, options), {
-    signal,
-    maxPages: MAX_UNAVAILABILITY_PAGES,
-  })
+// Une page d'un onglet, filtrée, triée et paginée par le backend (les indisponibilités s'accumulent avec les années) :
+// { data, meta: { current_page, last_page, total, period_counts: { a_venir, passees, annulees } } }.
+// `params` : voir unavailabilityListParams (lib/unavailabilities.js).
+export function getUnavailabilityPage(params, { signal } = {}) {
+  return getUnavailabilities(params, { signal })
+}
+
+// Une indisponibilité (panneau de détail), avec le nom du chauffeur ou la plaque du véhicule
+export async function getUnavailability(unavailabilityId, { signal } = {}) {
+  const { data } = await api.get(`/unavailabilities/${unavailabilityId}`, { signal })
+  return data.data
 }
 
 // Corps commun à la création et à la modification.
