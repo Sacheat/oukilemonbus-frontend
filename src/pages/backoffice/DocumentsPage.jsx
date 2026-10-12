@@ -11,14 +11,14 @@ import { Button } from '../../components/ui/Button'
 import { Drawer } from '../../components/ui/Drawer'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ErrorState } from '../../components/ui/ErrorState'
-import { Field, Input } from '../../components/ui/Field'
+import { Field, Input, Select } from '../../components/ui/Field'
 import { FilterChips } from '../../components/ui/FilterChips'
 import { Loader } from '../../components/ui/Loader'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Pagination } from '../../components/ui/Pagination'
 import { useApi } from '../../hooks/useApi'
 import { useDocumentCounts, useDocuments } from '../../hooks/useDocuments'
-import { DOCUMENT_TYPE_LABELS } from '../../lib/labels'
+import { cx } from '../../lib/cx'
 import { groupByMonth } from '../../lib/documents'
 import {
   activePeriod,
@@ -26,6 +26,7 @@ import {
   documentsApiParams,
   documentsCountParams,
   documentsPeriodProblem,
+  documentTitle,
   periodShortcuts,
   readDocumentsSearch,
   routeSheetNotice,
@@ -109,6 +110,12 @@ export function DocumentsPage() {
   }
 
   const filtered = Boolean(search || type || from || to)
+  const typeChips = ADMIN_DOCUMENT_CHIPS.map((chip) => ({ ...chip, count: counts.data ? counts.data[chip.value ?? 'all'] : null }))
+  const periodChips = [
+    { value: null, label: 'Toutes les dates' },
+    ...periodShortcuts().map(({ value, label }) => ({ value, label })),
+    { value: 'autre', label: 'Autre période' },
+  ]
   const generateButton = canGenerate && (
     <Button
       onClick={() => {
@@ -133,7 +140,24 @@ export function DocumentsPage() {
       {notice && <Alert tone="success">{notice}</Alert>}
 
       <div className="grid gap-3">
-        <div className="flex flex-wrap items-end gap-3">
+        <Select
+          aria-label="Type de document"
+          value={type ?? ''}
+          onChange={(event) => updateSearch({ type: event.target.value, page: null })}
+          className="py-2 text-sm font-semibold sm:hidden"
+        >
+          {typeChips.map((chip) => (
+            <option key={chip.label} value={chip.value ?? ''}>
+              {chip.label}
+              {chip.count == null ? '' : ` (${chip.count})`}
+            </option>
+          ))}
+        </Select>
+        <div className="hidden sm:block">
+          <FilterChips label="Type de document" chips={typeChips} value={type} onChange={(value) => updateSearch({ type: value, page: null })} />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
           <div className="relative w-full sm:w-80">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
             <Input
@@ -145,25 +169,30 @@ export function DocumentsPage() {
               className="py-2 pl-9 text-sm"
             />
           </div>
+          <Select
+            aria-label="Période de création"
+            value={periodChoice ?? ''}
+            onChange={(event) => choosePeriod(event.target.value || null)}
+            className="py-2 text-sm sm:hidden"
+          >
+            {periodChips.map((chip) => (
+              <option key={chip.label} value={chip.value ?? ''}>
+                {chip.label}
+              </option>
+            ))}
+          </Select>
+          <div className="hidden sm:block">
+            <FilterChips label="Période de création" chips={periodChips} value={periodChoice} onChange={choosePeriod} />
+          </div>
         </div>
-        <FilterChips
-          label="Période de création"
-          chips={[
-            { value: null, label: 'Toutes les dates' },
-            ...periodShortcuts().map(({ value, label }) => ({ value, label })),
-            { value: 'autre', label: 'Autre période' },
-          ]}
-          value={periodChoice}
-          onChange={choosePeriod}
-        />
         {periodChoice === 'autre' && (
           <div className="flex flex-wrap items-end gap-3">
-            <Field label="Du" className="font-semibold">
+            <Field label="Créé du" className="font-semibold">
               {(props) => (
                 <Input {...props} type="date" max={to ?? undefined} value={from ?? ''} onChange={(event) => updateSearch({ du: event.target.value, page: null })} className="py-2 text-sm" />
               )}
             </Field>
-            <Field label="Au" className="font-semibold">
+            <Field label="au" className="font-semibold">
               {(props) => (
                 <Input {...props} type="date" min={from ?? undefined} value={to ?? ''} onChange={(event) => updateSearch({ au: event.target.value, page: null })} className="py-2 text-sm" />
               )}
@@ -171,12 +200,6 @@ export function DocumentsPage() {
           </div>
         )}
         {periodProblem && <Alert tone="warning">{periodProblem}</Alert>}
-        <FilterChips
-          label="Type de document"
-          chips={ADMIN_DOCUMENT_CHIPS.map((chip) => ({ ...chip, count: counts.data ? counts.data[chip.value ?? 'all'] : null }))}
-          value={type}
-          onChange={(value) => updateSearch({ type: value, page: null })}
-        />
       </div>
 
       {documents.error ? (
@@ -192,11 +215,11 @@ export function DocumentsPage() {
           <p className="text-sm text-muted" aria-live="polite">
             {total} {total > 1 ? 'documents' : 'document'}
           </p>
-          <div aria-busy={documents.loading} className="grid gap-6">
+          <div aria-busy={documents.loading} className={cx('grid gap-6 transition-opacity', documents.loading && 'opacity-60')}>
             {groupByMonth(documentList).map((group) => (
               <section key={group.key} aria-labelledby={`mois-${group.key}`}>
                 <h2 id={`mois-${group.key}`} className="mb-2.5 text-sm font-extrabold tracking-[.1em] text-muted uppercase">
-                  {group.label} <span className="font-semibold tracking-normal normal-case">· {group.items.length}</span>
+                  {group.label}
                 </h2>
                 <ul className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface shadow-soft">
                   {group.items.map((doc) => (
@@ -221,7 +244,7 @@ export function DocumentsPage() {
       <Drawer
         open={Boolean(openedId)}
         onClose={() => updateSearch({ document: null })}
-        title={opened.document ? (DOCUMENT_TYPE_LABELS[opened.document.document_type] ?? 'Document') : 'Document'}
+        title={opened.document ? documentTitle(opened.document) : 'Document'}
       >
         <div className="grid gap-6 p-5">
           {openedId && <DocumentDrawerContent opened={opened} canGenerate={canGenerate} onRegenerated={handleRegenerated} />}

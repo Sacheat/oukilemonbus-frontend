@@ -55,10 +55,18 @@ export async function getBlobErrorMessage(error) {
   return getErrorMessage(error)
 }
 
+const SPREADSHEET_TYPES = ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+
+// Le navigateur sait afficher le fichier dans un onglet (PDF, image) ; sinon on ne propose que le téléchargement
+export function canOpenInBrowser(mimeType = '') {
+  return mimeType === 'application/pdf' || mimeType.startsWith('image/')
+}
+
 // Tuile du type de fichier : libellé court et couleurs (tokens de la DA)
 export function fileKind(mimeType = '') {
   if (mimeType === 'application/pdf') return { label: 'PDF', colors: 'bg-danger-soft text-danger' }
   if (mimeType.startsWith('image/')) return { label: 'IMG', colors: 'bg-info-soft text-info' }
+  if (SPREADSHEET_TYPES.includes(mimeType)) return { label: 'XLS', colors: 'bg-success-soft text-success' }
   return { label: 'DOC', colors: 'bg-neutral-soft text-neutral' }
 }
 
