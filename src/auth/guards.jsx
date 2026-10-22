@@ -2,6 +2,7 @@ import { Navigate, Outlet, useLocation } from 'react-router'
 import { FullPageLoader } from '../components/ui/Loader'
 import { EmailNotVerifiedPage } from '../pages/errors/EmailNotVerifiedPage'
 import { ForbiddenPage } from '../pages/errors/ForbiddenPage'
+import { ServerUnavailablePage } from '../pages/errors/ServerUnavailablePage'
 import { getHomePath, isEmailVerified } from './permissions'
 import { useAuth } from './useAuth'
 
@@ -9,6 +10,7 @@ import { useAuth } from './useAuth'
 export function RequireGuest() {
   const { user, status } = useAuth()
   if (status === 'loading') return <FullPageLoader />
+  if (status === 'unavailable') return <ServerUnavailablePage />
   if (user) return <Navigate to={getHomePath(user)} replace />
   return <Outlet />
 }
@@ -18,6 +20,7 @@ export function RequireAuth() {
   const { user, status } = useAuth()
   const location = useLocation()
   if (status === 'loading') return <FullPageLoader />
+  if (status === 'unavailable') return <ServerUnavailablePage />
   if (!user) return <Navigate to="/connexion" replace state={{ from: location }} />
   if (!isEmailVerified(user)) return <EmailNotVerifiedPage />
   return <Outlet />
@@ -40,5 +43,6 @@ export function RequirePermission({ permission, children }) {
 export function RootRedirect() {
   const { user, status } = useAuth()
   if (status === 'loading') return <FullPageLoader />
+  if (status === 'unavailable') return <ServerUnavailablePage />
   return <Navigate to={user ? getHomePath(user) : '/connexion'} replace />
 }
