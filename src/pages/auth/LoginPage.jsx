@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router'
-import { getHomePath } from '../../auth/permissions'
+import { getLandingPath } from '../../auth/spaces'
 import { useAuth } from '../../auth/useAuth'
 import { Alert } from '../../components/ui/Alert'
 import { Button } from '../../components/ui/Button'
@@ -18,7 +18,7 @@ export function LoginPage() {
     const result = await form.submit(login)
     if (result.ok) {
       // Retour à la page demandée avant la connexion, sinon à l'espace du rôle
-      navigate(location.state?.from?.pathname ?? getHomePath(result.data), { replace: true })
+      navigate(location.state?.from?.pathname ?? getLandingPath(result.data), { replace: true })
     }
   }
 
