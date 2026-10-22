@@ -10,6 +10,7 @@ import { ThemeToggle } from '../components/ui/ThemeToggle'
 import { TourLauncher } from '../components/tour/TourLauncher'
 import { cx } from '../lib/cx'
 import { isNavItemVisible } from '../navigation'
+import { SpaceSwitcher } from './SpaceSwitcher'
 import { UserMenu } from './UserMenu'
 
 // Disposition 01 de la DA : navigation en haut (espaces usager et chauffeur).
@@ -50,6 +51,7 @@ export function TopNavLayout({ nav, tour }) {
           </nav>
 
           <div className="flex items-center gap-1">
+            <SpaceSwitcher className="mr-2 hidden xl:flex" />
             <NotificationBell />
             <ThemeToggle />
             <UserMenu className="hidden sm:flex" />
@@ -69,6 +71,7 @@ export function TopNavLayout({ nav, tour }) {
 
         {menuOpen && (
           <nav id="mobile-nav" aria-label="Navigation principale" className="border-t border-line px-5 py-3 xl:hidden">
+            <SpaceSwitcher className="mb-3 flex w-full" onNavigate={() => setMenuOpen(false)} />
             <ul className="grid gap-1">
               {items.map((item) => (
                 <li key={item.to}>

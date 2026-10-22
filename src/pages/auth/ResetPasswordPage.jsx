@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { resetPassword } from '../../api/auth'
-import { getHomePath } from '../../auth/permissions'
+import { getLandingPath } from '../../auth/spaces'
 import { useAuth } from '../../auth/useAuth'
 import { Alert } from '../../components/ui/Alert'
 import { Button } from '../../components/ui/Button'
@@ -59,7 +59,7 @@ export function ResetPasswordPage() {
     return (
       <AuthCard eyebrow="Mot de passe oublié" title="Mot de passe changé">
         <Alert tone="success">{doneMessage}</Alert>
-        <Button to={getHomePath(user)} className="mt-4 w-full">
+        <Button to={getLandingPath(user)} className="mt-4 w-full">
           Retour à mon espace
         </Button>
       </AuthCard>

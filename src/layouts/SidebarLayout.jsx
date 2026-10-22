@@ -12,6 +12,7 @@ import { ThemeToggle } from '../components/ui/ThemeToggle'
 import { TourLauncher } from '../components/tour/TourLauncher'
 import { cx } from '../lib/cx'
 import { isNavItemVisible } from '../navigation'
+import { SpaceSwitcher } from './SpaceSwitcher'
 import { UserMenu } from './UserMenu'
 
 // Disposition 02 de la DA : barre latérale (back-office agent et admin).
@@ -51,6 +52,8 @@ export function SidebarLayout({ sections, tour }) {
               <X className="size-5" aria-hidden="true" />
             </button>
           </div>
+
+          <SpaceSwitcher inverted className="-mt-5 mb-7 flex w-full" onNavigate={() => setMenuOpen(false)} />
 
           <nav aria-label="Navigation principale" className="grid gap-6">
             {visibleSections.map((section) => (
