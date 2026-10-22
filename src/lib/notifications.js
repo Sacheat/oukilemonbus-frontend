@@ -1,12 +1,20 @@
-import { getHomePath, isInternal } from '../auth/permissions'
+import { getHomePath, hasRole, isInternal } from '../auth/permissions'
 import { NOTIFICATION_CATEGORY_LABELS } from './labels'
 
-// Catégories reçues selon le rôle : l'usager reçoit dans « admin_workflow » les réponses
+// Catégories reçues par rôle : l'usager reçoit dans « admin_workflow » les réponses
 // à ses demandes d'adhésion ou de création ; un agent y reçoit le travail à traiter.
+const ROLE_CATEGORIES = [
+  { internal: true, categories: ['admin_workflow', 'reservation_updates', 'last_minute_cancellation', 'weekly_planning'] },
+  { role: 'chauffeur', categories: ['driver_planning', 'last_minute_cancellation'] },
+  { role: 'user', categories: ['reservation_updates', 'last_minute_cancellation', 'admin_workflow'] },
+]
+
+// Réunion des catégories de tous les rôles de l'utilisateur (ex. agent communal et chauffeur) ;
+// sans rôle connu, celles de l'usager
 export function notificationCategories(user) {
-  if (isInternal(user)) return ['admin_workflow', 'reservation_updates', 'last_minute_cancellation', 'weekly_planning']
-  if (getHomePath(user) === '/chauffeur') return ['driver_planning', 'last_minute_cancellation']
-  return ['reservation_updates', 'last_minute_cancellation', 'admin_workflow']
+  const sets = ROLE_CATEGORIES.filter((entry) => (entry.internal ? isInternal(user) : hasRole(user, entry.role)))
+  const categories = (sets.length ? sets : ROLE_CATEGORIES.slice(-1)).flatMap((entry) => entry.categories)
+  return [...new Set(categories)]
 }
 
 // État des pastilles de /notifications (?etat=) : toutes, non lues, ou urgentes (priorité haute)
@@ -53,10 +61,17 @@ export function notificationTarget(notification, user) {
       : { to: '/chauffeur/journee', label: 'Ma journée' }
   }
   if (actionUrl) return { href: actionUrl, label: 'Ouvrir le document' }
-  if (reservationId && getHomePath(user) === '/espace') {
+  // Pour un usager aussi chauffeur, seul le suivi de ses réservations mène à l'espace usager
+  // (une annulation peut concerner une mission qu'il conduit)
+  if (reservationId && isOwnReservation(notification.data, user)) {
     return { to: `/espace/deplacements/${reservationId}`, label: 'Voir la réservation' }
   }
   return null
+}
+
+function isOwnReservation({ category }, user) {
+  if (getHomePath(user) === '/espace') return true
+  return !isInternal(user) && hasRole(user, 'user') && category === 'reservation_updates'
 }
 
 export const DIGEST_OPTIONS = [
