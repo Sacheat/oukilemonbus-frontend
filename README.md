@@ -121,3 +121,9 @@ Autres références :
 - Règles métier détaillées : `docs/*.md` du dépôt backend (réservations, conflits, planning, documents…).
 - Charte graphique et maquettes : [`docs/design/`](docs/design/).
 - [`CLAUDE.md`](CLAUDE.md) : consignes et coordination du binôme pour les assistants IA (avancement des pages, points ouverts).
+
+## Licence
+
+© 2026 Sacha Libion et Stéphane Ponzo — **tous droits réservés**.
+
+Le code est public uniquement pour être consulté (évaluation, recrutement). Toute copie, modification ou réutilisation, même partielle, est interdite sans l'accord écrit des auteurs. Voir [`LICENSE`](LICENSE).
